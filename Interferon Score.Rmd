@@ -1,0 +1,89 @@
+---
+title: "Immuno-Metabolic Subtypes - Interferon Score"
+author: "Lucas Gillenwater"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(ggplot2)
+library(tidyverse)
+library(ggbeeswarm)
+```
+
+# Interferon Score
+
+Galbraith et al. calculated interferon scores for individuals in the HTP datasets. I believe these scores were calculated using the same methodology as the HTP data (this will need to be confirmed with Matt). The methodology for the calculation of this score was reported in their [PNAS article] (https://www.pnas.org/doi/full/10.1073/pnas.2116730119) on specialized interferon action in COVID-19. Specifically, the methodology can be found in the 1st supplemental file. 
+
+As an overview, Z-scores were calculated using the age- and sex-adjusted concentrations based on the mean and standard deviation of COVID negative samples. The interferon score refers to the summed z-scores for the genes contained in the Hallmark Interferon-alpha or -gamma gene sets. They calculated RNA-based and protein-based scores. 
+
+**The shared interferon scores are based on 18 genes. This is different than those reported in the paper referenced above. Why?**
+
+# Relation to identified clusters
+
+The scientific question at hand is how the individuals in each cluster differ by interferon score. I would hypothesize that clusters 3 and 5 (which are significantly associated with clinical conditions of obesity and frequent pneumonia, respectively) will have higher interferon scores. 
+
+
+
+```{r data}
+# Interferon scores shared by Matt 8/11/2022
+ifn_scores <- read.delim("./data/P4C_RNAseq_IFNscores_v0.3_DS_IFN_score_up1.5_SourceSexAgeadjusted.txt")
+# load the cluster assignments
+load("./results/clusterings/all_clust.RData")
+clustering <- as.data.frame(all_clust$clustering)
+clustering <- clustering %>% 
+  rownames_to_column(var = "LabID") %>% 
+  rename(clustering = "all_clust$clustering")
+
+ifn_cluster <- ifn_scores %>% 
+  inner_join(clustering, by = "LabID")
+
+
+# 10 subjects don't have interferon scores
+```
+** 10 subjects with overlapping cytokine and metabolite profiles don't have interferon scores"
+
+Those subjects and their cluster assignments are shown below. They are pretty well spread over the clusters. 
+
+```{r}
+clustering %>% 
+  filter(!(LabID %in% ifn_cluster$LabID)) 
+```
+
+## Visualization
+
+I first visualized the interferon score by cluster to see if there was any difference. The interferon score is clearly higher in cluster 5 as seen below. 
+
+```{r cluster comparison}
+# Visualize scores by cluster
+ggplot(ifn_cluster, aes(x = factor(clustering), y = DS_IFN_score, fill = factor(clustering))) +
+  geom_boxplot(alpha = .8) + 
+  geom_beeswarm(alpha = .8)+
+  xlab("Cluster") +
+  ylab("Interferon Score") +
+  guides(fill = guide_legend(title ="Cluster")) +
+  theme_classic()
+
+
+```
+
+## Statistical Test
+
+To show statistical significance of the difference I performed a one-way anova. This test indicated that there were significant difference by cluster. 
+
+```{r Anova}
+res.aov <- aov(DS_IFN_score ~ factor(clustering), data = ifn_cluster)
+summary(res.aov)
+```
+
+To identify the significant differences between clusters, I performed pairwise t.tests. The results showed that cluster 5 was significantly different than all other clusters. 
+
+
+```{r}
+pairwise.t.test(ifn_cluster$DS_IFN_score, factor(ifn_cluster$clustering), p.adjust.method = "fdr")
+```
+
+# Conclusions
+
+This evidence supports the hypothesis for elevated interferon signaling in individuals assigned to cluster 5. This cluster was significantly enriched for people experiencing frequent or reoccurring pneumonia. However, significant differences were not seen in cluster 3. This indicates that those individuals, while obese, did not experience increased interferon signaling. 
