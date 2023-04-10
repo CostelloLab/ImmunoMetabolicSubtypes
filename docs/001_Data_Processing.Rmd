@@ -1,0 +1,119 @@
+---
+title: "Data Pre-Processing"
+author: "Lucas Gillenwater"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+
+# Necessary Libraries
+```{r}
+source("./R/data_prep_functions.R")
+library(Publish)
+library(knitr)
+library(datawizard)
+```
+# Data Files
+
+```{r}
+# Reading in the data
+cytokine_file <- "./data/HTP_data/MSD_200413_EXPLORER_noMeta_Exp3456_firstPIDsampleOnly_meansOnly_FINAL_JRS_v5.tsv"
+metabolite_file <- "./data/HTP_data/P4C_LCMS_abundance_long_TrisomExplorer_08092020.tsv"
+metadata_file <-"./data/HTP_data/P4C_metadata_021921_Costello.txt"
+comorbidity_file <- "./data/HTP_data/P4C_Comorbidity_020921.tsv"
+```
+
+# Processing Data into a single object 
+
+``` {r}
+htp = read_HTP(cytokine_file, metabolite_file, metadata_file, comorbidity_file)
+
+```
+
+# Filter to only data with matched cytokine and metabolite profiles
+
+``` {r}
+htp_overlap <- get_overlap(cytokine_data = htp$cytokines,
+						   metabolite_data = htp$metabolites, 
+						   clinic_data = htp$clinic)
+```
+
+# Create 'Table 1' of cohort demographics
+```{r}
+
+colnames(htp_overlap$clinic) = gsub(" |/", "_", names(htp_overlap$clinic))
+tab1 <- univariateTable(Karyotype~ Sex+Age_at_visit + BMI + Sample_source   +Anxiety+Any_autoimmune_skin_condition+Any_congenital_heart_defect+Any_hearing_loss_condition+ Any_hypothyroidism+Any_seizure_history+Any_sleep_apnea+                Asthma_reactive_airway_disease +Celiac_disease+Depression+ Frequent_Recurrent_pneumonia+Obesity+Recurrent_otitis_media  , htp_overlap$clinic)
+kable(summary(tab1))
+# write.csv(summary(tab1), file = "./results/tables/Table1.csv", row.names = F) ## For initial writing, but afterwards this is updated in format for the publication. No need to update again. 
+
+```
+# Log Transform the data
+``` {r}
+## Log transform
+htp_overlap[1:2] = lapply(htp_overlap[1:2], log2)
+
+
+```
+# PCA plots of the data
+
+``` {r}
+
+cyt_pca <- prcomp(htp_overlap[[1]])$x
+ggplot(as.data.frame(cyt_pca), aes(x = PC1, y = PC2)) +
+        geom_text(aes(label = rownames(cyt_pca)))
+
+
+met_pca <- prcomp(htp_overlap[[2]])$x
+ggplot(as.data.frame(met_pca), aes(x = PC1, y = PC2)) +
+        geom_text(aes(label = rownames(met_pca)))
+
+```
+
+# Remove Outliers
+The PCA plot of the cytokine data indicates several samples that fell outside the expected range for cytokine concentrations. Therefore, these individuals were tagged as outliers and removed from the analysis. 
+
+``` {r}
+
+# Remove outlier subjects
+toRemove = c("HTP0553A", "HTP0565A", "HTP0572A","HTP0589A","HTP0664A", "HTP0555B")
+htp_overlap[1:2] = remove_subj(htp_overlap[1:2], toRemove)
+htp_overlap$clinic = htp_overlap$clinic[rownames(htp_overlap[[1]]),]
+
+
+```
+
+# Adjusting for confounding variables
+Several demographic variables are known to confound the relationships between molecular feature and co-occurring condition. Moreover, this data was collected at different time points ('sample_source'). Therefore, these data were linearly adjusted using a mixed effects model for each of these confounding variables. 'Age' and 'sex' were input as fixed effects. The 'sample_source' was input as a random effect. This was done for consistency with other studies by the Human Trisome Project
+
+``` {r}
+
+full_data = lapply(list(htp_overlap[[1]],htp_overlap[[2]]), function(x) merge(x,htp_overlap$clinic, by.x = 0, by.y = "LabID"))
+names(full_data[[1]]) =  make.names(names(full_data[[1]]))
+names(full_data[[2]]) =  make.names(names(full_data[[2]]))
+
+
+mixed = lapply(1:2, function(x) adjust(full_data[[x]], effect = "Sample_source", exclude = c("Row.names", make.names(names(htp_overlap$clinic))), multilevel = T, keep_intercept = TRUE))
+mixed = lapply(1:2, function(x) adjust(mixed[[x]], effect = "Age_at_visit", exclude = c("Row.names", make.names(names(htp_overlap$clinic))), keep_intercept = TRUE))
+mixed = lapply(1:2, function(x) adjust(mixed[[x]], effect = "Sex", exclude = c("Row.names", make.names(names(htp_overlap$clinic))), keep_intercept = TRUE))
+
+mixed = lapply(1:2, function(x) mixed[[x]][make.names(names(htp_overlap[[x]]))])
+names(mixed[[1]]) = names(htp_overlap[[1]])
+names(mixed[[2]]) = names(htp_overlap[[2]])
+mixed = lapply(mixed, function(x) as.data.frame(t(x)))
+
+names(mixed[[1]]) = rownames(htp_overlap[[1]])
+names(mixed[[2]]) = rownames(htp_overlap[[1]])
+
+```
+# Separating T21 and D21 data
+``` {r}
+T21.mixed = only_T21(list(c(mixed, list(htp_overlap$clinic))))
+D21.mixed = only_D21(list(c(mixed, list(htp_overlap$clinic))))
+all.mixed = list(c(mixed, list(htp_overlap$clinic)))
+
+save(T21.mixed, file = "./data/processed/T21_mixed.Rdata")
+save(D21.mixed, file = "./data/processed/D21_mixed.Rdata")
+save(all.mixed, file = "./data/processed/all_age_sex_mixed.Rdata")
+
+```
+
