@@ -117,3 +117,8 @@ save(all.mixed, file = "./data/processed/all_age_sex_mixed.Rdata")
 
 ```
 
+
+```{r}
+sessionInfo()
+```
+
