@@ -109,7 +109,7 @@ names(mixed[[2]]) = rownames(htp_overlap[[1]])
 ``` {r}
 T21.mixed = only_T21(list(c(mixed, list(htp_overlap$clinic))))
 D21.mixed = only_D21(list(c(mixed, list(htp_overlap$clinic))))
-all.mixed = list(c(mixed, list(htp_overlap$clinic)))
+all.mixed = list(cytokines = mixed[[1]], metabolites = mixed[[2]], clinic =  htp_overlap$clinic)
 
 save(T21.mixed, file = "./data/processed/T21_mixed.Rdata")
 save(D21.mixed, file = "./data/processed/D21_mixed.Rdata")
