@@ -1,0 +1,97 @@
+---
+title: "Pathway Annotation"
+author: "Lucas Gillenwater"
+date: "`r Sys.Date()`"
+output: html_document
+---
+For downstream enrichment analyses, we annotated features based on prior knowledge of biological pathways. 
+
+# Necessary Libraries
+```{r}
+library(biomaRt)
+library(data.table)
+```
+# Load the molecular data created in 001
+
+```{r}
+load("./data/processed/all_age_sex_mixed.Rdata")
+
+```
+
+# Cytokines
+
+```{r}
+cytokines = rownames(all.mixed$cytokines)
+
+# download the human protein atlas
+dir.create("./data/pathway_annotation")
+system("wget https://www.proteinatlas.org/download/proteinatlas.tsv.zip  -P ./data/pathway_annotation")
+system("unzip ./data/pathway_annotation/proteinatlas.tsv.zip -d ./data/pathway_annotation")
+
+protein_atlas <- read.delim("./data/pathway_annotation/proteinatlas.tsv")
+
+protein_atlas_cytokines <- sapply(cytokines, function(x) {which(grepl(x, protein_atlas$Gene) | grepl(x, protein_atlas$Gene.synonym))})
+
+ensembl <- useEnsembl(biomart = "genes", dataset = "hsapiens_gene_ensembl")
+filters <- listFilters(ensembl)
+resultTable <- biomaRt::getBM(
+                            attributes = c("hgnc_id", "ensembl_gene_id", "name_1006", "go_linkage_type", "namespace_1003"),       
+                            filters    = "hgnc_id",       
+                            values     = cytokines,         
+                            mart       = ensembl) 
+
+
+
+```
+
+
+```{r}
+### Cytokine Pathway annotation
+listMarts()
+
+att <- listAttributes(biomaRt::useDataset(
+                                     dataset = "hsapiens_gene_ensembl",         
+                                     mart    = useMart("ENSEMBL_MART_ENSEMBL",      
+                                                       host    = "www.ensembl.org")))
+
+att[grep("path", att$description, ignore.case = TRUE),]
+att[grep("react", att$description, ignore.case = TRUE),]
+att[grep("GO", att$description, ignore.case = TRUE),]
+head(att[grep("protein", att$description, ignore.case = TRUE),], 20)
+head(att[grep("gene", att$description, ignore.case = TRUE),],20)
+
+
+filt <- listFilters(biomaRt::useDataset(dataset = "hsapiens_gene_ensembl",       
+                                               mart    = useMart("ENSEMBL_MART_ENSEMBL",        
+                                               host    = "www.ensembl.org")))
+
+head(filt[grep("ens", filt$description, ignore.case = TRUE),],20)
+
+
+
+## cytokine_anno <- rbindlist(ann)
+## cytokine_ann <- cytokine_anno[, 1:5]
+## write.csv(cytokine_ann, file = sprintf("%sdata/cytokine_annotation.csv", row.names = FALSE)
+
+
+## cytokine_anno <- read.csv(sprintf("%sdata/cytokine_annotation.csv")
+## cytokine_anno <- cbind(cytokine_anno, cytokine = names(cyt)[1:54])
+
+
+
+## cyt_ens <- cytokine_anno$Ensembl
+
+
+
+
+
+## resultTable <- biomaRt::g
+
+
+## cytokine_go <- merge(resultTable, cytokine_anno, by.x = "ensembl_gene_id", by.y = "Ensembl", all.x = TRUE)
+
+## cyt_go <- table(cytokine_go$name_1006, cytokine_go$cytokine )
+
+## write.csv(cyt_go,sprintf("%sdata/cytokine_GO.csv")
+
+```
