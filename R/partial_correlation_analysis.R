@@ -1,5 +1,6 @@
-
-
+#### This R script performs the partial correlation analysis.
+## It takes as inputs:
+## 
 
 load("../DS-transfer/data/HTP_transcription_FPKMs_wide_missing_variance_filtered.Rdata")
 
@@ -145,7 +146,7 @@ res <- partial_cor_results[[1]]
 res[,4:7] <- apply(res[,4:7], 2, as.numeric)
 res$diff <- res$partial_correlation_p-res$total_correlation_p
 
-res_IFN <- res %>% filter(cytokine == "IFN-gamma") %>% arrange(-diff) %>% dplyr::select(gene,diff)
+res_IFN <- res %>% filter(cytokine == "IFN-gamma") %>% arrange(-diff) %>% dplyr::select(gene,diff) 
 res_TNF <- res %>% filter(cytokine == "TNF-alpha") %>% arrange(-diff) %>% dplyr::select(gene,diff)
 
 write.table(res_IFN, "res_IFN.rnk", row.names= FALSE, col.names = FALSE, quote = FALSE, sep = "\t")

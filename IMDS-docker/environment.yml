@@ -1,8 +1,0 @@
-channels:
-  - conda-forge
-  - defaults
-dependencies:
-  - r-base=4.2.3
-  - r-tidyverse
-  - r-optparse
-  - r-rstudioapi

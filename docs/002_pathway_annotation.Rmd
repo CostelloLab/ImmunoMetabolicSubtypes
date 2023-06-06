@@ -60,7 +60,17 @@ cytokine_go <- merge(resultTable, cytokine_annotation, by.x = "ensembl_gene_id",
 cyt_go <- table(cytokine_go$name_1006, cytokine_go$cytokine )
 
 
-write.csv(cyt_go,sprintf("./data/pathway_annotation/cytokine_GO.csv"))
+
+cyt_path = t(cyt_go)
+ind = !duplicated(cyt_path[,1:ncol(cyt_path)])
+cyt_path = cyt_path[, ind]
+cyt_path = melt(cyt_path)
+colnames(cyt_path)[1:2] = c("X", "pathway")
+cyt_path$value = as.numeric(cyt_path$value)
+
+save(cyt_path, file = "./data/pathway/cytokine_pathway.RData")
+
 
 ```
 
+# Metabolites
