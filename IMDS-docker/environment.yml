@@ -2,6 +2,7 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  - r-base=4.1
-  - r-tidyverse=2.0.0
-  - r-optparse=1.7.3
+  - r-base=4.2.3
+  - r-tidyverse
+  - r-optparse
+  - r-rstudioapi
