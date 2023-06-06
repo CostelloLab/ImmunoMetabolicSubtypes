@@ -5,7 +5,8 @@ LABEL description="Base docker image with conda and util libraries"
 ARG ENV_NAME="IM-DS"
 
 # Install the conda environment
-RUN conda create -n ${ENV_NAME} -y
+COPY environment.yml /
+RUN conda env create --quiet --name ${ENV_NAME} --file /environment.yml && conda clean -a
 
 
 # Add conda installation dir to PATH (instead of doing 'conda activate')
