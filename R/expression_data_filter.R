@@ -1,9 +1,11 @@
 #### This program preps the HTP data for downstream analysis
-## Pipeline:
+## Processing workflow:
 ##    - load count data
 ##    - log transform
 ##    - apply variance filter
 ##    - pivot to wider
+
+
 library(tidyverse)
 library(optparse)
 
