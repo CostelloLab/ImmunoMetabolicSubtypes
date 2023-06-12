@@ -1,4 +1,3 @@
-
 ### Reading in the data
 
 # * Cytokine and targeted metabolomic data was obtained from Joaquin Espinosa and the [human trisomy project](http://www.trisome.org/) working group at the University of Colorado Anschutz Medical campus. 
