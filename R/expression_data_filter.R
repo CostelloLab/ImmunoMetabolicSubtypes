@@ -95,7 +95,4 @@ mixed <- mixed %>% dplyr::select(!(names(metadata)))
 htp_expr <- mixed
 
 expression_list<- list(expression = htp_expr,gene_map = gene_map)
-save(expression_list, file = paste0(opt$output_directory,"/processed_transcriptome.RData"))
-
-
-
+save(expression_list, file = sprintf(,"%s/processed_transcriptome_%s.RData", opt$output_directory, Sys.Date() ))
