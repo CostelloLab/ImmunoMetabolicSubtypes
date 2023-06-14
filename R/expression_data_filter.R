@@ -7,7 +7,7 @@
 
 
 library(tidyverse)
-library(optparse
+library(optparse)
 library(datawizard)
 
 option_list <- list(
