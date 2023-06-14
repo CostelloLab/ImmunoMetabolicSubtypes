@@ -34,6 +34,7 @@ read_HTP <- function(cytokine_file, metabolite_file, metadata_file, commorbidity
 
 	## Cytokines
 
+    
 	cyt <- suppressWarnings(dcast(cyt[, c("LabID", "Analyte", "Adjusted_Concentration")], Analyte ~ LabID ))
 	rownames(cyt) <- cyt$Analyte
 	cyt <- cyt[,-1]
