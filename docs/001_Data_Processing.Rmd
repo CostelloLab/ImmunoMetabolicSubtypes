@@ -86,15 +86,18 @@ htp_overlap$clinic = htp_overlap$clinic[rownames(htp_overlap[[1]]),]
 Several demographic variables are known to confound the relationships between molecular feature and co-occurring condition. Moreover, this data was collected at different time points ('sample_source'). Therefore, these data were linearly adjusted using a mixed effects model for each of these confounding variables. 'Age' and 'sex' were input as fixed effects. The 'sample_source' was input as a random effect. This was done for consistency with other studies by the Human Trisome Project
 
 ``` {r}
-
 full_data = lapply(list(htp_overlap[[1]],htp_overlap[[2]]), function(x) merge(x,htp_overlap$clinic, by.x = 0, by.y = "LabID"))
 names(full_data[[1]]) =  make.names(names(full_data[[1]]))
 names(full_data[[2]]) =  make.names(names(full_data[[2]]))
 
+to_exclude <- make.names(names(htp_overlap$clinic))
 
-mixed = lapply(1:2, function(x) adjust(full_data[[x]], effect = "Sample_source", exclude = c("Row.names", make.names(names(htp_overlap$clinic))), multilevel = T, keep_intercept = TRUE))
-mixed = lapply(1:2, function(x) adjust(mixed[[x]], effect = "Age_at_visit", exclude = c("Row.names", make.names(names(htp_overlap$clinic))), keep_intercept = TRUE))
-mixed = lapply(1:2, function(x) adjust(mixed[[x]], effect = "Sex", exclude = c("Row.names", make.names(names(htp_overlap$clinic))), keep_intercept = TRUE))
+mixed = lapply(1:2, function(x) adjust(full_data[[x]], effect = "Sample_source",
+                                       exclude = to_exclude ,
+                                       multilevel = T, keep_intercept = TRUE))
+
+mixed = lapply(1:2, function(x) adjust(mixed[[x]], effect = "Age_at_visit", exclude = to_exclude, keep_intercept = TRUE))
+mixed = lapply(1:2, function(x) adjust(mixed[[x]], effect = "Sex", exclude = to_exclude, keep_intercept = TRUE))
 
 mixed = lapply(1:2, function(x) mixed[[x]][make.names(names(htp_overlap[[x]]))])
 names(mixed[[1]]) = names(htp_overlap[[1]])
