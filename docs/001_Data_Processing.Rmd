@@ -7,13 +7,25 @@ output: html_document
 
 
 # Necessary Libraries
+
+Prior to running this script you may need to first download the necessary libraries. 
+
 ```{r}
 source("./R/data_prep_functions.R")
 library(Publish)
 library(knitr)
 library(datawizard)
+library(tidyverse)
 ```
 # Data Files
+
+This script assumes that you are running it from the parent directory. The data subdirectory is organized as:
+- data
+  - HTP_data
+  - processed
+  - pathway
+
+Also, it assumes that you have the necessary data files. 
 
 ```{r}
 # Reading in the data
@@ -21,6 +33,7 @@ cytokine_file <- "./data/HTP_data/MSD_200413_EXPLORER_noMeta_Exp3456_firstPIDsam
 metabolite_file <- "./data/HTP_data/P4C_LCMS_abundance_long_TrisomExplorer_08092020.tsv"
 metadata_file <-"./data/HTP_data/P4C_metadata_021921_Costello.txt"
 comorbidity_file <- "./data/HTP_data/P4C_Comorbidity_020921.tsv"
+transcriptomic_file <- "./data/HTP_data/HTP_WholeBlood_RNAseq_FPKMs_Synapse.txt"
 ```
 
 # Processing Data into a single object 
@@ -44,7 +57,7 @@ htp_overlap <- get_overlap(cytokine_data = htp$cytokines,
 colnames(htp_overlap$clinic) = gsub(" |/", "_", names(htp_overlap$clinic))
 tab1 <- univariateTable(Karyotype~ Sex+Age_at_visit + BMI + Sample_source   +Anxiety+Any_autoimmune_skin_condition+Any_congenital_heart_defect+Any_hearing_loss_condition+ Any_hypothyroidism+Any_seizure_history+Any_sleep_apnea+                Asthma_reactive_airway_disease +Celiac_disease+Depression+ Frequent_Recurrent_pneumonia+Obesity+Recurrent_otitis_media  , htp_overlap$clinic)
 kable(summary(tab1))
-# write.csv(summary(tab1), file = "./results/tables/Table1.csv", row.names = F) ## For initial writing, but afterwards this is updated in format for the publication. No need to update again. 
+## write.csv(summary(tab1), file = "./results/tables/Table1.csv", row.names = F) ## For initial writing, but afterwards this is updated in format for the publication. No need to update again. 
 
 ```
 # Log Transform the data
@@ -124,34 +137,15 @@ save(all.mixed, file = "./data/processed/all_age_sex_mixed.Rdata")
 # Gene Expression Data
 
 ```{r}
-
-
-
-#### This program preps the HTP data for downstream analysis
+#### This chunk  preps the HTP transcriptomic data for downstream analysis
 ## Processing workflow:
 ##    - load count data
 ##    - log transform
 ##    - apply variance filter
 ##    - pivot to wider
 
-
-library(tidyverse)
-library(optparse)
-library(datawizard)
-
-option_list <- list(
-    make_option(c("-i", "--input_file"), type = "character", default = NULL, help = "counts input file, long format", metavar="character"),
-    make_option(c("-o", "--output_directory"), type = "character", default = NULL, help = "output file location", metavar="character"),
-    make_option(c("-c", "--clinical_metadata_file"), type = "character", default = NULL, help = "clinical_metadata_file", metavar="character"),
-    make_option(c("-m", "--missingness"), type = "numeric", default = .2, help = "filter genes with missingness less than defined threshold, default is .2", metavar="numeric"),
-    make_option(c("-v", "--variance"), type = "numeric", default = .2, help = "filter genes with log variance less than defined threshold, default is .2", metavar="numeric"))
-
-
-opt_parse <- OptionParser(option_list=option_list)
-opt <- parse_args(opt_parse)
-
 ## load expression data
-expression <- read.delim(opt$input_file)
+expression <- read.delim(transcriptomic_file)
 
 ## find the number of subjects
 n <- length(unique(expression$LabID))
@@ -162,7 +156,7 @@ missingness <- expression %>%
     summarise(missingness = sum(Value ==0)/n) 
 
 miss_filtered <- expression %>%
-    filter(EnsemblID %in% (missingness %>% filter(missingness < opt$missingness) %>% .$EnsemblID))
+    filter(EnsemblID %in% (missingness %>% filter(missingness < .2) %>% .$EnsemblID))
 
 ## logtranformation
 miss_filtered$logValue <- log(miss_filtered$Value+1)
@@ -172,7 +166,7 @@ miss_filtered$logValue <- log(miss_filtered$Value+1)
 var_filtered <- miss_filtered %>%
     group_by(EnsemblID) %>%
     summarise(variance = var(logValue)) %>%
-    filter(variance > opt$variance)
+    filter(variance > .01)
     
 
 variance_filtered <- miss_filtered %>%
@@ -201,7 +195,7 @@ gene_map <- expression %>%
 
 
 ## Adjust the transcriptomic data for age, sex, and sample source as the cytokine and metabolite data
-metadata <- read.delim(opt$clinical_metadata_file)
+metadata <- htp_overlap$clinic
 
 expr_metadata <- htp_expr %>%
     inner_join(metadata, by = "LabID")
@@ -224,7 +218,7 @@ mixed <- mixed %>% dplyr::select(!(names(metadata)))
 htp_expr <- mixed
 
 expression_list<- list(expression = htp_expr,gene_map = gene_map)
-save(expression_list, file = sprintf(,"%s/processed_transcriptome_%s.RData", opt$output_directory, Sys.Date() ))
+save(expression_list, file = "./data/processed_transcriptome.RData")
 
 ```
 
