@@ -1,0 +1,76 @@
+---
+title: "Pathway Annotation"
+author: "Lucas Gillenwater"
+date: "`r Sys.Date()`"
+output: html_document
+---
+For downstream enrichment analyses, we annotated features based on prior knowledge of biological pathways. 
+
+# Necessary Libraries
+```{r}
+library(biomaRt)
+library(data.table)
+```
+# Load the molecular data created in 001
+
+```{r}
+load("./data/processed/all_age_sex_mixed.Rdata")
+
+```
+
+# Cytokines
+## Getting Ensembl IDs
+Annotation begins by matching the cytokine names to proteins in the protein atlas to get the Ensembl ids. Since mot all of the cytokine names had a perfect match, I had to hand annotate the remaining features. 
+```{r}
+cytokines = rownames(all.mixed$cytokines)
+
+# download the human protein atlas
+dir.create("./data/pathway_annotation")
+system("wget https://www.proteinatlas.org/download/proteinatlas.tsv.zip  -P ./data/pathway_annotation")
+system("unzip ./data/pathway_annotation/proteinatlas.tsv.zip -d ./data/pathway_annotation")
+
+protein_atlas <- read.delim("./data/pathway_annotation/proteinatlas.tsv")
+
+protein_atlas_cytokine_id <- sapply(cytokines, function(x) {which(grepl(x, protein_atlas$Gene, ignore.case = T) | grepl(x, protein_atlas$Gene.synonym, ignore.case = T))})
+protein_atlas_cytokine_id <- unlist(protein_atlas_cytokine_id)
+
+protein_atlas_cytokine <- protein_atlas[protein_atlas_cytokine_id,1:5]
+
+write.csv(protein_atlas_cytokine,"./data/pathway_annotation/cytokine_annotation_raw.csv")
+## I proceeded to manually annotate the remaining cytokines by manual search in the proteinatlas tsv file. The final file was saved as cytokine_annotation_processed.csv
+
+```
+## Matching the ensembl ids to GO processes
+```{r}
+cytokine_annotation = read.csv("./data/pathway_annotation/cytokine_annotation_processed.csv")
+cytokine_annotation = cbind(cytokine = cytokines, cytokine_anno)
+
+cyt_ens <- cytokine_anno$Ensembl
+
+ensembl <- useEnsembl(biomart = "genes", dataset = "hsapiens_gene_ensembl")
+resultTable <- biomaRt::getBM(attributes = c("ensembl_gene_id", "name_1006", "go_linkage_type", "namespace_1003"),       
+                      filters    = "ensembl_gene_id",       
+                      values     = cyt_ens,         
+                      mart       = ensembl) 
+resultTable = resultTable[resultTable$go_linkage_type == "IDA",]
+resultTable = resultTable[resultTable$namespace_1003 == "biological_process",]
+
+cytokine_go <- merge(resultTable, cytokine_annotation, by.x = "ensembl_gene_id", by.y = "Ensembl", all.y = TRUE)
+
+cyt_go <- table(cytokine_go$name_1006, cytokine_go$cytokine )
+
+
+
+cyt_path = t(cyt_go)
+ind = !duplicated(cyt_path[,1:ncol(cyt_path)])
+cyt_path = cyt_path[, ind]
+cyt_path = melt(cyt_path)
+colnames(cyt_path)[1:2] = c("X", "pathway")
+cyt_path$value = as.numeric(cyt_path$value)
+
+save(cyt_path, file = "./data/pathway/cytokine_pathway.RData")
+
+
+```
+
+# Metabolites
