@@ -40,7 +40,7 @@ long_z <- wideToLong(full_z_results )
 ```
 
 
-#### percent difference plot
+#### Figure 2A
 ```{r percent difference plots}
 library(tidyverse)
 tmp_toplot <- full_results %>%
@@ -51,10 +51,7 @@ tmp_toplot <- full_results %>%
 
 long_z[[1]] %>%
          filter(cyt_met %in% c("IFN-gamma-kynurenine", "IFN-gamma-acyl-C12 (O-dodecanoyl-carnitine)" )) %>%
-  filter(gene == "IDO1")
-
-
-%>%
+  filter(gene == "IDO1")%>%
   dplyr::select(cytokine, metabolite, gene, cluster, cor_cyt_met_r, partial_cor_cyt_met_r) %>%
   pivot_longer(cols = -c(cytokine,metabolite, gene,cluster)) %>%
   mutate(name = c("direct correlation", "partial correlation"))
@@ -62,7 +59,6 @@ long_z[[1]] %>%
 
   
 
-### percent_diff = 33.2%
 
 p1 <- ggplot(tmp_toplot, aes(x = as.factor(name), y = value, fill = name )) +
   geom_bar(stat = "identity") +
@@ -77,70 +73,6 @@ dev.off()
 
 
 ```
-
-
-#### Density plots 
-```{r density plots}
-key_gene = "STAT1"
-single_gene_z <-long_z[[1]]%>%
-  filter(gene == key_gene) %>%
-  as.data.frame() %>%
-  arrange(-combined_Z)
-
-tail(single_gene_z,20)
-
-p1 <- ggplot(single_gene_z, aes(x = combined_Z)) +
-  geom_density()+
-  geom_vline(xintercept = single_gene_z[single_gene_z$`cyt_met` == "IFN-gamma-kynurenine","combined_Z"], color ="red")+
-    annotate("text", x=  single_gene_z[single_gene_z$`cyt_met` == "IFN-gamma-kynurenine","combined_Z"]-.3,y = .15, angle = 90,  label="IFN-gamma-kynurenine", color = "red", size = 6)+
-  # geom_vline(xintercept = single_gene_z[single_gene_z$`cyt_met` == "TNF-alpha-kynurenine", "combined_Z"], color = "blue") +
-  #   annotate("text", x=  single_gene_z[single_gene_z$`cyt_met` == "TNF-alpha-kynurenine", "combined_Z"]-.3,y = .15, angle = 90,  label="TNF-alpha-kynurenine", color = "blue", size = 6)+
-  geom_vline(xintercept = single_gene_z[single_gene_z$`cyt_met`=="IL-1RA-Glutamate", "combined_Z"], color = "purple")+
-    annotate("text", x= single_gene_z[single_gene_z$`cyt_met`=="IL-1RA-Glutamate", "combined_Z"]-.3,y = .15, angle = 90,  label="IL-1RA-Glutamate", color = "purple", size = 6)+
-  ggtitle("STAT1") + 
-  theme_classic() +
-  xlab("combined_Z") +
-  ylab("density")
-
-
-pdf(paste0("~/OneDrive - The University of Colorado Denver/Projects/subPhenoDS/results/partial_correlation_results/figures/",key_gene,"density_plot.pdf"), width = 10, height = 6)
-print(p1)
-dev.off()
-
-
-```
-
-```{r}
-##### single relationship
-### IFN-gamma - kynurenine
-key_cyt_met <- "IFN-gamma-kynurenine"
-
-single_rel_z <- long_z[[1]] %>%
-  filter(`cyt_met` == key_cyt_met) %>%
-  as.data.frame() %>%
-  arrange(combined_Z)
-
-length(single_rel_z$gene) -which(single_rel_z$gene == "IDO1")
-length(single_rel_z$gene)
-
-p1 <- ggplot(single_rel_z, aes(x = combined_Z)) +
-  geom_density()+
-  geom_vline(xintercept = single_rel_z[single_rel_z$gene == "IDO1","combined_Z"], color ="red")+
-  annotate("text", x= single_rel_z[single_rel_z$gene == "IDO1","combined_Z"]-.3,y = .5, angle = 90,  label="IDO1", color = "red", size = 6)+
-  geom_vline(xintercept = single_rel_z[single_rel_z$gene == "STAT1","combined_Z"], color ="darkgreen")+
-    ggtitle("IFN-gamma-kynurenine") + 
-   annotate("text", x= single_rel_z[single_rel_z$gene == "STAT1","combined_Z"]-.3,y = .5, angle = 90,  label="STAT1", color = "darkgreen", size = 6)+
-  theme_classic() +
-  xlab("combined_Z") +
-  ylab("density")
-
-pdf(paste0("~/OneDrive - The University of Colorado Denver/Projects/subPhenoDS/results/partial_correlation_results/figures/",key_cyt_met,"density_plot.pdf"), width = 10, height = 6)
-print(p1)
-dev.off()
-
-```
-
-
 
 #### Trend Plots of z scores
 ```{r}
@@ -224,17 +156,6 @@ for(x in 2:7) {
 }
 
 names(toplot_clusters) <-c("T21", "D21", 1,2,3,4,5)
-# toplot_clusters_pos <- lapply(1:7, function(x) {
-#    toplot_clusters[[x]] %>% 
-#     dplyr::select(which(names(toplot_clusters[[x]]) %in% cyt_met_pos))
-# })
-# 
-# 
-# toplot_clusters_neg <- lapply(1:7, function(x) {
-#    toplot_clusters[[x]] %>% 
-#     dplyr::select(which(names(toplot_clusters[[x]]) %in% cyt_met_neg))
-# 
-# })
 
 ```
 
