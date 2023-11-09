@@ -48,17 +48,12 @@ tmp_toplot <- full_results %>%
   filter(gene == "IDO1") %>%
   filter(cytokine ==  "IFN-gamma")
 
-
 long_z[[1]] %>%
          filter(cyt_met %in% c("IFN-gamma-kynurenine", "IFN-gamma-acyl-C12 (O-dodecanoyl-carnitine)" )) %>%
   filter(gene == "IDO1")%>%
   dplyr::select(cytokine, metabolite, gene, cluster, cor_cyt_met_r, partial_cor_cyt_met_r) %>%
   pivot_longer(cols = -c(cytokine,metabolite, gene,cluster)) %>%
   mutate(name = c("direct correlation", "partial correlation"))
-
-
-  
-
 
 p1 <- ggplot(tmp_toplot, aes(x = as.factor(name), y = value, fill = name )) +
   geom_bar(stat = "identity") +
@@ -74,7 +69,7 @@ dev.off()
 
 ```
 
-#### Trend Plots of z scores
+#### Figure 2B
 ```{r}
 
 key_cyt_met <- "IFN-gamma-kynurenine"
@@ -104,6 +99,8 @@ dev.off()
 
 ```
 
+### Figure 2C
+
 ```{r}
 
 key_gene <- "STAT1"
@@ -114,13 +111,10 @@ single_rel_z <- long_z[[1]] %>%
   arrange(-combined_Z) %>%
   mutate(rank = row_number())
 
-
 p1 <- ggplot(single_rel_z, aes(x = rank, y = combined_Z)) +
   geom_point() +
   geom_point(data = single_rel_z[single_rel_z$cyt_met == "IFN-gamma-kynurenine",], aes(x = rank, y = combined_Z),  color ="red")+
-  annotate("text", y= single_rel_z[single_rel_z$cyt_met == "IFN-gamma-kynurenine","combined_Z"],x =single_rel_z[single_rel_z$cyt_met == "IFN-gamma-kynurenine","rank"]+ 200, angle = 0,  label="IFN-gamma-kynurenine", color = "red", size = 6) +
-  geom_point(data = single_rel_z[single_rel_z$cyt_met == "IL-1RA-Glutamate",], aes(x = rank, y = combined_Z),  color ="green")+
-  annotate("text", y= single_rel_z[single_rel_z$cyt_met == "IL-1RA-Glutamate","combined_Z"],x =single_rel_z[single_rel_z$cyt_met == "IL-1RA-Glutamate","rank"]- 150, angle = 0,  label="IL-1RA-Glutamate", color = "green", size = 6)+
+  annotate("text", y= single_rel_z[single_rel_z$cyt_met == "IFN-gamma-kynurenine","combined_Z"],x =single_rel_z[single_rel_z$cyt_met == "IFN-gamma-kynurenine","rank"]+ 100, angle = 0,  label="IFN-gamma-kynurenine", color = "red", size = 6) +
   theme_classic() +
   xlab("rank") +
   ylab("Z score")
@@ -128,18 +122,12 @@ p1 <- ggplot(single_rel_z, aes(x = rank, y = combined_Z)) +
 pdf(paste0("~/OneDrive - The University of Colorado Denver/Projects/subPhenoDS/results/partial_correlation_results/figures/",key_gene,"Z_trend_plot.pdf"), width = 10, height = 6)
 print(p1)
 dev.off()
-
-
-
 ```
 
 
 ## Heatmaps of gsea results
 
-  * Creating heatmaps from the gsea results. Will make an overall heatmap to begin with and then stratify based on the directionality of the relationships. 
-
 ```{r global heatmap data}
-
 library(tidyverse)
 
 toplot_clusters <- lapply(gsea_results_formatted, function(x) {
@@ -160,7 +148,7 @@ names(toplot_clusters) <-c("T21", "D21", 1,2,3,4,5)
 ```
 
 ```{r mediated by genes in both pathways}
- DS_pathways <- c("HALLMARK_INTERFERON_GAMMA_RESPONSE", 
+DS_pathways <- c("HALLMARK_INTERFERON_GAMMA_RESPONSE", 
                    "HALLMARK_INTERFERON_ALPHA_RESPONSE",
                    "HALLMARK_HEME_METABOLISM", 
                    "HALLMARK_INFLAMMATORY_RESPONSE",
@@ -173,7 +161,6 @@ multiMediators <- function(input, pathways) {
  
   input <- input %>%
     dplyr::filter(rownames(input) %in% pathways)
-  
   input <- as.data.frame(t(input))
   input$total <- apply(input,1,sum)
   input$variance <- apply(input,1,var)
