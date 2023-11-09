@@ -47,17 +47,6 @@ return(final_res)
   
 }
 
-tmp <- gseaFinder("IFN-gamma-kynurenine", "HALLMARK_INTERFERON_GAMMA_RESPONSE")
-tmp$leadingEdge
-gseaFinder("IFN-gamma-kynurenine", "HALLMARK_HEME_METABOLISM")
-gseaFinder("IL-1RA-Glutamate", "HALLMARK_INTERFERON_GAMMA_RESPONSE")
-tmp3 <- gseaFinder("IL-1RA-Glutamate", "HALLMARK_HEME_METABOLISM")
-tmp3$leadingEdge
-
-tmp2 <- gseaFinder("IFN-gamma-acyl-C14:1 (Tetradecenoyl Carnitine)", "HALLMARK_INTERFERON_GAMMA_RESPONSE")
-tmp2$leadingEdge
-
-gseaFinder("IL-29-Docosapentaenoic acid", "HALLMARK_HEME_METABOLISM")
 
 
 
