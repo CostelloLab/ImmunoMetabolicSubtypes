@@ -56,17 +56,17 @@ return(final_res)
   
 }
 
-### multiHeatmap is a function for visualizing the gene ranks and gsea results over the cyt-met relationships
+## heatmapDataPrep is a function for preparing the data for visualization in multiHeatmap
 ## Inputs: key_pathways    character vector of pathways to label
 ##         met_path        table of metabolite pathway annotations
 ##         pathways_all    list of character vecotors of genes belonging to hallmark pathways
 ##         formatted_gsea  table of gsea results with NES and padj values for each cytokine-metabolite relationships
-##         full_results    table of full partial correlation results
-##         output_file     file where to output the figures
+##         threshold       the rank threshold for a gene
+##         frequency       the frequency of gene ranked below the threshold
 ## Outputs: pdf file of figure
 
 
-multiHeatmap <- function(key_pathways,pathways_all, met_path, formatted_gsea, full_results, output_file) {
+heatmapDataPrep <- function(key_pathways,pathways_all, met_path, formatted_gsea, threshold = 200, frequency = 5) {
     
     
   cyt_met_examples <- formatted_gsea %>%                                                  
@@ -99,9 +99,37 @@ multiHeatmap <- function(key_pathways,pathways_all, met_path, formatted_gsea, fu
   
   rankings_df <- as.matrix(rankings_df)
   
-  tokeep <- apply(rankings_df, 1, function(x) sum(x < 200) > 5)
-    toplot <- t(rankings_df[tokeep, ])
+  tokeep <- apply(rankings_df, 1, function(x) sum(x < threshold) > frequency)
+  toplot <- t(rankings_df[tokeep, ])
 
+    return(toplot)
+}
+
+
+### multiHeatmap is a function for visualizing the gene ranks and gsea results over the cyt-met relationships
+## Inputs: toplot          dataframe of cyt-met X gene ranks
+##         key_pathways    character vector of pathways to label
+##         met_path        table of metabolite pathway annotations
+##         pathways_all    list of character vecotors of genes belonging to hallmark pathways
+##         formatted_gsea  table of gsea results with NES and padj values for each cytokine-metabolite relationships
+##         full_results    table of full partial correlation results
+##         output_file     file where to output the figures
+## Outputs: pdf file of figure
+
+multiHeatmap <- function(toplot1, key_pathways,pathways_all, met_path, formatted_gsea, full_results, output_file) {
+    
+
+    
+    metabolites <-  full_results %>%
+        filter(cyt_met %in% cyt_met_examples) %>%
+        distinct(cyt_met, .keep_all = TRUE) %>%
+        left_join(met_path, by = 'metabolite')    %>%
+        arrange(pathway)
+
+
+    toplot <- toplot[match( metabolites$cyt_met, rownames(toplot)),]
+
+    
     ## adding heatmap annotation for gene pathways
     col_anno <- lapply(key_pathways, function(x) {
         as.data.frame(as.factor( ifelse(colnames(toplot) %in% pathways_all[[x]], 1,0)))
@@ -116,26 +144,16 @@ multiHeatmap <- function(key_pathways,pathways_all, met_path, formatted_gsea, fu
     })
     names(column_col) <- key_pathways
     
+    
+
+    ha <- HeatmapAnnotation(df = col_anno, col = column_col, show_legend = rep(FALSE,length(key_pathways)))
+    
+
+    
+    hr <- rowAnnotation(Class = metabolites$pathway)
+
+
     col_fun <- colorRamp2(c(min(toplot), median(toplot), max(toplot) ), c("blue", "white", "gray"))
-
-    ha <- HeatmapAnnotation(df = col_anno, col = column_col)
-    
-
-    metabolites <-  full_results %>%
-        filter(cyt_met %in% cyt_met_examples) %>%
-        distinct(cyt_met, .keep_all = TRUE) %>%
-        arrange(match(cyt_met, cyt_met_examples)) %>%
-        .$metabolite
-
-
-    metabolites <- as.data.frame(metabolites)
-    names(metabolites) = "original"
-
-    met_pathways <- metabolites %>%
-        left_join(met_path, by = c("original" = "metabolite"))
-
-    hr <- rowAnnotation(Metabolite_Class = met_pathways$pathway)
-    
 
     p1 <- ComplexHeatmap::Heatmap(toplot,
                                   name = "Rank",
@@ -143,11 +161,13 @@ multiHeatmap <- function(key_pathways,pathways_all, met_path, formatted_gsea, fu
                                   column_names_gp = gpar(fontsize = 5),
                                   show_column_names = FALSE,
                                   show_row_names = FALSE,
+                                  show_row_dend = FALSE,
+                                  row_order = rownames(toplot),
                                   col = col_fun,
                                   heatmap_legend_param = list(
                                       legend_direction = "horizontal") ,
-                                  top_annotation = ha, 
-                                  right_annotation = hr)
+                                 # top_annotation = ha, 
+                                  left_annotation = hr)
     
    
   pdf(output_file, width = 8, height = 12)
