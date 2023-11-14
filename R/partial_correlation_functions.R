@@ -1,5 +1,14 @@
 #### This is a script for the partial correlation analysis and visualization helper functions.
 
+## libraries for functions
+library(tidyverse)
+library(ComplexHeatmap)
+library(circlize)
+library(fgsea)
+
+
+
+
 
 ## multiMediators is a function for identifying cytokine-metabolite relationships with enrichments for genes in multiple gene sets. For exmple, there is evidence that genes in interferron gamma signaling and heme metabolism gene sets are mediators of IL-1RA-Glutamate.
 ## Input: matrix of NES, gene pathways X cytokine-met
@@ -47,24 +56,16 @@ return(final_res)
   
 }
 
+### multiHeatmap is a function for visualizing the gene ranks and gsea results over the cyt-met relationships
+## Inputs: key_pathways    character vector of pathways to label
+##         met_path        table of metabolite pathway annotations
+##         pathways_all    list of character vecotors of genes belonging to hallmark pathways
+##         formatted_gsea  table of gsea results with NES and padj values for each cytokine-metabolite relationships
+##         output_file     file where to output the figures
+## Outputs: pdf file of figure
 
 
-
-
-
-
-## Finding commonalities accross the topmost cyt-met relationships by pathway
-
-# load the require libraries
-library(ComplexHeatmap)
-library(circlize)
-library(fgsea)
-
-
-### multi
-
-
-multiHeatmap <- function(key_pathways, met_path, formatted_gsea) {
+multiHeatmap <- function(key_pathways,pathways_all, met_path, formatted_gsea, output_file) {
     
     met_path <- met_path %>%
         as.data.frame() %>%
@@ -72,13 +73,9 @@ multiHeatmap <- function(key_pathways, met_path, formatted_gsea) {
         pivot_longer(cols = -metabolite, names_to = "pathway") %>%
         filter(value == 1)
     
-  
-  
   cyt_met_examples <- formatted_gsea %>%                                                  
     rownames_to_column("pathway") %>%
-    filter(pathway %in% c("HALLMARK_INTERFERON_GAMMA_RESPONSE", 
-                         "HALLMARK_HEME_METABOLISM",
-                         "HALLMMARK_OXIDATIVE_PHOSPHORYLATION"))%>%
+    filter(pathway %in% key_pathways) %>%
     pivot_longer(cols = contains("NES"), values_to = "NES", names_to = "cyt_met_NES") %>%
      pivot_longer(cols = contains("padj"), values_to = "padj", names_to = "cyt_met_padj") %>%
     filter(gsub(" NES", "", cyt_met_NES) == gsub(" padj", "", cyt_met_padj)) %>%
@@ -90,7 +87,6 @@ multiHeatmap <- function(key_pathways, met_path, formatted_gsea) {
     distinct(cyt_met) %>%
     .$cyt_met
   
-    #pathway_genes <- pathways_all[key_pathway][[1]]
   
   res <- lapply(cyt_met_examples, function(x) {
     tmp <- long_z[[1]] %>%
@@ -100,70 +96,75 @@ multiHeatmap <- function(key_pathways, met_path, formatted_gsea) {
       select(gene,rank)
     names(tmp)[2] <- x
     return(tmp)
-})
+  })
 
   
   rankings_df <- res %>% reduce(left_join, by = "gene") %>% column_to_rownames("gene")
   
   rankings_df <- as.matrix(rankings_df)
   
-  tokeep <- apply(rankings_df, 1, function(x) sum(x < 100) > 2)
- toplot <- t(rankings_df[tokeep, ])
+  tokeep <- apply(rankings_df, 1, function(x) sum(x < 100) > 20)
+    toplot <- t(rankings_df[tokeep, ])
+
+    ## adding heatmap annotation for gene pathways
+    col_anno <- lapply(key_pathways, function(x) {
+        as.factor( ifelse(colnames(toplot) %in% pathways_all[[x]], 1,0))
+    })
+    col_anno <- col_anno %>%
+        bind_rows()
+    names(col_anno) <- colnames(toplot)
+    rownames(col_anno) <- key_pathways
+    
+ ## IFN_gamma <-as.factor( ifelse(colnames(toplot) %in% pathways_all$HALLMARK_INTERFERON_GAMMA_RESPONSE, 1,0))
+ ## names(IFN_gamma) <- colnames(toplot)
+ ##  Heme_Metabolism <-as.factor( ifelse(colnames(toplot) %in% pathways_all$HALLMARK_HEME_METABOLISM, 1,0))
+ ## names(Heme_Metabolism) <- colnames(toplot)
+ ##  Oxidative_Phosphorylation <-as.factor( ifelse(colnames(toplot) %in% pathways_all$HALLMARK_OXIDATIVE_PHOSPHORYLATION, 1,0))
+ ## names(Oxidative_Phosphorylation) <- colnames(toplot)
  
-  
- IFN_gamma <-as.factor( ifelse(colnames(toplot) %in% pathways_all$HALLMARK_INTERFERON_GAMMA_RESPONSE, 1,0))
- names(IFN_gamma) <- colnames(toplot)
-  Heme_Metabolism <-as.factor( ifelse(colnames(toplot) %in% pathways_all$HALLMARK_HEME_METABOLISM, 1,0))
- names(Heme_Metabolism) <- colnames(toplot)
-  Oxidative_Phosphorylation <-as.factor( ifelse(colnames(toplot) %in% pathways_all$HALLMARK_OXIDATIVE_PHOSPHORYLATION, 1,0))
- names(Oxidative_Phosphorylation) <- colnames(toplot)
- 
  
 
   
 
 
-col_fun = colorRamp2(c(min(toplot), median(toplot), max(toplot) ), c("blue", "white", "gray"))
+    col_fun <- colorRamp2(c(min(toplot), median(toplot), max(toplot) ), c("blue", "white", "gray"))
 
-ha <- HeatmapAnnotation(IFN_gamma_response = IFN_gamma, 
-                        Heme_Metabolism = Heme_Metabolism,
-                        col = list(IFN_gamma_response = c("1"= "black", "0" = "white"),
-                                   Heme_Metabolism =  c("1"= "red", "0" = "white")))
+    ha <- HeatmapAnnotation(col_anno)
+    
 
-metabolites <-  full_results %>%
-   filter(cyt_met %in% cyt_met_examples) %>%
-   distinct(cyt_met, .keep_all = TRUE) %>%
-   arrange(match(cyt_met, cyt_met_examples)) %>%
-   .$metabolite
+    metabolites <-  full_results %>%
+        filter(cyt_met %in% cyt_met_examples) %>%
+        distinct(cyt_met, .keep_all = TRUE) %>%
+        arrange(match(cyt_met, cyt_met_examples)) %>%
+        .$metabolite
 
 
-metabolites <- as.data.frame(metabolites)
-names(metabolites) = "original"
+    metabolites <- as.data.frame(metabolites)
+    names(metabolites) = "original"
 
-met_pathways <- metabolites %>%
-  left_join(met_path, by = c("original" = "metabolite"))
+    met_pathways <- metabolites %>%
+        left_join(met_path, by = c("original" = "metabolite"))
 
-hr <- rowAnnotation(Metabolite_Class = met_pathways$pathway)
-  
+    hr <- rowAnnotation(Metabolite_Class = met_pathways$pathway)
+    
 
-  p1 <- ComplexHeatmap::Heatmap(toplot,
-                                name = "Rank",
-                           row_names_gp = gpar(fontsize = 6),
-                          column_names_gp = gpar(fontsize = 5),
-                          show_column_names = FALSE,
-                          show_row_names = FALSE,
-                          Col = col_fun,
-                           heatmap_legend_param = list(
-                              legend_direction = "horizontal") ,
-                          top_annotation = ha, 
-                          right_annotation = hr)
-  
+    p1 <- ComplexHeatmap::Heatmap(toplot,
+                                  name = "Rank",
+                                  row_names_gp = gpar(fontsize = 6),
+                                  column_names_gp = gpar(fontsize = 5),
+                                  show_column_names = FALSE,
+                                  show_row_names = FALSE,
+                                  Col = col_fun,
+                                  heatmap_legend_param = list(
+                                      legend_direction = "horizontal") ,
+                                  top_annotation = ha, 
+                                  right_annotation = hr)
+    
    
-  pdf(paste0("~/OneDrive - The University of Colorado Denver/Projects/subPhenoDS/results/partial_correlation_results/figures/",key_pathway, "_", "_mediation_genes_heatmap_", Sys.Date(),".pdf"), width = 8, height = 12)
+  pdf(output_file, width = 8, height = 12)
   draw(p1, heatmap_legend_side = "bottom")
   dev.off()
   
-  return(rankings_df)
 }
 
 
