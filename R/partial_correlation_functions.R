@@ -179,22 +179,25 @@ multiHeatmap <- function(toplot1, toplot2, key_pathways,pathways_all, met_path, 
                                   heatmap_legend_param = list(
                                       legend_direction = "horizontal") ,
                                  # top_annotation = ha, 
-                                  left_annotation = hr)
+                                  left_annotation = hr,
+                                  width = unit(6,"in"))
 
 
   
-  col_fun2 <- colorRamp2(c(min(input),0, max(input) ), c("white","gray", "red"))
+  col_fun2 <- colorRamp2(c(-2,0, 2 ), c("white","gray", "red"))
   
-  p2 <- Heatmap(
+    p2 <- Heatmap(name = "GSEA NES",
       as.matrix(toplot2),
       col = col_fun2,
       row_order = rownames(toplot2),
       show_row_names = FALSE,
-      show_row_dend = FALSE)
+      show_row_dend = FALSE,
+      width = unit(4, "in"),
+      column_names_side = "top")
 
     heatmaps <- p1+p2
    
-  pdf(output_file, width = 8, height = 12)
+  pdf(output_file, width = 12, height = 12)
   draw(heatmaps, heatmap_legend_side = "bottom")
   dev.off()
   
