@@ -111,10 +111,14 @@ multiHeatmap <- function(key_pathways,pathways_all, met_path, formatted_gsea, fu
     rownames(col_anno) <- colnames(toplot)
     colnames(col_anno) <- key_pathways
     col_anno <- as.data.frame(col_anno)
+    column_col <- lapply(key_pathways, function(x) {
+        c("1" = "black", "0" = "white")
+    })
+    names(column_col) <- key_pathways
     
     col_fun <- colorRamp2(c(min(toplot), median(toplot), max(toplot) ), c("blue", "white", "gray"))
 
-    ha <- HeatmapAnnotation(df = col_anno)
+    ha <- HeatmapAnnotation(df = col_anno, col = column_col)
     
 
     metabolites <-  full_results %>%
