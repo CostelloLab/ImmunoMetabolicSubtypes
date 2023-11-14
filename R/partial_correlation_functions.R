@@ -107,7 +107,8 @@ heatmapDataPrep <- function(key_pathways,pathways_all, met_path, formatted_gsea,
 
 
 ### multiHeatmap is a function for visualizing the gene ranks and gsea results over the cyt-met relationships
-## Inputs: toplot          dataframe of cyt-met X gene ranks
+## Inputs: toplot1         dataframe of cyt-met X gene ranks
+##         toplot2         cluster results of gene set enrichment for cyt-met relationships 
 ##         key_pathways    character vector of pathways to label
 ##         met_path        table of metabolite pathway annotations
 ##         pathways_all    list of character vecotors of genes belonging to hallmark pathways
@@ -116,23 +117,39 @@ heatmapDataPrep <- function(key_pathways,pathways_all, met_path, formatted_gsea,
 ##         output_file     file where to output the figures
 ## Outputs: pdf file of figure
 
-multiHeatmap <- function(toplot1, key_pathways,pathways_all, met_path, formatted_gsea, full_results, output_file) {
+multiHeatmap <- function(toplot1, toplot2, key_pathways,pathways_all, met_path, formatted_gsea, full_results, output_file) {
     
 
-    
+    names(toplot2) <- gsub(" NES", "", names(toplot2))
+
+    toplot1 <- toplot1 %>%
+        as.data.frame() %>%
+        filter(rownames(toplot1) %in% names(toplot2))
+
     metabolites <-  full_results %>%
-        filter(cyt_met %in% cyt_met_examples) %>%
+        filter(cyt_met %in% rownames(toplot1)) %>%
         distinct(cyt_met, .keep_all = TRUE) %>%
         left_join(met_path, by = 'metabolite')    %>%
         arrange(pathway)
 
+    toplot1 <- toplot1[match( metabolites$cyt_met, rownames(toplot1)),]
 
-    toplot <- toplot[match( metabolites$cyt_met, rownames(toplot)),]
 
+
+    toplot2 <- toplot2 %>%
+        dplyr::filter(rownames(toplot2) %in% key_pathways) %>%
+        select(rownames(toplot1)) %>%
+        t() %>%
+        as.data.frame() %>%
+        arrange(match(rownames(toplot1), rownames(toplot2)))
     
+  names(toplot2) <- gsub("HALLMARK_","", names(toplot2))
+  names(toplot2) <- gsub("_"," ", names(toplot2))
+  
+ 
     ## adding heatmap annotation for gene pathways
     col_anno <- lapply(key_pathways, function(x) {
-        as.data.frame(as.factor( ifelse(colnames(toplot) %in% pathways_all[[x]], 1,0)))
+        as.data.frame(as.factor( ifelse(colnames(toplot1) %in% pathways_all[[x]], 1,0)))
     })
     col_anno <- col_anno %>%
         bind_cols(.name_repair = ~ vctrs::vec_as_names(..., repair = "unique", quiet = TRUE)) 
@@ -144,34 +161,41 @@ multiHeatmap <- function(toplot1, key_pathways,pathways_all, met_path, formatted
     })
     names(column_col) <- key_pathways
     
-    
-
     ha <- HeatmapAnnotation(df = col_anno, col = column_col, show_legend = rep(FALSE,length(key_pathways)))
-    
-
     
     hr <- rowAnnotation(Class = metabolites$pathway)
 
+    col_fun <- colorRamp2(c(min(toplot1), median(apply(toplot1,2, median)), max(toplot1) ), c("blue", "white", "gray"))
 
-    col_fun <- colorRamp2(c(min(toplot), median(toplot), max(toplot) ), c("blue", "white", "gray"))
-
-    p1 <- ComplexHeatmap::Heatmap(toplot,
+    p1 <- ComplexHeatmap::Heatmap(as.matrix(toplot1),
                                   name = "Rank",
                                   row_names_gp = gpar(fontsize = 6),
                                   column_names_gp = gpar(fontsize = 5),
                                   show_column_names = FALSE,
                                   show_row_names = FALSE,
                                   show_row_dend = FALSE,
-                                  row_order = rownames(toplot),
+                                  row_order = rownames(toplot1),
                                   col = col_fun,
                                   heatmap_legend_param = list(
                                       legend_direction = "horizontal") ,
                                  # top_annotation = ha, 
                                   left_annotation = hr)
-    
+
+
+  
+  col_fun2 <- colorRamp2(c(min(input),0, max(input) ), c("white","gray", "red"))
+  
+  p2 <- Heatmap(
+      as.matrix(toplot2),
+      col = col_fun2,
+      row_order = rownames(toplot2),
+      show_row_names = FALSE,
+      show_row_dend = FALSE)
+
+    heatmaps <- p1+p2
    
   pdf(output_file, width = 8, height = 12)
-  draw(p1, heatmap_legend_side = "bottom")
+  draw(heatmaps, heatmap_legend_side = "bottom")
   dev.off()
   
 }
