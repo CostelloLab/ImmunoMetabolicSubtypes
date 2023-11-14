@@ -61,17 +61,13 @@ return(final_res)
 ##         met_path        table of metabolite pathway annotations
 ##         pathways_all    list of character vecotors of genes belonging to hallmark pathways
 ##         formatted_gsea  table of gsea results with NES and padj values for each cytokine-metabolite relationships
+##         full_results    table of full partial correlation results
 ##         output_file     file where to output the figures
 ## Outputs: pdf file of figure
 
 
-multiHeatmap <- function(key_pathways,pathways_all, met_path, formatted_gsea, output_file) {
+multiHeatmap <- function(key_pathways,pathways_all, met_path, formatted_gsea, full_results, output_file) {
     
-    met_path <- met_path %>%
-        as.data.frame() %>%
-        rownames_to_column("metabolite") %>%
-        pivot_longer(cols = -metabolite, names_to = "pathway") %>%
-        filter(value == 1)
     
   cyt_met_examples <- formatted_gsea %>%                                                  
     rownames_to_column("pathway") %>%
@@ -103,33 +99,22 @@ multiHeatmap <- function(key_pathways,pathways_all, met_path, formatted_gsea, ou
   
   rankings_df <- as.matrix(rankings_df)
   
-  tokeep <- apply(rankings_df, 1, function(x) sum(x < 100) > 20)
+  tokeep <- apply(rankings_df, 1, function(x) sum(x < 200) > 5)
     toplot <- t(rankings_df[tokeep, ])
 
     ## adding heatmap annotation for gene pathways
     col_anno <- lapply(key_pathways, function(x) {
-        as.factor( ifelse(colnames(toplot) %in% pathways_all[[x]], 1,0))
+        as.data.frame(as.factor( ifelse(colnames(toplot) %in% pathways_all[[x]], 1,0)))
     })
     col_anno <- col_anno %>%
-        bind_rows()
-    names(col_anno) <- colnames(toplot)
-    rownames(col_anno) <- key_pathways
+        bind_cols(.name_repair = ~ vctrs::vec_as_names(..., repair = "unique", quiet = TRUE)) 
+    rownames(col_anno) <- colnames(toplot)
+    colnames(col_anno) <- key_pathways
+    col_anno <- as.data.frame(col_anno)
     
- ## IFN_gamma <-as.factor( ifelse(colnames(toplot) %in% pathways_all$HALLMARK_INTERFERON_GAMMA_RESPONSE, 1,0))
- ## names(IFN_gamma) <- colnames(toplot)
- ##  Heme_Metabolism <-as.factor( ifelse(colnames(toplot) %in% pathways_all$HALLMARK_HEME_METABOLISM, 1,0))
- ## names(Heme_Metabolism) <- colnames(toplot)
- ##  Oxidative_Phosphorylation <-as.factor( ifelse(colnames(toplot) %in% pathways_all$HALLMARK_OXIDATIVE_PHOSPHORYLATION, 1,0))
- ## names(Oxidative_Phosphorylation) <- colnames(toplot)
- 
- 
-
-  
-
-
     col_fun <- colorRamp2(c(min(toplot), median(toplot), max(toplot) ), c("blue", "white", "gray"))
 
-    ha <- HeatmapAnnotation(col_anno)
+    ha <- HeatmapAnnotation(df = col_anno)
     
 
     metabolites <-  full_results %>%
@@ -154,7 +139,7 @@ multiHeatmap <- function(key_pathways,pathways_all, met_path, formatted_gsea, ou
                                   column_names_gp = gpar(fontsize = 5),
                                   show_column_names = FALSE,
                                   show_row_names = FALSE,
-                                  Col = col_fun,
+                                  col = col_fun,
                                   heatmap_legend_param = list(
                                       legend_direction = "horizontal") ,
                                   top_annotation = ha, 
