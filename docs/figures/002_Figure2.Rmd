@@ -151,7 +151,6 @@ names(toplot_clusters) <-c("T21", "D21", 1,2,3,4,5)
 
 
 ```{r global heatmap}
-source("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/R/partial_correlation_functions.R")
 
 pathways_all <- gmtPathways("~/OneDrive - The University of Colorado Denver/Projects/subPhenoDS/data/pathway/h.all.v2023.1.Hs.symbols.gmt")
 met_path <- get(load("/Users/lucas/OneDrive - The University of Colorado Denver/Projects/subPhenoDS/data/pathway/metabolite_pathway.RData"))
@@ -179,18 +178,18 @@ toplot1 <- heatmapDataPrep(key_pathways = DS_pathways,
              threshold = 200,
              frequency = 5)
 
+source("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/R/partial_correlation_functions.R")
 multiHeatmap(toplot1 = toplot1,
+             toplot2 = toplot_clusters[[1]],
              key_pathways = DS_pathways,
              pathways_all = pathways_all,
              met_path = met_path,
              formatted_gsea = gsea_results_formatted[[1]] ,
              full_results = full_results,
              output_file = "~/OneDrive - The University of Colorado Denver/Projects/subPhenoDS/results/partial_correlation_results/figures/2D.pdf")
-
-
 ```
 
-
+```{r}
 
 library(ComplexHeatmap)
 library(circlize)
