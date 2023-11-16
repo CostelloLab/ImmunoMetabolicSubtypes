@@ -9,6 +9,7 @@ load("~/OneDrive - The University of Colorado Denver/Projects/subPhenoDS/results
 
 ### Necessary libraries
 library(tidyverse)
+library(ggplot2)
 
 ### Renmame the list list of z scores by karyotype/cluster
 names(full_z_results) <- c("T21", "D21", 1,2,3,4,5)
@@ -34,14 +35,19 @@ ZandDEG <- function(key_cyt_met, delta_z, DEG) {
         as.data.frame() %>%
         select(key_cyt_met) %>%
         rownames_to_column("gene")%>%
-        left_join(tmp_diff, by = "gene") 
+        left_join(tmp_diff, by = "gene")
+
+    names(diff_and_z)[2] <- "deltaZ"
 
     return(diff_and_z)
 }
 
+z_and_DEG <- Z_DEG_T21_D21
+plotZandDEG <- function(z_and_DEG, key_cyt_met) {
 
-plotZandDEG <- function(z_and_DEG) {
-    
+    ggplot(Z_DEG_T21_D21, aes_string(x = key_cyt_met,y = "logFC")) +
+        geom_point()
+                           
 
 ### Figure 5X
 diff_T21_D21 <- diffZ(full_z_results, cluster1 = "T21", cluster2 = "D21")
