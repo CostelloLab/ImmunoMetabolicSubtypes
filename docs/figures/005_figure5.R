@@ -27,26 +27,28 @@ diffZ <- function(z_scores_list, cluster1, cluster2) {
 
 ## ZandDEG is a function for combining the change in Z scores between karyotypes/clusters and DEG by karyotypes/clusters for a specific cytokine_metabolite relationship
 
-ZandDEG <- function(key_cyt_met, delta_z, DEG) {
+ZandDEG <- function(delta_z, DEG) {
 
     tmp_diff <- DEG %>%
         rownames_to_column("gene")
 
     diff_and_z <- delta_z  %>%
         as.data.frame() %>%
-        select(key_cyt_met) %>%
         rownames_to_column("gene")%>%
         left_join(tmp_diff, by = "gene")
-
-    names(diff_and_z)[2] <- "deltaZ"
 
     return(diff_and_z)
 }
 
 ### plotZandDEG is a function for plotting the relationship between the change in Z score and DEG by karyotype/cluster
 plotZandDEG <- function(z_and_DEG, key_cyt_met) {
+
+    tmp_z_and_DEG <- z_and_DEG %>%
+        select(logFC, key_cyt_met)
+
+    names(tmp_z_and_DEG)[2] <- "deltaZ"
     
-   p <- ggplot(Z_DEG_T21_D21, aes(x = deltaZ,y = logFC)) +
+   p <- ggplot(tmp_z_and_DEG, aes(x = deltaZ,y = logFC)) +
        geom_point() +
        ggtitle(key_cyt_met) +
        theme_classic()+
@@ -62,9 +64,11 @@ corrZandDEG <- function(z_and_DEG) {
 }
 
 ### corrZandDEGwrapper is a wrapper function that outputs the correlation coefficients across cytokine-metabolite relationships
-corrZandDEGwrapper <- function(cyt_met_examples, DEG, delta_Z) {
+corrZandDEGwrapper <- function(cyt_met_examples, diff_and_z) {
     res <- sapply(cyt_met_examples, function(x) {
-        tmp_Z_DEG <- ZandDEG(key_cyt_met = x, DEG = DEG, delta_z = delta_z)
+        tmp_Z_DEG <- diff_and_z %>%
+            select(logFC, x)
+        names(tmp_Z_DEG)[2] <- "deltaZ"
         tmp_corr <- corrZandDEG(tmp_Z_DEG)
         return(c(tmp_corr$estimate, tmp_corr$p.value))
     })
@@ -79,26 +83,12 @@ corrZandDEGwrapper <- function(cyt_met_examples, DEG, delta_Z) {
 ## NB: What about by gene sets?
 
 diff_T21_D21 <- diffZ(full_z_results, cluster1 = "T21", cluster2 = "D21")
+z_and_DEG_T21_D21 <- ZandDEG(DEG = diff_genes[[1]], delta_z = diff_T21_D21)
 
-corr_Z_DEG <- corrZandDEGwrapper(colnames(full_z_results[[1]]), DEG = diff_genes[[1]], delta_Z = diff_T21_D21)
+plotZandDEG(z_and_DEG = z_and_DEG_T21_D21, key_cyt_met ="SAA-Arginine")
+
+corr_Z_DEG <- corrZandDEGwrapper(colnames(full_z_results[[1]]), diff_and_z = z_and_DEG_T21_D21)
 
 ### Figure 5X
-
-
-ggplot(corr_Z_DEG, aes(x = cor, y = -log10(p.value))) +
-    geom_point()
-
-print(plotZandDEG(Z_DEG_T21_D21,key_cyt_met = "IFN-gamma-kynurenine"))
-
-
-
-
-
-
-
-
-ggplot(diff_and_z, aes(x = combined_Z, y = logFC)) +
-    geom_point()
-
 
 
