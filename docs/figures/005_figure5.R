@@ -1,23 +1,17 @@
 #### Figure 5
-
-### Necessary libraries
-library(tidyverse)
-library(ggplot2)
-library(ggpubr)
-library(fgsea)
+## source functions
+source("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/R/diff_to_Z_functions.R")
 
 ### Load the data
 ### Differential expression
 load("~/OneDrive - The University of Colorado Denver/Projects/subPhenoDS/results/differential_expression/differential_expression_results_2023-09-08.RData")
 ### partial correlation z scores
 load("~/OneDrive - The University of Colorado Denver/Projects/subPhenoDS/results/partial_correlation_results/full_z_percent_8_31.RData")
+### Renmame the list list of z scores by karyotype/cluster
+names(full_z_results) <- c("T21", "D21", 1,2,3,4,5)
 ### Hallmark pathways
 pathways_all <- gmtPathways("~/OneDrive - The University of Colorado Denver/Projects/subPhenoDS/data/pathway/h.all.v2023.1.Hs.symbols.gmt")
 
-
-
-### Renmame the list list of z scores by karyotype/cluster
-names(full_z_results) <- c("T21", "D21", 1,2,3,4,5)
 
 
 diff_T21_D21 <- diffZ(full_z_results, cluster1 = "T21", cluster2 = "D21")
@@ -33,9 +27,12 @@ ggplot(corr_Z_DEG, aes(x = cor, y = -log10(p.value)))+
 ## NB: What about by gene sets?
 
 gene_set_corr_z_DEG <- GeneSetcorrZandDEGwrapper(colnames(full_z_results[[1]]), diff_and_z = z_and_DEG_T21_D21, pathways_all = pathways_all)
+
+source("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/R/diff_to_Z_functions.R")
 GeneSetPlotZandDEG(z_and_DEG_T21_D21,
-                   key_cyt_met = "IL-27-Histidine",
-                   gene_set = pathways_all$HALLMARK_HEME_METABOLISM)
+                   key_cyt_met = "IFN-gamma-kynurenine",
+                   pathways_all = pathways_all,
+                   pathway = "HALLMARK_INTERFERON_GAMMA_RESPONSE")
 
 
 
