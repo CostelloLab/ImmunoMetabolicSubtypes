@@ -1,3 +1,10 @@
+### Necessary libraries
+library(tidyverse)
+library(ggplot2)
+library(ggpubr)
+library(fgsea)
+
+
 ### diffZ is a function that finds the differential mediation scores between karyotypes/clusters
 
 diffZ <- function(z_scores_list, cluster1, cluster2) {
@@ -96,16 +103,19 @@ GeneSetcorrZandDEGwrapper <- function(cyt_met_examples, diff_and_z, pathways_all
 }
 
 ### GeneSetplotZandDEG is a function for plotting the relationship between the change in Z score and DEG by karyotype/cluster for a specific gene set
-GeneSetPlotZandDEG <- function(z_and_DEG, key_cyt_met, gene_set) {
+GeneSetPlotZandDEG <- function(z_and_DEG, key_cyt_met, pathways_all, pathway) {
 
+    gene_set <- pathways_all[[pathway]]
+    
     tmp_z_and_DEG <- z_and_DEG %>%
         filter(gene %in% gene_set) %>%
-        select(logFC, key_cyt_met) 
+        select(logFC, key_cyt_met)
+    
     names(tmp_z_and_DEG)[2] <- "deltaZ"
     
    p <- ggplot(tmp_z_and_DEG, aes(x = deltaZ,y = logFC)) +
        geom_point() +
-       ggtitle(key_cyt_met) +
+       ggtitle(paste(key_cyt_met,pathway)) +
        theme_classic()+
        stat_cor() +
        geom_smooth(method = "lm")
