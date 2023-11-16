@@ -10,6 +10,7 @@ load("~/OneDrive - The University of Colorado Denver/Projects/subPhenoDS/results
 ### Necessary libraries
 library(tidyverse)
 library(ggplot2)
+library(ggpubr)
 
 ### Renmame the list list of z scores by karyotype/cluster
 names(full_z_results) <- c("T21", "D21", 1,2,3,4,5)
@@ -42,17 +43,24 @@ ZandDEG <- function(key_cyt_met, delta_z, DEG) {
     return(diff_and_z)
 }
 
-z_and_DEG <- Z_DEG_T21_D21
+### plotZandDEG is a function for plotting the relationship between the change in Z score and DEG by karyotype/cluster
 plotZandDEG <- function(z_and_DEG, key_cyt_met) {
+    
+   p <- ggplot(Z_DEG_T21_D21, aes(x = deltaZ,y = logFC)) +
+       geom_point() +
+       ggtitle(key_cyt_met) +
+       theme_classic()+
+       stat_cor() +
+       geom_smooth(method = "lm")
+    return(p)
+}
 
-    ggplot(Z_DEG_T21_D21, aes_string(x = key_cyt_met,y = "logFC")) +
-        geom_point()
-                           
+
 
 ### Figure 5X
 diff_T21_D21 <- diffZ(full_z_results, cluster1 = "T21", cluster2 = "D21")
 Z_DEG_T21_D21 <- ZandDEG(key_cyt_met = "IFN-gamma-kynurenine",DEG =diff_genes[[1]],delta_z =  diff_T21_D21)
-
+print(plotZandDEG(Z_DEG_T21_D21,key_cyt_met = "IFN-gamma-kynurenine"))
 
 ggplot(diff_and_z, aes(x = combined_Z, y = logFC)) +
     geom_point()
