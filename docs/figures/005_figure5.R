@@ -61,11 +61,34 @@ corrZandDEG <- function(z_and_DEG) {
     return(corr)
 }
 
+### corrZandDEGwrapper is a wrapper function that outputs the correlation coefficients across cytokine-metabolite relationships
+corrZandDEGwrapper <- function(cyt_met_examples, DEG, delta_Z) {
+    res <- sapply(cyt_met_examples, function(x) {
+        tmp_Z_DEG <- ZandDEG(key_cyt_met = x, DEG = DEG, delta_z = delta_z)
+        tmp_corr <- corrZandDEG(tmp_Z_DEG)
+        return(c(tmp_corr$estimate, tmp_corr$p.value))
+    })
+    res <- as.data.frame(t(res))
+    names(res)[2] <- "p.value"
+    res <- res %>%
+        arrange(-cor)
+    
+    return(res)
+}
+
 ### Figure 5X
 diff_T21_D21 <- diffZ(full_z_results, cluster1 = "T21", cluster2 = "D21")
-Z_DEG_T21_D21 <- ZandDEG(key_cyt_met = "IFN-gamma-kynurenine",DEG =diff_genes[[1]],delta_z =  diff_T21_D21)
+
+corr_Z_DEG <- corrZandDEGwrapper(colnames(full_z_results[[1]])[1:5], DEG = diff_genes[[1]], delta_Z = diff_T21_D21)
+
+
 print(plotZandDEG(Z_DEG_T21_D21,key_cyt_met = "IFN-gamma-kynurenine"))
-corr_z_and_DEG <- corrZandDEG(Z_DEG_T21_D21)
+
+
+
+
+
+
 
 
 ggplot(diff_and_z, aes(x = combined_Z, y = logFC)) +
