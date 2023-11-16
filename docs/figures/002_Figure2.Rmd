@@ -151,6 +151,7 @@ names(toplot_clusters) <-c("T21", "D21", 1,2,3,4,5)
 
 
 ```{r global heatmap}
+source("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/R/partial_correlation_functions.R")
 
 pathways_all <- gmtPathways("~/OneDrive - The University of Colorado Denver/Projects/subPhenoDS/data/pathway/h.all.v2023.1.Hs.symbols.gmt")
 met_path <- get(load("/Users/lucas/OneDrive - The University of Colorado Denver/Projects/subPhenoDS/data/pathway/metabolite_pathway.RData"))
@@ -170,6 +171,7 @@ DS_pathways <- c("HALLMARK_INTERFERON_GAMMA_RESPONSE",
                  "HALLMARK_MTORC1_SIGNALING",
                  "HALLMARK_G2M_CHECKPOINT",
                  "HALLMARK_E2F_TARGETS")
+DS_pathways <- DS_pathways[c(1,3,5,8)]
 
 toplot1 <- heatmapDataPrep(key_pathways = DS_pathways,
              pathways_all = pathways_all,
@@ -178,7 +180,6 @@ toplot1 <- heatmapDataPrep(key_pathways = DS_pathways,
              threshold = 200,
              frequency = 5)
 
-source("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/R/partial_correlation_functions.R")
 multiHeatmap(toplot1 = toplot1,
              toplot2 = toplot_clusters[[1]],
              key_pathways = DS_pathways,
@@ -188,6 +189,8 @@ multiHeatmap(toplot1 = toplot1,
              full_results = full_results,
              output_file = "~/OneDrive - The University of Colorado Denver/Projects/subPhenoDS/results/partial_correlation_results/figures/2D.pdf")
 ```
+
+
 
 ```{r}
 
@@ -228,6 +231,7 @@ fullHeatmap(toplot_clusters[[1]], "T21")
 ## Heatmap overall of DS pathways
 
 ```{r heatmap of DS pathways}
+
 DSPathwayHeatmap <- function(input, title, tolabel = "", DS_pathways) {
 
   
@@ -280,8 +284,9 @@ DSPathwayHeatmap <- function(input, title, tolabel = "", DS_pathways) {
                    "HALLMARK_E2F_TARGETS")
 
 DSPathwayHeatmap(toplot_clusters[[1]], "Gene Set NES values for cytokine-metabolite associtations in T21", tolabel ="", DS_pathways = DS_pathways[c(1)])
-
 ```
+
+
 
 Heatmap filtered by varying pathways
 
