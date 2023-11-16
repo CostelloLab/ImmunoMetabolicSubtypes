@@ -148,20 +148,21 @@ multiHeatmap <- function(toplot1, toplot2, key_pathways,pathways_all, met_path, 
   
  
     ## adding heatmap annotation for gene pathways
-    col_anno <- lapply(key_pathways, function(x) {
-        as.data.frame(as.factor( ifelse(colnames(toplot1) %in% pathways_all[[x]], 1,0)))
-    })
-    col_anno <- col_anno %>%
-        bind_cols(.name_repair = ~ vctrs::vec_as_names(..., repair = "unique", quiet = TRUE)) 
-    rownames(col_anno) <- colnames(toplot)
-    colnames(col_anno) <- key_pathways
-    col_anno <- as.data.frame(col_anno)
-    column_col <- lapply(key_pathways, function(x) {
-        c("1" = "black", "0" = "white")
-    })
-    names(column_col) <- key_pathways
+    ## col_anno <- lapply(key_pathways, function(x) {
+    ##     as.data.frame(as.factor( ifelse(colnames(toplot1) %in% pathways_all[[x]], 1,0)))
+    ## })
+    ## col_anno <- col_anno %>%
+    ##     bind_cols(.name_repair = ~ vctrs::vec_as_names(..., repair = "unique", quiet = TRUE)) 
+
+    ## rownames(col_anno) <- colnames(toplot1)
+    ## colnames(col_anno) <- key_pathways
+    ## col_anno <- as.data.frame(col_anno)
+    ## column_col <- lapply(key_pathways, function(x) {
+    ##     c("1" = "black", "0" = "white")
+    ## })
+    ## names(column_col) <- key_pathways
     
-    ha <- HeatmapAnnotation(df = col_anno, col = column_col, show_legend = rep(FALSE,length(key_pathways)))
+    ## ha <- HeatmapAnnotation(df = col_anno, col = column_col, show_legend = rep(FALSE,length(key_pathways)))
     
     hr <- rowAnnotation(Class = metabolites$pathway)
 
@@ -193,7 +194,8 @@ multiHeatmap <- function(toplot1, toplot2, key_pathways,pathways_all, met_path, 
       show_row_names = FALSE,
       show_row_dend = FALSE,
       width = unit(4, "in"),
-      column_names_side = "top")
+      column_names_side = "top",
+      show_column_dend = FALSE)
 
     heatmaps <- p1+p2
    
