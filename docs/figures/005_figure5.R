@@ -55,12 +55,18 @@ plotZandDEG <- function(z_and_DEG, key_cyt_met) {
     return(p)
 }
 
-
+### corrZandDEG is a function for calculating the correlation coefficient between the deltaZ and logFC
+corrZandDEG <- function(z_and_DEG) {
+    corr <- cor.test(x = z_and_DEG$logFC, z_and_DEG$deltaZ)
+    return(corr)
+}
 
 ### Figure 5X
 diff_T21_D21 <- diffZ(full_z_results, cluster1 = "T21", cluster2 = "D21")
 Z_DEG_T21_D21 <- ZandDEG(key_cyt_met = "IFN-gamma-kynurenine",DEG =diff_genes[[1]],delta_z =  diff_T21_D21)
 print(plotZandDEG(Z_DEG_T21_D21,key_cyt_met = "IFN-gamma-kynurenine"))
+corr_z_and_DEG <- corrZandDEG(Z_DEG_T21_D21)
+
 
 ggplot(diff_and_z, aes(x = combined_Z, y = logFC)) +
     geom_point()
