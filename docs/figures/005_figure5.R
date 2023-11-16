@@ -76,11 +76,17 @@ corrZandDEGwrapper <- function(cyt_met_examples, DEG, delta_Z) {
     return(res)
 }
 
-### Figure 5X
+## NB: What about by gene sets?
+
 diff_T21_D21 <- diffZ(full_z_results, cluster1 = "T21", cluster2 = "D21")
 
-corr_Z_DEG <- corrZandDEGwrapper(colnames(full_z_results[[1]])[1:5], DEG = diff_genes[[1]], delta_Z = diff_T21_D21)
+corr_Z_DEG <- corrZandDEGwrapper(colnames(full_z_results[[1]]), DEG = diff_genes[[1]], delta_Z = diff_T21_D21)
 
+### Figure 5X
+
+
+ggplot(corr_Z_DEG, aes(x = cor, y = -log10(p.value))) +
+    geom_point()
 
 print(plotZandDEG(Z_DEG_T21_D21,key_cyt_met = "IFN-gamma-kynurenine"))
 
