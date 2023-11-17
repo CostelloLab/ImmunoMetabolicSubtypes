@@ -17,7 +17,7 @@ diffZ <- function(z_scores_list, cluster1, cluster2) {
 
 diffZCluster <- function(z_scores_list, cluster1) {
     clusters <- c('1','2','3','4','5')
-    other_clusters <- clusters[-cluster1]
+    other_clusters <- clusters[clusters != cluster1]
     other_clusters_list <- z_scores_list[other_clusters]
     mean_clusters <- do.call(cbind, other_clusters_list)
     mean_clusters <- array(mean_clusters, dim=c(dim(other_clusters_list[[1]]), length(other_clusters_list)))
