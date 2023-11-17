@@ -13,6 +13,20 @@ diffZ <- function(z_scores_list, cluster1, cluster2) {
 }
 
 
+### diffZ is a function that finds the differential mediation scores between one cluster and all other clusters
+
+diffZCluster <- function(z_scores_list, cluster1) {
+    clusters <- c('1','2','3','4','5')
+    other_clusters <- clusters[-cluster1]
+    other_clusters_list <- z_scores_list[other_clusters]
+    mean_clusters <- do.call(cbind, other_clusters_list)
+    mean_clusters <- array(mean_clusters, dim=c(dim(other_clusters_list[[1]]), length(other_clusters_list)))
+    mean_clusters <- apply(mean_clusters,c(1,2), mean, na.rm = TRUE)
+    diff_z <- z_scores_list[[cluster1]] - mean_clusters
+    return(diff_z)
+}
+
+
 ### NB: For comparison, need a function that finds difference in Z score for 1 cluster vs all other clusters
 
 ## ZandDEG is a function for combining the change in Z scores between karyotypes/clusters and DEG by karyotypes/clusters for a specific cytokine_metabolite relationship
