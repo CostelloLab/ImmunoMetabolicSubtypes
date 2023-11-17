@@ -41,16 +41,56 @@ plotZandDEG(z_and_DEG = z_and_DEG_T21_D21,
 gene_set_corr_z_DEG <- GeneSetcorrZandDEGwrapper(colnames(full_z_results[[1]]), diff_and_z = z_and_DEG_T21_D21, pathways_all = pathways_all)
 
 lapply(gene_set_corr_z_DEG, head)
+lapply(gene_set_corr_z_DEG, tail)
 
 GeneSetPlotZandDEG(z_and_DEG_T21_D21,
-                   key_cyt_met = "SAA-Histidine",
+                   key_cyt_met = "MIP-3alpha-Lysine",
+                   pathways_all = pathways_all,
+                   pathway = "HALLMARK_INTERFERON_GAMMA_RESPONSE")
+
+GeneSetPlotZandDEG(z_and_DEG_T21_D21,
+                   key_cyt_met = "IFN-gamma-kynurenine",
+                   pathways_all = pathways_all,
+                   pathway = "HALLMARK_INTERFERON_GAMMA_RESPONSE")
+
+GeneSetPlotZandDEG(z_and_DEG_T21_D21,
+                   key_cyt_met = "MCP-1-Aspartate",
+                   pathways_all = pathways_all,
+                   pathway = "HALLMARK_HEME_METABOLISM")
+
+GeneSetPlotZandDEG(z_and_DEG_T21_D21,
+                   key_cyt_met = "IL-1RA-Glutamate",
+                   pathways_all = pathways_all,
+                   pathway = "HALLMARK_HEME_METABOLISM")
+
+
+GeneSetPlotZandDEG(z_and_DEG_T21_D21,
+                   key_cyt_met = "TNF-beta-5-Hydroxyindoleacetate",
                    pathways_all = pathways_all,
                    pathway = "HALLMARK_PANCREAS_BETA_CELLS")
+
+
+GeneSetPlotZandDEG(z_and_DEG_T21_D21,
+                   key_cyt_met = "IL-12/IL-23p40-propionyl-carnitine",
+                   pathways_all = pathways_all,
+                   pathway = "HALLMARK_OXIDATIVE_PHOSPHORYLATION")
+
+
 
 
 source("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/R/diff_to_Z_functions.R")
 ### By cluster
 clusters <- c('1','2','3','4','5')
 diff_Z_clusters <- lapply(clusters, function(cluster) diffZCluster(full_z_results, cluster1 = cluster))
-Z_and_DEG_clusters <- lapply(
+names(diff_Z_clusters) <- clusters
+Z_and_DEG_clusters <- lapply(clusters, function(cluster) ZandDEG(DEG = diff_genes[[cluster]], delta_z = diff_Z_clusters[[cluster]]))
+names(Z_and_DEG_clusters) <- clusters
+
+gene_set_corr_z_DEG_clusters <- lapply(clusters, function(cluster) {
+    print(cluster)
+    GeneSetcorrZandDEGwrapper(colnames(full_z_results[[1]]), diff_and_z = Z_and_DEG_clusters[[cluster]], pathways_all = pathways_all)
+})
+
+
+
 
