@@ -37,6 +37,7 @@ wideToLong <- function(full_z_results) {
   })
 }
 long_z <- wideToLong(full_z_results )
+names(long_z) <- c("T21", "D21", 1,2,3,4,5)
 ```
 
 
@@ -189,6 +190,7 @@ multiHeatmap(toplot1 = toplot1,
 
 source("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/R/partial_correlation_functions.R")
 
+
 pathways_all <- gmtPathways("~/OneDrive - The University of Colorado Denver/Projects/subPhenoDS/data/pathway/h.all.v2023.1.Hs.symbols.gmt")
 met_path <- get(load("/Users/lucas/OneDrive - The University of Colorado Denver/Projects/subPhenoDS/data/pathway/metabolite_pathway.RData"))
 met_path <- met_path %>%
@@ -220,7 +222,8 @@ toplot1 <- heatmapDataPrep(key_pathways = DS_pathways,
              met_path = met_path,
              formatted_gsea = gsea_results_formatted[[1]],
              threshold = 200,
-             frequency = 5)
+             frequency = 5,
+             z_scores = long_z[[1]])
 
 source("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/R/partial_correlation_functions.R")
 multiHeatmapOrderedGSEA(toplot1 = toplot1, 
@@ -264,6 +267,43 @@ multiHeatmapOrderedGSEA(toplot1 = toplot1,
                         output_file = "~/OneDrive - The University of Colorado Denver/Projects/subPhenoDS/results/partial_correlation_results/figures/2D_ordered-E2F-TARGETS.pdf",
                         order_pathway = "HALLMARK_E2F_TARGETS",
                         col_vector = col_vector)
+
+
+```
+
+### Heatmaps by cluster
+```{r}
+
+source("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/R/partial_correlation_functions.R")
+cyt_mets <- filterCyt_Mets(toplot = toplot1,
+               formatted_gsea = gsea_results_formatted[[1]],
+               key_pathway = "HALLMARK_INTERFERON_GAMMA_RESPONSE",
+               gene_sets = pathways_all)
+               
+
+cluster_ranks <- clusterGeneRanks(cyt_mets = cyt_mets,
+                                  long_z_list = long_z,
+                                  key_pathway = "HALLMARK_INTERFERON_GAMMA_RESPONSE",
+                                  gene_sets = pathways_all)
+names(cluster_ranks) <- names(long_z)
+cluster_heatmaps <- clusterHeatmapWrapper(cluster_ranks)
+
+
+
+cyt_mets <- filterCyt_Mets(toplot = toplot1,
+               formatted_gsea = gsea_results_formatted[[1]],
+               key_pathway = "HALLMARK_HEME_METABOLISM",
+               gene_sets = pathways_all)
+cluster_ranks <- clusterGeneRanks(cyt_mets = cyt_mets,
+                                  long_z_list = long_z,
+                                  key_pathway = "HALLMARK_HEME_METABOLISM",
+                                  gene_sets = pathways_all)
+names(cluster_ranks) <- names(long_z)
+cluster_heatmaps <- clusterHeatmapWrapper(cluster_ranks)
+
+
+
+
 
 ```
 
