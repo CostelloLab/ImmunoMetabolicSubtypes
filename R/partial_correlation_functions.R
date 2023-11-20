@@ -218,7 +218,7 @@ multiHeatmap <- function(toplot1, toplot2, key_pathways,pathways_all, met_path, 
 ##         order_pathway   character string of pathway to order the results by
 ## Outputs: pdf file of figure
 
-multiHeatmap <- function(toplot1, toplot2, key_pathways,pathways_all, met_path, formatted_gsea, full_results, output_file, order_pathway) {
+multiHeatmapOrderedGSEA <- function(toplot1, toplot2, key_pathways,pathways_all, met_path, formatted_gsea, full_results, output_file, order_pathway) {
     
 
     names(toplot2) <- gsub(" NES", "", names(toplot2))
@@ -230,24 +230,22 @@ multiHeatmap <- function(toplot1, toplot2, key_pathways,pathways_all, met_path, 
     metabolites <-  full_results %>%
         filter(cyt_met %in% rownames(toplot1)) %>%
         distinct(cyt_met, .keep_all = TRUE) %>%
-        left_join(met_path, by = 'metabolite')    %>%
-        arrange(pathway)
-
-    toplot1 <- toplot1[match( metabolites$cyt_met, rownames(toplot1)),]
-
-
+        left_join(met_path, by = 'metabolite') 
 
     toplot2 <- toplot2 %>%
         dplyr::filter(rownames(toplot2) %in% key_pathways) %>%
         select(rownames(toplot1)) %>%
         t() %>%
         as.data.frame() %>%
-        arrange(match(rownames(toplot1), rownames(toplot2)))
+        arrange(order_pathway)
+
+    toplot1 <- toplot1[match( rownames(toplot2), rownames(toplot1)),]
+
+    metabolites <- metabolites[match(rownames(toplot1), metabolites$cyt_met)]
     
   names(toplot2) <- gsub("HALLMARK_","", names(toplot2))
   names(toplot2) <- gsub("_"," ", names(toplot2))
   
-     
     hr <- rowAnnotation(Class = metabolites$pathway)
 
     col_fun <- colorRamp2(c(min(toplot1), median(apply(toplot1,2, median)), max(toplot1) ), c("blue", "white", "gray"))
@@ -265,8 +263,6 @@ multiHeatmap <- function(toplot1, toplot2, key_pathways,pathways_all, met_path, 
                                       legend_direction = "horizontal") ,
                                    left_annotation = hr,
                                   width = unit(6,"in"))
-
-
   
   col_fun2 <- colorRamp2(c(-2,0, 2 ), c("white","gray", "red"))
   
