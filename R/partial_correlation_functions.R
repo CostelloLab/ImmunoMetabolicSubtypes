@@ -214,10 +214,11 @@ multiHeatmap <- function(toplot1, toplot2, key_pathways,pathways_all, met_path, 
 ##         formatted_gsea  table of gsea results with NES and padj values for each cytokine-metabolite relationships
 ##         full_results    table of full partial correlation results
 ##         output_file     file where to output the figures
-##         order_pathway   character string of pathway to order the results by
+##         order_pathway   character string of pathway to order the results by key pathay
+
 ## Outputs: pdf file of figure
 
-multiHeatmapOrderedGSEA <- function(toplot1, toplot2, key_pathways,pathways_all, met_path, formatted_gsea, full_results, output_file, order_pathway) {
+multiHeatmapOrderedGSEA <- function(toplot1, toplot2, key_pathways,pathways_all, met_path, formatted_gsea, full_results, output_file, order_pathway,threshold = 1000, frequency = 5, col_vector) {
     
     names(toplot2) <- gsub(" NES", "", names(toplot2))
 
@@ -237,24 +238,40 @@ multiHeatmapOrderedGSEA <- function(toplot1, toplot2, key_pathways,pathways_all,
         as.data.frame() %>%
         arrange(-!!sym(order_pathway), .keep_all = TRUE)
 
+    toplot2 <- toplot2[, key_pathways]
+
     toplot1 <- toplot1[match(rownames(toplot2), rownames(toplot1)),]
 
 
     metabolites <- metabolites[match(rownames(toplot1), metabolites$cyt_met),]
     
-  names(toplot2) <- gsub("HALLMARK_","", names(toplot2))
+    names(toplot2) <- gsub("HALLMARK_","", names(toplot2))
     names(toplot2) <- gsub("_"," ", names(toplot2))
 
-    n <- length(metabolites$pathway)
-    qual_col_pals <- brewer.pal.info[brewer.pal.info$category == 'qual',]
-    col_vector <- unlist(mapply(brewer.pal, qual_col_pals$maxcolors, rownames(qual_col_pals)))
-    names(col_vector) <- 
+    metabolites$pathway[is.na(metabolites$pathway)] <- "unknown"
+
     
+    hr <- rowAnnotation(Class = metabolites$pathway, col = list(Class = col_vector))
 
-    hr <- rowAnnotation(Class = metabolites$pathway, q)
+    col_fun <- colorRamp2(c(min(toplot1), 1000, max(toplot1) ), c("blue", "white", "gray"))
 
-    col_fun <- colorRamp2(c(min(toplot1), median(apply(toplot1,2, median)), max(toplot1) ), c("blue", "white", "gray"))
+     ##adding heatmap annotation for gene pathways
+    col_anno <- lapply(key_pathways, function(x) {
+        as.data.frame(as.factor( ifelse(colnames(toplot1) %in% pathways_all[[x]], 1,0)))
+    })
+    col_anno <- col_anno %>%
+        bind_cols(.name_repair = ~ vctrs::vec_as_names(..., repair = "unique", quiet = TRUE)) 
 
+    rownames(col_anno) <- colnames(toplot1)
+    colnames(col_anno) <- key_pathways
+    col_anno <- as.data.frame(col_anno)
+    column_col <- lapply(key_pathways, function(x) {
+        c("1" = "black", "0" = "white")
+    })
+    names(column_col) <- key_pathways
+    
+    ha <- HeatmapAnnotation(df = col_anno, col = column_col, show_legend = rep(FALSE,length(key_pathways)), annotation_name_side = "left")
+    
     p1 <- ComplexHeatmap::Heatmap(as.matrix(toplot1),
                                   name = "Rank",
                                   row_names_gp = gpar(fontsize = 6),
@@ -266,6 +283,7 @@ multiHeatmapOrderedGSEA <- function(toplot1, toplot2, key_pathways,pathways_all,
                                   show_column_dend = FALSE,
                                   row_order = rownames(toplot1),
                                   col = col_fun,
+                                  top_annotation = ha,
                                   heatmap_legend_param = list(
                                       legend_direction = "horizontal") ,
                                    left_annotation = hr,
@@ -279,6 +297,7 @@ multiHeatmapOrderedGSEA <- function(toplot1, toplot2, key_pathways,pathways_all,
       row_order = rownames(toplot2),
       show_row_names = FALSE,
       show_row_dend = FALSE,
+      column_order = names(toplot2),
       width = unit(2, "in"),
       column_names_side = "top",
       show_column_dend = FALSE)
