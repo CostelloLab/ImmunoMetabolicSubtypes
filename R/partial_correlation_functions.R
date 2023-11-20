@@ -135,7 +135,6 @@ multiHeatmap <- function(toplot1, toplot2, key_pathways,pathways_all, met_path, 
     toplot1 <- toplot1[match( metabolites$cyt_met, rownames(toplot1)),]
 
 
-
     toplot2 <- toplot2 %>%
         dplyr::filter(rownames(toplot2) %in% key_pathways) %>%
         select(rownames(toplot1)) %>%
@@ -220,13 +219,12 @@ multiHeatmap <- function(toplot1, toplot2, key_pathways,pathways_all, met_path, 
 
 multiHeatmapOrderedGSEA <- function(toplot1, toplot2, key_pathways,pathways_all, met_path, formatted_gsea, full_results, output_file, order_pathway) {
     
-
     names(toplot2) <- gsub(" NES", "", names(toplot2))
 
     toplot1 <- toplot1 %>%
         as.data.frame() %>%
         filter(rownames(toplot1) %in% names(toplot2))
-
+    
     metabolites <-  full_results %>%
         filter(cyt_met %in% rownames(toplot1)) %>%
         distinct(cyt_met, .keep_all = TRUE) %>%
@@ -237,15 +235,16 @@ multiHeatmapOrderedGSEA <- function(toplot1, toplot2, key_pathways,pathways_all,
         select(rownames(toplot1)) %>%
         t() %>%
         as.data.frame() %>%
-        arrange(order_pathway)
+        arrange(-!!sym(order_pathway), .keep_all = TRUE)
 
-    toplot1 <- toplot1[match( rownames(toplot2), rownames(toplot1)),]
+    toplot1 <- toplot1[match(rownames(toplot2), rownames(toplot1)),]
 
-    metabolites <- metabolites[match(rownames(toplot1), metabolites$cyt_met)]
+
+    metabolites <- metabolites[match(rownames(toplot1), metabolites$cyt_met),]
     
   names(toplot2) <- gsub("HALLMARK_","", names(toplot2))
   names(toplot2) <- gsub("_"," ", names(toplot2))
-  
+
     hr <- rowAnnotation(Class = metabolites$pathway)
 
     col_fun <- colorRamp2(c(min(toplot1), median(apply(toplot1,2, median)), max(toplot1) ), c("blue", "white", "gray"))
@@ -255,8 +254,10 @@ multiHeatmapOrderedGSEA <- function(toplot1, toplot2, key_pathways,pathways_all,
                                   row_names_gp = gpar(fontsize = 6),
                                   column_names_gp = gpar(fontsize = 5),
                                   show_column_names = FALSE,
-                                  show_row_names = FALSE,
+                                  show_row_names = TRUE,
+                                  row_names_side = "left",
                                   show_row_dend = FALSE,
+                                  show_column_dend = FALSE,
                                   row_order = rownames(toplot1),
                                   col = col_fun,
                                   heatmap_legend_param = list(
@@ -272,12 +273,12 @@ multiHeatmapOrderedGSEA <- function(toplot1, toplot2, key_pathways,pathways_all,
       row_order = rownames(toplot2),
       show_row_names = FALSE,
       show_row_dend = FALSE,
-      width = unit(4, "in"),
+      width = unit(2, "in"),
       column_names_side = "top",
       show_column_dend = FALSE)
 
     heatmaps <- p1+p2
-   
+    
   pdf(output_file, width = 12, height = 12)
   draw(heatmaps, heatmap_legend_side = "bottom")
   dev.off()
