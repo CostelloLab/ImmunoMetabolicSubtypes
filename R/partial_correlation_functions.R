@@ -206,9 +206,86 @@ multiHeatmap <- function(toplot1, toplot2, key_pathways,pathways_all, met_path, 
 }
 
 
+### multiHeatmapOrderedGSEA is a function for visualizing the gene ranks and gsea results over the cyt-met relationships and ordering it by gene set enrichments
+## Inputs: toplot1         dataframe of cyt-met X gene ranks
+##         toplot2         cluster results of gene set enrichment for cyt-met relationships 
+##         key_pathways    character vector of pathways to label
+##         met_path        table of metabolite pathway annotations
+##         pathways_all    list of character vecotors of genes belonging to hallmark pathways
+##         formatted_gsea  table of gsea results with NES and padj values for each cytokine-metabolite relationships
+##         full_results    table of full partial correlation results
+##         output_file     file where to output the figures
+##         order_pathway   character string of pathway to order the results by
+## Outputs: pdf file of figure
+
+multiHeatmap <- function(toplot1, toplot2, key_pathways,pathways_all, met_path, formatted_gsea, full_results, output_file, order_pathway) {
+    
+
+    names(toplot2) <- gsub(" NES", "", names(toplot2))
+
+    toplot1 <- toplot1 %>%
+        as.data.frame() %>%
+        filter(rownames(toplot1) %in% names(toplot2))
+
+    metabolites <-  full_results %>%
+        filter(cyt_met %in% rownames(toplot1)) %>%
+        distinct(cyt_met, .keep_all = TRUE) %>%
+        left_join(met_path, by = 'metabolite')    %>%
+        arrange(pathway)
+
+    toplot1 <- toplot1[match( metabolites$cyt_met, rownames(toplot1)),]
 
 
 
+    toplot2 <- toplot2 %>%
+        dplyr::filter(rownames(toplot2) %in% key_pathways) %>%
+        select(rownames(toplot1)) %>%
+        t() %>%
+        as.data.frame() %>%
+        arrange(match(rownames(toplot1), rownames(toplot2)))
+    
+  names(toplot2) <- gsub("HALLMARK_","", names(toplot2))
+  names(toplot2) <- gsub("_"," ", names(toplot2))
+  
+     
+    hr <- rowAnnotation(Class = metabolites$pathway)
 
+    col_fun <- colorRamp2(c(min(toplot1), median(apply(toplot1,2, median)), max(toplot1) ), c("blue", "white", "gray"))
+
+    p1 <- ComplexHeatmap::Heatmap(as.matrix(toplot1),
+                                  name = "Rank",
+                                  row_names_gp = gpar(fontsize = 6),
+                                  column_names_gp = gpar(fontsize = 5),
+                                  show_column_names = FALSE,
+                                  show_row_names = FALSE,
+                                  show_row_dend = FALSE,
+                                  row_order = rownames(toplot1),
+                                  col = col_fun,
+                                  heatmap_legend_param = list(
+                                      legend_direction = "horizontal") ,
+                                   left_annotation = hr,
+                                  width = unit(6,"in"))
+
+
+  
+  col_fun2 <- colorRamp2(c(-2,0, 2 ), c("white","gray", "red"))
+  
+    p2 <- Heatmap(name = "GSEA NES",
+      as.matrix(toplot2),
+      col = col_fun2,
+      row_order = rownames(toplot2),
+      show_row_names = FALSE,
+      show_row_dend = FALSE,
+      width = unit(4, "in"),
+      column_names_side = "top",
+      show_column_dend = FALSE)
+
+    heatmaps <- p1+p2
+   
+  pdf(output_file, width = 12, height = 12)
+  draw(heatmaps, heatmap_legend_side = "bottom")
+  dev.off()
+  
+}
 
 
