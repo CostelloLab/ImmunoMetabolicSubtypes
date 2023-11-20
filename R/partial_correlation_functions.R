@@ -66,7 +66,7 @@ return(final_res)
 ## Outputs: pdf file of figure
 
 
-heatmapDataPrep <- function(key_pathways,pathways_all, met_path, formatted_gsea, threshold = 200, frequency = 5) {
+heatmapDataPrep <- function(key_pathways,pathways_all, met_path, formatted_gsea, threshold = 200, frequency = 5, z_scores ) {
     
     
   cyt_met_examples <- formatted_gsea %>%                                                  
@@ -85,7 +85,7 @@ heatmapDataPrep <- function(key_pathways,pathways_all, met_path, formatted_gsea,
   
   
   res <- lapply(cyt_met_examples, function(x) {
-    tmp <- long_z[[1]] %>%
+    tmp <- z_scores%>%
       filter(cyt_met == x) %>%
       arrange(desc(combined_Z)) %>%
       mutate(rank = row_number()) %>%
@@ -309,5 +309,23 @@ multiHeatmapOrderedGSEA <- function(toplot1, toplot2, key_pathways,pathways_all,
   dev.off()
   
 }
+
+
+filterCyt_Mets <- function(toplot, formatted_gsea, key_pathway, gene_set) {
+
+    tmp_gsea <- formatted_gsea %>%
+        select(contains(rownames(toplot1))) %>%
+        t() %>%
+        as.data.frame() %>%
+        arrange(-!!sym(key_pathway))
+
+    cyt_mets <- rownames(tmp_gsea)[1:10]
+
+    return(cyt_mets)
+
+}
+
+
+
 
 
