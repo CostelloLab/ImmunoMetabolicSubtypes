@@ -26,6 +26,9 @@ corr_Z_DEG <- corrZandDEGwrapper(colnames(full_z_results[[1]]), diff_and_z = z_a
 ggplot(corr_Z_DEG, aes(x = cor, y = -log10(p.value)))+
     geom_point()
 
+ggplot(corr_Z_DEG, aes(x = cor))+
+    geom_density()
+
 plotZandDEG(z_and_DEG = z_and_DEG_T21_D21,
             key_cyt_met = "MIP-3alpha-trans-4-Hydroxy-L-proline")
 
@@ -90,7 +93,106 @@ gene_set_corr_z_DEG_clusters <- lapply(clusters, function(cluster) {
     print(cluster)
     GeneSetcorrZandDEGwrapper(colnames(full_z_results[[1]]), diff_and_z = Z_and_DEG_clusters[[cluster]], pathways_all = pathways_all)
 })
+names(gene_set_corr_z_DEG_clusters) <- clusters
+
+# Pathways
+lapply(clusters, function(x) {
+    head(gene_set_corr_z_DEG_clusters[[x]][["HALLMARK_INTERFERON_GAMMA_RESPONSE"]],15)
+})
+
+lapply(clusters, function(x) {
+    head(gene_set_corr_z_DEG_clusters[[x]][["HALLMARK_HEME_METABOLISM"]],10)
+})
+
+lapply(clusters, function(x) {
+    head(gene_set_corr_z_DEG_clusters[[x]][["HALLMARK_MYC_TARGETS_V1"]],10)
+})
+
+## Pathways and cyt-met
+lapply(clusters, function(x) {
+    gene_set_corr_z_DEG_clusters[[x]][["HALLMARK_INTERFERON_GAMMA_RESPONSE"]]["IFN-gamma-kynurenine",]
+})
+
+lapply(clusters, function(x) {
+    gene_set_corr_z_DEG_clusters[[x]][["HALLMARK_INTERFERON_GAMMA_RESPONSE"]]["SAA-Citrate",]
+})
+
+lapply(clusters, function(x) {
+    gene_set_corr_z_DEG_clusters[[x]][["HALLMARK_INTERFERON_GAMMA_RESPONSE"]]["TSLP-kynurenine",]
+})
+
+
+### Cyt-met
+lapply(clusters, function(x) {
+    lapply(gene_set_corr_z_DEG_clusters[[x]], function(y) y["SAA-Citrate",])
+})
+
+
+lapply(clusters, function(x) {
+    lapply(gene_set_corr_z_DEG_clusters[[x]], function(y) y["TSLP-kynurenine",])
+})
+
+lapply(clusters, function(x) {
+    tmp <- lapply(gene_set_corr_z_DEG_clusters[[x]], function(y) as.data.frame(y["MIP-3alpha-5-Hydroxyisourate",]))
+    tmp <- tmp %>% bind_rows()
+    rownames(tmp) <- names(pathways_all)
+    tmp <- tmp %>% arrange(-cor)
+    return(head(tmp))
+})
 
 
 
 
+
+library(gridExtra)
+
+p_list <- lapply(clusters, function(cluster) {
+    GeneSetPlotZandDEG(Z_and_DEG_clusters[[cluster]],
+                   key_cyt_met = "SAA-Citrate",
+                   pathways_all = pathways_all,
+                   pathway = "HALLMARK_HEME_METABOLISM")
+                 })
+grid.arrange(grobs = p_list)
+
+p_list <- lapply(clusters, function(cluster) {
+    GeneSetPlotZandDEG(Z_and_DEG_clusters[[cluster]],
+                   key_cyt_met = "SAA-Citrate",
+                   pathways_all = pathways_all,
+                   pathway = "HALLMARK_INTERFERON_GAMMA_RESPONSE")
+                 })
+grid.arrange(grobs = p_list)
+
+
+p_list <- lapply(clusters, function(cluster) {
+    GeneSetPlotZandDEG(Z_and_DEG_clusters[[cluster]],
+                   key_cyt_met = "TSLP-kynurenine",
+                   pathways_all = pathways_all,
+                   pathway = "HALLMARK_REACTIVE_OXYGEN_SPECIES_PATHWAY")
+                 })
+grid.arrange(grobs = p_list)
+
+
+p_list <- lapply(clusters, function(cluster) {
+    GeneSetPlotZandDEG(Z_and_DEG_clusters[[cluster]],
+                   key_cyt_met = "IL-1RA-10(S)17(S)-DiHDHA/protectin D1",
+                   pathways_all = pathways_all,
+                   pathway = "HALLMARK_INTERFERON_GAMMA_RESPONSE")
+                 })
+grid.arrange(grobs = p_list)
+
+
+
+p_list <- lapply(clusters, function(cluster) {
+    GeneSetPlotZandDEG(Z_and_DEG_clusters[[cluster]],
+                   key_cyt_met = "MIP-3alpha-5-Hydroxyisourate",
+                   pathways_all = pathways_all,
+                   pathway = "HALLMARK_IL6_JAK_STAT3_SIGNALING")
+                 })
+grid.arrange(grobs = p_list)
+
+
+
+
+full_results %>%
+    filter(cyt_met == "IL-10-5-Hydroxyisourate") %>%
+    filter(gene == "APOL6")
