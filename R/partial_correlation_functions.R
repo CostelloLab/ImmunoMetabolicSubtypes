@@ -5,7 +5,7 @@ library(tidyverse)
 library(ComplexHeatmap)
 library(circlize)
 library(fgsea)
-
+library(RColorBrewer)
 
 
 
@@ -243,9 +243,15 @@ multiHeatmapOrderedGSEA <- function(toplot1, toplot2, key_pathways,pathways_all,
     metabolites <- metabolites[match(rownames(toplot1), metabolites$cyt_met),]
     
   names(toplot2) <- gsub("HALLMARK_","", names(toplot2))
-  names(toplot2) <- gsub("_"," ", names(toplot2))
+    names(toplot2) <- gsub("_"," ", names(toplot2))
 
-    hr <- rowAnnotation(Class = metabolites$pathway)
+    n <- length(metabolites$pathway)
+    qual_col_pals <- brewer.pal.info[brewer.pal.info$category == 'qual',]
+    col_vector <- unlist(mapply(brewer.pal, qual_col_pals$maxcolors, rownames(qual_col_pals)))
+    names(col_vector) <- 
+    
+
+    hr <- rowAnnotation(Class = metabolites$pathway, q)
 
     col_fun <- colorRamp2(c(min(toplot1), median(apply(toplot1,2, median)), max(toplot1) ), c("blue", "white", "gray"))
 
