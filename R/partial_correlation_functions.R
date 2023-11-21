@@ -385,7 +385,7 @@ multiHeatmapOrderedGSEA <- function(toplot1, toplot2, key_pathways,pathways_all,
 }
 
 
-filterCyt_Mets <- function(toplot, formatted_gsea, key_pathway, gene_sets) {
+filterCyt_Mets <- function(toplot, formatted_gsea, key_pathway, gene_sets, num_cyt_met) {
 
     gene_set <- gene_sets[[key_pathway]]
     tmp_gsea <- formatted_gsea %>%
@@ -394,7 +394,7 @@ filterCyt_Mets <- function(toplot, formatted_gsea, key_pathway, gene_sets) {
         as.data.frame() %>%
         arrange(-!!sym(key_pathway))
 
-    cyt_mets <- rownames(tmp_gsea)[1:10]
+    cyt_mets <- rownames(tmp_gsea)[1:num_cyt_met]
 
     cyt_mets <- gsub(" NES", "", cyt_mets)
     
@@ -426,6 +426,13 @@ clusterGeneRanks <- function(cyt_mets, long_z_list, key_pathway, gene_sets ) {
         rankings_df <- as.matrix(rankings_df)
                 
         toplot <- t(rankings_df[rownames(rankings_df) %in% gene_set, ])
+
+        tokeep <- gene_set[ gene_set %in% colnames(toplot)]
+
+        toplot <- toplot %>%
+            as.data.frame() %>%
+            select(tokeep)
+        
         return(toplot)
     })
 }
@@ -435,29 +442,37 @@ clusterGeneRanks <- function(cyt_mets, long_z_list, key_pathway, gene_sets ) {
 clusterHeatmap <- function(cluster_rank, name) {
 
     
-    col_fun <- colorRamp2(c(1, 2000, 12624 ), c("blue", "white", "gray"))
-    p1 <- Heatmap(cluster_rank,
+    col_fun <- colorRamp2(c(1, 4000, 12624 ), c("purple", "white", "yellow"))
+    p1 <- Heatmap(as.matrix(cluster_rank),
                   name = name,
             row_order = rownames(cluster_rank),
             show_row_dend = FALSE,
-            show_column_names = FALSE,
+            show_column_names = TRUE,
+            column_names_gp = gpar(fontsize = 2),
+            column_names_side = "top",
             row_names_side = "left",
-            column_order = names(cluster_rank),
             show_column_dend = FALSE,
+            column_order = names(cluster_rank),
             col = col_fun,
-            row_names_gp = gpar(fontsize =7)
+            row_names_gp = gpar(fontsize =4),
+            show_heatmap_legend = FALSE,
+            row_title = name
             )
     return(p1)
 
 }
 
 
-clusterHeatmapWrapper <- function(cluster_ranks) {
+clusterHeatmapWrapper <- function(cluster_ranks, output_file) {
 
     clusters <- c("T21", "D21", "1"  , "2"  , "3"  , "4"  , "5")
     heatmaps <- lapply(clusters , function(cluster) {
         clusterHeatmap(cluster_ranks[[cluster]], cluster)
     })
-    return(heatmaps)
+    all_heatmaps <- heatmaps[[1]]%v%heatmaps[[2]]%v%heatmaps[[3]]%v%heatmaps[[4]]%v%heatmaps[[5]]%v%heatmaps[[6]]%v%heatmaps[[7]]
+    
+    pdf(output_file)
+    draw(all_heatmaps,)
+    dev.off()
 }
 
