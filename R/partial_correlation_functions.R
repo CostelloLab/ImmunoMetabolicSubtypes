@@ -77,9 +77,9 @@ heatmapDataPrep <- function(key_pathways,pathways_all, met_path, formatted_gsea,
     filter(gsub(" NES", "", cyt_met_NES) == gsub(" padj", "", cyt_met_padj)) %>%
     mutate(cyt_met = gsub(" NES", "", cyt_met_NES)) %>%
     select(pathway, cyt_met, NES, padj) %>%
-    filter(padj < .05 & NES > 0) %>%
-    arrange(padj) %>%
-    top_n(100) %>%
+      filter(padj < .05 & NES > 0)    %>%
+      arrange(padj)    %>%
+      top_n(-100)    %>%
     distinct(cyt_met) %>%
     .$cyt_met
   
@@ -130,7 +130,7 @@ geneSetUnion <- function(key_pathways,pathways_all, met_path, formatted_gsea, th
     select(pathway, cyt_met, NES, padj) %>%
     filter(padj < .05 & NES > 0) %>%
       arrange(padj) %>%
-      top_n(n = num_cyt_met) %>%
+      top_n(n = -num_cyt_met) %>%
     distinct(cyt_met) %>%
     .$cyt_met
   
