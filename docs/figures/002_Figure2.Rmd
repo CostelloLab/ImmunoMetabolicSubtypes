@@ -276,8 +276,8 @@ multiHeatmapOrderedGSEA(toplot1 = toplot1,
 ## Heatmaps filtered by genes in geneset and ordered by gene set enrichment
 
 ```{r ordered global heatmap 
-source("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/R/partial_correlation_functions.R")
 
+source("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/R/partial_correlation_functions.R")
 pathways_all <- gmtPathways("~/OneDrive - The University of Colorado Denver/Projects/subPhenoDS/data/pathway/h.all.v2023.1.Hs.symbols.gmt")
 met_path <- get(load("/Users/lucas/OneDrive - The University of Colorado Denver/Projects/subPhenoDS/data/pathway/metabolite_pathway.RData"))
 met_path <- met_path %>%
