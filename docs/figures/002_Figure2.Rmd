@@ -363,34 +363,34 @@ multiHeatmapOrderedGSEA(toplot1 = toplot1,
 ### Heatmaps by cluster
 ```{r}
 
-source("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/R/partial_correlation_functions.R")
+
 cyt_mets <- filterCyt_Mets(toplot = toplot1,
                formatted_gsea = gsea_results_formatted[[1]],
                key_pathway = "HALLMARK_INTERFERON_GAMMA_RESPONSE",
-               gene_sets = pathways_all)
-               
-
+               gene_sets = pathways_all,
+               num_cyt_met = 15)
 cluster_ranks <- clusterGeneRanks(cyt_mets = cyt_mets,
                                   long_z_list = long_z,
                                   key_pathway = "HALLMARK_INTERFERON_GAMMA_RESPONSE",
                                   gene_sets = pathways_all)
 names(cluster_ranks) <- names(long_z)
-cluster_heatmaps <- clusterHeatmapWrapper(cluster_ranks)
+source("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/R/partial_correlation_functions.R")
+cluster_heatmaps <- clusterHeatmapWrapper(cluster_ranks, output_file = "~/OneDrive - The University of Colorado Denver/Projects/subPhenoDS/results/partial_correlation_results/figures/cluster_heatmaps_IFN-gamma-Response-ranks.pdf")
+
 
 
 
 cyt_mets <- filterCyt_Mets(toplot = toplot1,
                formatted_gsea = gsea_results_formatted[[1]],
                key_pathway = "HALLMARK_HEME_METABOLISM",
-               gene_sets = pathways_all)
+               gene_sets = pathways_all,
+               num_cyt_met = 15)
 cluster_ranks <- clusterGeneRanks(cyt_mets = cyt_mets,
                                   long_z_list = long_z,
                                   key_pathway = "HALLMARK_HEME_METABOLISM",
                                   gene_sets = pathways_all)
 names(cluster_ranks) <- names(long_z)
-cluster_heatmaps <- clusterHeatmapWrapper(cluster_ranks)
-
-
+cluster_heatmaps <- clusterHeatmapWrapper(cluster_ranks, output_file = "~/OneDrive - The University of Colorado Denver/Projects/subPhenoDS/results/partial_correlation_results/figures/cluster_heatmaps_Heme-Metabolism-ranks.pdf")
 
 
 
