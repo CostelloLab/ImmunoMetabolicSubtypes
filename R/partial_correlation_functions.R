@@ -120,36 +120,34 @@ heatmapDataPrep <- function(key_pathways,pathways_all, met_path, formatted_gsea,
 geneSetUnion <- function(key_pathways,pathways_all, met_path, formatted_gsea, threshold = 200, frequency = 5, z_scores, num_cyt_met = 100 ) {
     
     
-  cyt_met_examples <- formatted_gsea %>%                                                  
-    rownames_to_column("pathway") %>%
-    filter(pathway %in% key_pathways) %>%
-    pivot_longer(cols = contains("NES"), values_to = "NES", names_to = "cyt_met_NES") %>%
-     pivot_longer(cols = contains("padj"), values_to = "padj", names_to = "cyt_met_padj") %>%
-    filter(gsub(" NES", "", cyt_met_NES) == gsub(" padj", "", cyt_met_padj)) %>%
-    mutate(cyt_met = gsub(" NES", "", cyt_met_NES)) %>%
-    select(pathway, cyt_met, NES, padj) %>%
-    filter(padj < .05 & NES > 0) %>%
-      arrange(padj) %>%
-      top_n(n = -num_cyt_met) %>%
-    distinct(cyt_met) %>%
-    .$cyt_met
+    cyt_met_examples <- formatted_gsea %>%                                                  
+        rownames_to_column("pathway") %>%
+        filter(pathway %in% key_pathways) %>%
+        pivot_longer(cols = contains("NES"), values_to = "NES", names_to = "cyt_met_NES") %>%
+        pivot_longer(cols = contains("padj"), values_to = "padj", names_to = "cyt_met_padj") %>%
+        filter(gsub(" NES", "", cyt_met_NES) == gsub(" padj", "", cyt_met_padj)) %>%
+        mutate(cyt_met = gsub(" NES", "", cyt_met_NES)) %>%
+        select(pathway, cyt_met, NES, padj) %>%
+        filter(padj < .05 & NES > 0) %>%
+        arrange(padj) %>%
+        top_n(n = -num_cyt_met) %>%
+        distinct(cyt_met) %>%
+        .$cyt_met
   
+    res <- lapply(cyt_met_examples, function(x) {
+        tmp <- z_scores%>%
+            filter(cyt_met == x) %>%
+            arrange(desc(combined_Z)) %>%
+            mutate(rank = row_number()) %>%
+            select(gene,rank)
+        names(tmp)[2] <- x
+        return(tmp)
+    })
   
-  res <- lapply(cyt_met_examples, function(x) {
-    tmp <- z_scores%>%
-      filter(cyt_met == x) %>%
-      arrange(desc(combined_Z)) %>%
-      mutate(rank = row_number()) %>%
-      select(gene,rank)
-    names(tmp)[2] <- x
-    return(tmp)
-  })
-
+    rankings_df <- res %>% reduce(left_join, by = "gene") %>% column_to_rownames("gene")
   
-  rankings_df <- res %>% reduce(left_join, by = "gene") %>% column_to_rownames("gene")
-  
-  rankings_df <- as.matrix(rankings_df)
-  
+    rankings_df <- as.matrix(rankings_df)
+    
     tokeep <- unique(unlist(pathways_all[key_pathways]))
     toplot <- rankings_df %>%
         t() %>%
@@ -158,6 +156,21 @@ geneSetUnion <- function(key_pathways,pathways_all, met_path, formatted_gsea, th
     toplot <- toplot %>%
         select(tokeep)
 
+    agg_rank_gene_set <- lapply(key_pathways, function(pathway) {
+        gene_set <- tokeep[tokeep %in% pathways_all[[pathway]]]
+        mean_ranks <- toplot %>%
+            select(gene_set)%>%
+            summarise(across(everything(), mean)) %>%
+            pivot_longer(cols = everything()) %>%
+            arrange(value) %>%
+            .$name
+        return(mean_ranks)
+    })
+
+    agg_rank_gene_set <- unlist(agg_rank_gene_set)
+    agg_rank_gene_set <- agg_rank_gene_set[!duplicated(agg_rank_gene_set)]
+    toplot <- toplot %>%
+        select(agg_rank_gene_set)
     
     return(toplot)
 }
