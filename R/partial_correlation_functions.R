@@ -106,6 +106,64 @@ heatmapDataPrep <- function(key_pathways,pathways_all, met_path, formatted_gsea,
 }
 
 
+## geneSetUnion is a function for preparing the data for visualization in multiHeatmap, filtering the genes by geneset in the key_pathways
+## Inputs: key_pathways    character vector of pathways to label
+##         met_path        table of metabolite pathway annotations
+##         pathways_all    list of character vecotors of genes belonging to hallmark pathways
+##         formatted_gsea  table of gsea results with NES and padj values for each cytokine-metabolite relationships
+##         threshold       the rank threshold for a gene
+##         frequency       the frequency of gene ranked below the threshold
+##         num_cyt_met     the number of cyt_mets to include in the plot
+## Outputs: pdf file of figure
+
+
+geneSetUnion <- function(key_pathways,pathways_all, met_path, formatted_gsea, threshold = 200, frequency = 5, z_scores, num_cyt_met = 100 ) {
+    
+    
+  cyt_met_examples <- formatted_gsea %>%                                                  
+    rownames_to_column("pathway") %>%
+    filter(pathway %in% key_pathways) %>%
+    pivot_longer(cols = contains("NES"), values_to = "NES", names_to = "cyt_met_NES") %>%
+     pivot_longer(cols = contains("padj"), values_to = "padj", names_to = "cyt_met_padj") %>%
+    filter(gsub(" NES", "", cyt_met_NES) == gsub(" padj", "", cyt_met_padj)) %>%
+    mutate(cyt_met = gsub(" NES", "", cyt_met_NES)) %>%
+    select(pathway, cyt_met, NES, padj) %>%
+    filter(padj < .05 & NES > 0) %>%
+      arrange(padj) %>%
+      top_n(n = num_cyt_met) %>%
+    distinct(cyt_met) %>%
+    .$cyt_met
+  
+  
+  res <- lapply(cyt_met_examples, function(x) {
+    tmp <- z_scores%>%
+      filter(cyt_met == x) %>%
+      arrange(desc(combined_Z)) %>%
+      mutate(rank = row_number()) %>%
+      select(gene,rank)
+    names(tmp)[2] <- x
+    return(tmp)
+  })
+
+  
+  rankings_df <- res %>% reduce(left_join, by = "gene") %>% column_to_rownames("gene")
+  
+  rankings_df <- as.matrix(rankings_df)
+  
+    tokeep <- unique(unlist(pathways_all[key_pathways]))
+    toplot <- rankings_df %>%
+        t() %>%
+        as.data.frame() 
+    tokeep <- tokeep[tokeep %in% names(toplot)]
+    toplot <- toplot %>%
+        select(tokeep)
+
+    
+    return(toplot)
+}
+
+
+
 ### multiHeatmap is a function for visualizing the gene ranks and gsea results over the cyt-met relationships
 ## Inputs: toplot1         dataframe of cyt-met X gene ranks
 ##         toplot2         cluster results of gene set enrichment for cyt-met relationships 
@@ -242,26 +300,28 @@ multiHeatmapOrderedGSEA <- function(toplot1, toplot2, key_pathways,pathways_all,
 
     toplot1 <- toplot1[match(rownames(toplot2), rownames(toplot1)),]
 
-
     metabolites <- metabolites[match(rownames(toplot1), metabolites$cyt_met),]
     
     names(toplot2) <- gsub("HALLMARK_","", names(toplot2))
     names(toplot2) <- gsub("_"," ", names(toplot2))
 
     metabolites$pathway[is.na(metabolites$pathway)] <- "unknown"
-
     
-    hr <- rowAnnotation(Class = metabolites$pathway, col = list(Class = col_vector))
+    hr <- rowAnnotation(Class = metabolites$pathway,
+                        col = list(Class = col_vector),
+                        show_annotation_name = FALSE,
+                        annotation_legend_param = list(
+                            Class = list(
+                                nrow = 9))
+                        
+                        )
 
-    col_fun <- colorRamp2(c(min(toplot1), 1000, max(toplot1) ), c("blue", "white", "gray"))
-
-     ##adding heatmap annotation for gene pathways
+    ##adding heatmap annotation for gene pathways
     col_anno <- lapply(key_pathways, function(x) {
         as.data.frame(as.factor( ifelse(colnames(toplot1) %in% pathways_all[[x]], 1,0)))
     })
     col_anno <- col_anno %>%
         bind_cols(.name_repair = ~ vctrs::vec_as_names(..., repair = "unique", quiet = TRUE)) 
-
     rownames(col_anno) <- colnames(toplot1)
     colnames(col_anno) <- key_pathways
     col_anno <- as.data.frame(col_anno)
@@ -270,17 +330,28 @@ multiHeatmapOrderedGSEA <- function(toplot1, toplot2, key_pathways,pathways_all,
     })
     names(column_col) <- key_pathways
     
-    ha <- HeatmapAnnotation(df = col_anno, col = column_col, show_legend = rep(FALSE,length(key_pathways)), annotation_name_side = "left")
+    ha <- HeatmapAnnotation(df = col_anno,
+                            col = column_col,
+                            show_legend = rep(FALSE,length(key_pathways)),
+                            annotation_name_side = "left",
+                            annotation_name_gp = gpar(fontsize = 8))
+
+    ## col_fun <- colorRamp2(c(min(toplot1), 2000, max(toplot1) ), c("blue", "white", "gray"))
+    ## col_fun <- colorRamp2(c(1, median(apply(toplot1,2,median)), 12624 ), c("purple", "white", "yellow"))
+   col_fun <- colorRamp2(c(1, 4000, 12624 ), c("purple", "white", "yellow"))
+
     
     p1 <- ComplexHeatmap::Heatmap(as.matrix(toplot1),
                                   name = "Rank",
-                                  row_names_gp = gpar(fontsize = 6),
+                                  row_names_gp = gpar(fontsize = 2),
                                   column_names_gp = gpar(fontsize = 5),
                                   show_column_names = FALSE,
                                   show_row_names = TRUE,
                                   row_names_side = "left",
                                   show_row_dend = FALSE,
                                   show_column_dend = FALSE,
+                                  column_dend_reorder = FALSE,
+                                  column_order = names(toplot1),
                                   row_order = rownames(toplot1),
                                   col = col_fun,
                                   top_annotation = ha,
@@ -289,7 +360,7 @@ multiHeatmapOrderedGSEA <- function(toplot1, toplot2, key_pathways,pathways_all,
                                    left_annotation = hr,
                                   width = unit(6,"in"))
   
-  col_fun2 <- colorRamp2(c(-2,0, 2 ), c("white","gray", "red"))
+  col_fun2 <- colorRamp2(c(-3,0, 3 ), c("white","gray", "red"))
   
     p2 <- Heatmap(name = "GSEA NES",
       as.matrix(toplot2),
@@ -300,7 +371,10 @@ multiHeatmapOrderedGSEA <- function(toplot1, toplot2, key_pathways,pathways_all,
       column_order = names(toplot2),
       width = unit(2, "in"),
       column_names_side = "top",
-      show_column_dend = FALSE)
+      show_column_dend = FALSE,
+      column_names_gp = gpar(fontsize = 8),
+      column_names_rot = 45
+      )
 
     heatmaps <- p1+p2
     
@@ -361,7 +435,7 @@ clusterGeneRanks <- function(cyt_mets, long_z_list, key_pathway, gene_sets ) {
 clusterHeatmap <- function(cluster_rank, name) {
 
     
-    col_fun <- colorRamp2(c(1, 1000, 12624 ), c("blue", "white", "gray"))
+    col_fun <- colorRamp2(c(1, 2000, 12624 ), c("blue", "white", "gray"))
     p1 <- Heatmap(cluster_rank,
                   name = name,
             row_order = rownames(cluster_rank),
