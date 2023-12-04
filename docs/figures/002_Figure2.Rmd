@@ -12,38 +12,16 @@ knitr::opts_chunk$set(echo = FALSE, root.dir = "~/OneDrive - The University of C
 # Partial Correlation Visualization
 
 This script utilized the results from the partial correlation analysis to create figures for publication. 
-
 ```{r loading data}
 load("~/OneDrive - The University of Colorado Denver/Projects/subPhenoDS/results/partial_correlation_results/partial_cor_gsea_results_8_31.RData")
-load("~/OneDrive - The University of Colorado Denver/Projects/subPhenoDS/results/partial_correlation_results/partial_correlation_gsea_results_formatted_8_31.RData")
 load("~/OneDrive - The University of Colorado Denver/Projects/subPhenoDS/results/partial_correlation_results/full_partial_correlation_results_8_31.RData")
-load("~/OneDrive - The University of Colorado Denver/Projects/subPhenoDS/results/partial_correlation_results/full_z_percent_8_31.RData")
-diff_expr <- get(load("~/OneDrive - The University of Colorado Denver/Projects/subPhenoDS/results/differential_expression/gsea_results_diff_2023-09_08.RData"))
-load("~/OneDrive - The University of Colorado Denver/Projects/subPhenoDS/results/differential_expression/differential_expression_results_2023-09-08.RData")
 transcription_factors <- read.delim("~/OneDrive - The University of Colorado Denver/Projects/subPhenoDS/data/transcription_factors.txt", header = F)
-
 ```
-
-
-```{r data prep}
-library(tidyverse)
-### wide to long for each matrix in the list
-wideToLong <- function(full_z_results) {
-  res <- lapply(full_z_results, function(x) {
-    x %>% 
-      as.data.frame() %>%
-      rownames_to_column("gene") %>%
-      pivot_longer(values_to = "combined_Z", names_to = "cyt_met", cols = where(is.numeric) )
-  })
-}
-long_z <- wideToLong(full_z_results )
-names(long_z) <- c("T21", "D21", 1,2,3,4,5)
-```
-
 
 #### Figure 2A
 ```{r percent difference plots}
 library(tidyverse)
+load("~/OneDrive - The University of Colorado Denver/Projects/subPhenoDS/results/partial_correlation_results/full_z_percent_8_31.RData")
 tmp_toplot <- full_results %>%
   filter(cluster == "T21") %>%
   filter(gene == "IDO1") %>%
@@ -66,12 +44,17 @@ p1 <- ggplot(tmp_toplot, aes(x = as.factor(name), y = value, fill = name )) +
 pdf(paste0("~/OneDrive - The University of Colorado Denver/Projects/subPhenoDS/results/partial_correlation_results/figures/percent_change.pdf"), width = 3, height = 3)
 print(p1)
 dev.off()
-
-
 ```
 
 #### Figure 2B
 ```{r}
+### placeholder for long_z file
+library(tidyverse)
+library(ggplot2)
+load("~/OneDrive - The University of Colorado Denver/Projects/subPhenoDS/results/partial_correlation_results/long_z_11_27.RData")
+```
+
+``` {r}
 
 key_cyt_met <- "IFN-gamma-kynurenine"
 
@@ -92,7 +75,7 @@ p1 <- ggplot(single_rel_z, aes(x = rank, y = combined_Z)) +
   xlab("rank") +
   ylab("Z score")
 
-pdf(paste0("~/OneDrive - The University of Colorado Denver/Projects/subPhenoDS/results/partial_correlation_results/figures/",key_cyt_met,"Z_trend_plot.pdf"), width = 10, height = 6)
+pdf(paste0("~/OneDrive - The University of Colorado Denver/Projects/subPhenoDS/results/partial_correlation_results/figures/",key_cyt_met,"_Z_trend_plot.pdf"), width = 10, height = 6)
 print(p1)
 dev.off()
 
@@ -103,7 +86,7 @@ dev.off()
 ### Figure 2C
 
 ```{r}
-
+### placeholder for long_z file
 key_gene <- "STAT1"
 
 single_rel_z <- long_z[[1]] %>%
@@ -115,12 +98,14 @@ single_rel_z <- long_z[[1]] %>%
 p1 <- ggplot(single_rel_z, aes(x = rank, y = combined_Z)) +
   geom_point() +
   geom_point(data = single_rel_z[single_rel_z$cyt_met == "IFN-gamma-kynurenine",], aes(x = rank, y = combined_Z),  color ="red")+
-  annotate("text", y= single_rel_z[single_rel_z$cyt_met == "IFN-gamma-kynurenine","combined_Z"],x =single_rel_z[single_rel_z$cyt_met == "IFN-gamma-kynurenine","rank"]+ 100, angle = 0,  label="IFN-gamma-kynurenine", color = "red", size = 6) +
+    annotate("text", y= single_rel_z[single_rel_z$cyt_met == "IFN-gamma-kynurenine","combined_Z"],x =single_rel_z[single_rel_z$cyt_met == "IFN-gamma-kynurenine","rank"]+ 250, angle = 0,  label="IFN-gamma-kynurenine", color = "red", size = 6) +
+    geom_point(data = single_rel_z[single_rel_z$cyt_met == "MIP-1beta-Icosatetraenoic acid",], aes(x = rank, y = combined_Z),  color ="darkgreen")+
+  annotate("text", y= single_rel_z[single_rel_z$cyt_met == "MIP-1beta-Icosatetraenoic acid","combined_Z"],x =single_rel_z[single_rel_z$cyt_met == "MIP-1beta-Icosatetraenoic acid","rank"]+ 300, angle = 0,  label="MIP-1beta-Icosatetraenoic acid", color = "darkgreen", size = 6)+
   theme_classic() +
   xlab("rank") +
   ylab("Z score")
 
-pdf(paste0("~/OneDrive - The University of Colorado Denver/Projects/subPhenoDS/results/partial_correlation_results/figures/",key_gene,"Z_trend_plot.pdf"), width = 10, height = 6)
+pdf(paste0("~/OneDrive - The University of Colorado Denver/Projects/subPhenoDS/results/partial_correlation_results/figures/",key_gene,"_Z_trend_plot.pdf"), width = 10, height = 6)
 print(p1)
 dev.off()
 ```
@@ -131,6 +116,7 @@ dev.off()
 ### data prep
 ```{r  data}
 library(tidyverse)
+load("~/OneDrive - The University of Colorado Denver/Projects/subPhenoDS/results/partial_correlation_results/partial_corrlation_gsea_results_formatted_11_27.RData")
 toplot_clusters <- lapply(gsea_results_formatted, function(x) {
   x[,colSums(is.na(gsea_results_formatted[[1]])) <1]
 })
@@ -145,137 +131,20 @@ names(toplot_clusters) <-c("T21", "D21", 1,2,3,4,5)
 
 ```
 
-```{r global heatmap}
-source("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/R/partial_correlation_functions.R")
-
-pathways_all <- gmtPathways("~/OneDrive - The University of Colorado Denver/Projects/subPhenoDS/data/pathway/h.all.v2023.1.Hs.symbols.gmt")
-met_path <- get(load("/Users/lucas/OneDrive - The University of Colorado Denver/Projects/subPhenoDS/data/pathway/metabolite_pathway.RData"))
-met_path <- met_path %>%
-        as.data.frame() %>%
-        rownames_to_column("metabolite") %>%
-        pivot_longer(cols = -metabolite, names_to = "pathway") %>%
-        filter(value == 1)
-
-
-
-DS_pathways <- c("HALLMARK_INTERFERON_GAMMA_RESPONSE", 
-                 "HALLMARK_INTERFERON_ALPHA_RESPONSE",
-                 "HALLMARK_HEME_METABOLISM", 
-                 "HALLMARK_INFLAMMATORY_RESPONSE",
-                 "HALLMARK_OXIDATIVE_PHOSPHORYLATION",
-                 "HALLMARK_MTORC1_SIGNALING",
-                 "HALLMARK_G2M_CHECKPOINT",
-                 "HALLMARK_E2F_TARGETS")
-DS_pathways <- DS_pathways[c(1,3,5,8)]
-
-toplot1 <- heatmapDataPrep(key_pathways = DS_pathways,
-             pathways_all = pathways_all,
-             met_path = met_path,
-             formatted_gsea = gsea_results_formatted[[1]],
-             threshold = 200,
-             frequency = 5)
-
-multiHeatmap(toplot1 = toplot1,
-             toplot2 = toplot_clusters[[1]],
-             key_pathways = DS_pathways,
-             pathways_all = pathways_all,
-             met_path = met_path,
-             formatted_gsea = gsea_results_formatted[[1]] ,
-             full_results = full_results,
-             output_file = "~/OneDrive - The University of Colorado Denver/Projects/subPhenoDS/results/partial_correlation_results/figures/2D.pdf")
-```
-## Heatmaps ordered by gene set enrichment
-
-```{r ordered global heatmap 
-
-source("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/R/partial_correlation_functions.R")
-
-
-pathways_all <- gmtPathways("~/OneDrive - The University of Colorado Denver/Projects/subPhenoDS/data/pathway/h.all.v2023.1.Hs.symbols.gmt")
-met_path <- get(load("/Users/lucas/OneDrive - The University of Colorado Denver/Projects/subPhenoDS/data/pathway/metabolite_pathway.RData"))
-met_path <- met_path %>%
-        as.data.frame() %>%
-        rownames_to_column("metabolite") %>%
-        pivot_longer(cols = -metabolite, names_to = "pathway") %>%
-        filter(value == 1)
-DS_pathways <- c("HALLMARK_INTERFERON_GAMMA_RESPONSE", 
-                 "HALLMARK_INTERFERON_ALPHA_RESPONSE",
-                 "HALLMARK_HEME_METABOLISM", 
-                 "HALLMARK_INFLAMMATORY_RESPONSE",
-                 "HALLMARK_OXIDATIVE_PHOSPHORYLATION",
-                 "HALLMARK_MTORC1_SIGNALING",
-                 "HALLMARK_G2M_CHECKPOINT",
-                 "HALLMARK_E2F_TARGETS")
-DS_pathways <- DS_pathways[c(1,3,5,8)]
-met_path$pathway[is.na(met_path$pathway)] <- "unknown"
-unique_pathways <- sort(unique(met_path$pathway))
-n <- length(unique_pathways)
-qual_col_pals <- brewer.pal.info[brewer.pal.info$category == 'qual',]
-col_vector <- unlist(mapply(brewer.pal, qual_col_pals$maxcolors, rownames(qual_col_pals)))
-col_vector <- col_vector[1:n]
-names(col_vector) <- unique_pathways
-col_vector <- c(col_vector, "unknown" = "black")
-
-
-toplot1 <- heatmapDataPrep(key_pathways = DS_pathways,
-             pathways_all = pathways_all,
-             met_path = met_path,
-             formatted_gsea = gsea_results_formatted[[1]],
-             threshold = 200,
-             frequency = 5,
-             z_scores = long_z[[1]])
-
-source("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/R/partial_correlation_functions.R")
-multiHeatmapOrderedGSEA(toplot1 = toplot1, 
-                        toplot2 = toplot_clusters[[1]],
-                        key_pathways = DS_pathways,
-                        pathways_all = pathways_all,
-                        met_path = met_path,
-                        formatted_gsea = gsea_results_formatted[[1]] ,
-                        full_results = full_results,
-                        output_file = "~/OneDrive - The University of Colorado Denver/Projects/subPhenoDS/results/partial_correlation_results/figures/2D_ordered-IFN-gamma.pdf",
-                        order_pathway = "HALLMARK_INTERFERON_GAMMA_RESPONSE",
-                        col_vector = col_vector)
-
-multiHeatmapOrderedGSEA(toplot1 = toplot1,
-                        toplot2 = toplot_clusters[[1]],
-                        key_pathways = DS_pathways,
-                        pathways_all = pathways_all,
-                        met_path = met_path,
-                        formatted_gsea = gsea_results_formatted[[1]] ,
-                        full_results = full_results,
-                        output_file = "~/OneDrive - The University of Colorado Denver/Projects/subPhenoDS/results/partial_correlation_results/figures/2D_ordered-HEME-METABOLISM.pdf",
-                        order_pathway = "HALLMARK_HEME_METABOLISM",
-                        col_vector = col_vector)
-multiHeatmapOrderedGSEA(toplot1 = toplot1,
-                        toplot2 = toplot_clusters[[1]],
-                        key_pathways = DS_pathways,
-                        pathways_all = pathways_all,
-                        met_path = met_path,
-                        formatted_gsea = gsea_results_formatted[[1]] ,
-                        full_results = full_results,
-                        output_file = "~/OneDrive - The University of Colorado Denver/Projects/subPhenoDS/results/partial_correlation_results/figures/2D_ordered-OXIDATIVE-PHOSPHORYLATION.pdf",
-                        order_pathway = "HALLMARK_OXIDATIVE_PHOSPHORYLATION",
-                        col_vector = col_vector)
-multiHeatmapOrderedGSEA(toplot1 = toplot1,
-                        toplot2 = toplot_clusters[[1]],
-                        key_pathways = DS_pathways,
-                        pathways_all = pathways_all,
-                        met_path = met_path,
-                        formatted_gsea = gsea_results_formatted[[1]] ,
-                        full_results = full_results,
-                        output_file = "~/OneDrive - The University of Colorado Denver/Projects/subPhenoDS/results/partial_correlation_results/figures/2D_ordered-E2F-TARGETS.pdf",
-                        order_pathway = "HALLMARK_E2F_TARGETS",
-                        col_vector = col_vector)
-
-
-```
-
 
 
 ## Heatmaps filtered by genes in geneset and ordered by gene set enrichment
 
-```{r ordered global heatmap 
+```{r ordered global heatmap }
+load("~/OneDrive - The University of Colorado Denver/Projects/subPhenoDS/results/partial_correlation_results/full_partial_correlation_results_11_27.RData")
+
+T21_cyt_met <- full_results %>%
+    filter(cluster == "T21") %>%
+    filter(cor_cyt_met_p < .05) %>%
+    distinct(cyt_met)
+
+T21_filtered_full_results <- full_results %>%
+    filter(cyt_met %in% T21_cyt_met$cyt_met)
 
 source("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/R/partial_correlation_functions.R")
 pathways_all <- gmtPathways("~/OneDrive - The University of Colorado Denver/Projects/subPhenoDS/data/pathway/h.all.v2023.1.Hs.symbols.gmt")
@@ -293,7 +162,7 @@ DS_pathways <- c("HALLMARK_INTERFERON_GAMMA_RESPONSE",
                  "HALLMARK_MTORC1_SIGNALING",
                  "HALLMARK_G2M_CHECKPOINT",
                  "HALLMARK_E2F_TARGETS")
-DS_pathways <- DS_pathways[c(1,3,5,8)]
+DS_pathways <- DS_pathways[c(1,3,5)]
 met_path$pathway[is.na(met_path$pathway)] <- "unknown"
 unique_pathways <- sort(unique(met_path$pathway))
 n <- length(unique_pathways)
@@ -319,7 +188,7 @@ multiHeatmapOrderedGSEA(toplot1 = toplot1,
                         pathways_all = pathways_all,
                         met_path = met_path,
                         formatted_gsea = gsea_results_formatted[[1]] ,
-                        full_results = full_results,
+                        full_results = T21_filtered_full_results,
                         output_file = "~/OneDrive - The University of Colorado Denver/Projects/subPhenoDS/results/partial_correlation_results/figures/2D_filtered_ordered-IFN-gamma.pdf",
                         order_pathway = "HALLMARK_INTERFERON_GAMMA_RESPONSE",
                         col_vector = col_vector)
@@ -330,7 +199,7 @@ multiHeatmapOrderedGSEA(toplot1 = toplot1,
                         pathways_all = pathways_all,
                         met_path = met_path,
                         formatted_gsea = gsea_results_formatted[[1]] ,
-                        full_results = full_results,
+                        full_results = T21_filtered_full_results,
                         output_file = "~/OneDrive - The University of Colorado Denver/Projects/subPhenoDS/results/partial_correlation_results/figures/2D_filtered_ordered-HEME-METABOLISM.pdf",
                         order_pathway = "HALLMARK_HEME_METABOLISM",
                         col_vector = col_vector)
@@ -340,7 +209,7 @@ multiHeatmapOrderedGSEA(toplot1 = toplot1,
                         pathways_all = pathways_all,
                         met_path = met_path,
                         formatted_gsea = gsea_results_formatted[[1]] ,
-                        full_results = full_results,
+                        full_results = T21_filtered_full_results,
                         output_file = "~/OneDrive - The University of Colorado Denver/Projects/subPhenoDS/results/partial_correlation_results/figures/2D_filtered_ordered-OXIDATIVE-PHOSPHORYLATION.pdf",
                         order_pathway = "HALLMARK_OXIDATIVE_PHOSPHORYLATION",
                         col_vector = col_vector)
@@ -350,7 +219,7 @@ multiHeatmapOrderedGSEA(toplot1 = toplot1,
                         pathways_all = pathways_all,
                         met_path = met_path,
                         formatted_gsea = gsea_results_formatted[[1]] ,
-                        full_results = full_results,
+                        full_results = T21_filtered_full_results,
                         output_file = "~/OneDrive - The University of Colorado Denver/Projects/subPhenoDS/results/partial_correlation_results/figures/2D_filtered_ordered-E2F-TARGETS.pdf",
                         order_pathway = "HALLMARK_E2F_TARGETS",
                         col_vector = col_vector)
@@ -362,8 +231,7 @@ multiHeatmapOrderedGSEA(toplot1 = toplot1,
 
 ### Heatmaps by cluster
 ```{r}
-
-
+source("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/R/partial_correlation_functions.R")
 cyt_mets <- filterCyt_Mets(toplot = toplot1,
                formatted_gsea = gsea_results_formatted[[1]],
                key_pathway = "HALLMARK_INTERFERON_GAMMA_RESPONSE",
@@ -374,10 +242,7 @@ cluster_ranks <- clusterGeneRanks(cyt_mets = cyt_mets,
                                   key_pathway = "HALLMARK_INTERFERON_GAMMA_RESPONSE",
                                   gene_sets = pathways_all)
 names(cluster_ranks) <- names(long_z)
-source("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/R/partial_correlation_functions.R")
-cluster_heatmaps <- clusterHeatmapWrapper(cluster_ranks, output_file = "~/OneDrive - The University of Colorado Denver/Projects/subPhenoDS/results/partial_correlation_results/figures/cluster_heatmaps_IFN-gamma-Response-ranks.pdf")
-
-
+cluster_heatmaps <- clusterHeatmapWrapper(cluster_ranks, name = "Interferon Gamma Response", output_file = "~/OneDrive - The University of Colorado Denver/Projects/subPhenoDS/results/partial_correlation_results/figures/cluster_heatmaps_IFN-gamma-Response-ranks.pdf")
 
 
 cyt_mets <- filterCyt_Mets(toplot = toplot1,
@@ -390,7 +255,35 @@ cluster_ranks <- clusterGeneRanks(cyt_mets = cyt_mets,
                                   key_pathway = "HALLMARK_HEME_METABOLISM",
                                   gene_sets = pathways_all)
 names(cluster_ranks) <- names(long_z)
-cluster_heatmaps <- clusterHeatmapWrapper(cluster_ranks, output_file = "~/OneDrive - The University of Colorado Denver/Projects/subPhenoDS/results/partial_correlation_results/figures/cluster_heatmaps_Heme-Metabolism-ranks.pdf")
+cluster_heatmaps <- clusterHeatmapWrapper(cluster_ranks, name = "Heme Metabolism", output_file = "~/OneDrive - The University of Colorado Denver/Projects/subPhenoDS/results/partial_correlation_results/figures/cluster_heatmaps_Heme-Metabolism-ranks.pdf")
+
+
+
+cyt_mets <- filterCyt_Mets(toplot = toplot1,
+               formatted_gsea = gsea_results_formatted[[1]],
+               key_pathway = "HALLMARK_OXIDATIVE_PHOSPHORYLATION",
+               gene_sets = pathways_all,
+               num_cyt_met = 15)
+cluster_ranks <- clusterGeneRanks(cyt_mets = cyt_mets,
+                                  long_z_list = long_z,
+                                  key_pathway = "HALLMARK_OXIDATIVE_PHOSPHORYLATION",
+                                  gene_sets = pathways_all)
+names(cluster_ranks) <- names(long_z)
+cluster_heatmaps <- clusterHeatmapWrapper(cluster_ranks, name = "Oxidative Phosphorylation", output_file = "~/OneDrive - The University of Colorado Denver/Projects/subPhenoDS/results/partial_correlation_results/figures/cluster_heatmaps_Oxidative_phosphorylation-ranks.pdf")
+
+
+
+cyt_mets <- filterCyt_Mets(toplot = toplot1,
+               formatted_gsea = gsea_results_formatted[[1]],
+               key_pathway = "HALLMARK_E2F_TARGETS",
+               gene_sets = pathways_all,
+               num_cyt_met = 15)
+cluster_ranks <- clusterGeneRanks(cyt_mets = cyt_mets,
+                                  long_z_list = long_z,
+                                  key_pathway = "HALLMARK_E2F_TARGETS",
+                                  gene_sets = pathways_all)
+names(cluster_ranks) <- names(long_z)
+cluster_heatmaps <- clusterHeatmapWrapper(cluster_ranks, name = "E2F Targets", output_file = "~/OneDrive - The University of Colorado Denver/Projects/subPhenoDS/results/partial_correlation_results/figures/cluster_heatmaps_E2F-Targets-ranks.pdf")
 
 
 
