@@ -505,3 +505,34 @@ clusterHeatmapWrapper <- function(cluster_ranks, name, output_file) {
     dev.off()
 }
 
+
+#### fullHeatmap is a function for creating a heatmap of the GSEA results of the partial correlation analysis over all the cyt-met relationships
+
+fullHeatmap <- function(input, title) {
+ col_fun = colorRamp2(c(min(input),0, max(input) ), c("white","gray", "red"))  
+  var_order <- apply(input, 1, function(x) var(x))
+  var_order <- var_order[order(var_order, decreasing = TRUE)]
+  
+  p1 <- Heatmap(
+    as.matrix(input), 
+    row_names_gp = gpar(fontsize = 8), 
+    row_dend_reorder = FALSE, 
+    row_order = names(var_order),
+    row_title = "",
+    column_names_gp = gpar(fontsize = 6), 
+    column_names_rot = 60,
+    show_column_names = FALSE,
+    name = "NES", 
+    column_title = title, 
+    column_title_gp = gpar(fontsize = 12, fontface = "bold"),
+    heatmap_legend_param = list(
+      legend_direction = "horizontal"), 
+    col = col_fun
+  )
+  pdf(paste0("~/OneDrive - The University of Colorado Denver/Projects/subPhenoDS/results/partial_correlation_results/figures/",title,"_full_heatmap.pdf"))
+  draw(p1,heatmap_legend_side="bottom")
+  dev.off()
+}
+
+
+
