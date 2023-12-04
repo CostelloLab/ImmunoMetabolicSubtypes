@@ -445,9 +445,25 @@ clusterGeneRanks <- function(cyt_mets, long_z_list, key_pathway, gene_sets ) {
         toplot <- toplot %>%
             as.data.frame() %>%
             select(tokeep)
+
+        
         
         return(toplot)
     })
+
+    mean_ranks <- results[[1]] %>%
+            summarise(across(everything(), mean)) %>%
+            pivot_longer(cols = everything()) %>%
+            arrange(value) %>%
+            .$name
+
+    results <- lapply(results, function(x) {
+        tmp <- x %>%
+            select(mean_ranks)
+        return(tmp)
+    })
+    return(results)
+
 }
 
 
@@ -476,7 +492,7 @@ clusterHeatmap <- function(cluster_rank, name) {
 }
 
 
-clusterHeatmapWrapper <- function(cluster_ranks, output_file) {
+clusterHeatmapWrapper <- function(cluster_ranks, name, output_file) {
 
     clusters <- c("T21", "D21", "1"  , "2"  , "3"  , "4"  , "5")
     heatmaps <- lapply(clusters , function(cluster) {
@@ -485,7 +501,7 @@ clusterHeatmapWrapper <- function(cluster_ranks, output_file) {
     all_heatmaps <- heatmaps[[1]]%v%heatmaps[[2]]%v%heatmaps[[3]]%v%heatmaps[[4]]%v%heatmaps[[5]]%v%heatmaps[[6]]%v%heatmaps[[7]]
     
     pdf(output_file)
-    draw(all_heatmaps,)
+    draw(all_heatmaps, column_title = name)
     dev.off()
 }
 
