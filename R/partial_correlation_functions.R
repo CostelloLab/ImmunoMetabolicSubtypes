@@ -536,17 +536,17 @@ fullHeatmap <- function(input, title) {
 
 
 
-mediationSignatures <- function(key_pathway) {
+mediationSignatures <- function(key_pathway, tmp_gsea_formatted, tmp_toplot_clusters) {
   
-  tmp_input <-  gsea_results_formatted[[1]] %>%                                              
-    filter(rownames(toplot_clusters[[1]]) == key_pathway) %>%
+  tmp_input <-  tmp_gsea_results_formatted %>%                                              
+    filter(rownames(tmp_toplot_clusters) == key_pathway) %>%
     rownames_to_column("pathway") %>%
     pivot_longer(cols = contains("NES"), values_to = "NES", names_to = "cyt_met_NES") %>%
     pivot_longer(cols = contains("padj"), values_to = "padj", names_to = "cyt_met_padj") %>% 
     filter(gsub(" NES", "", cyt_met_NES) == gsub(" padj", "", cyt_met_padj)) %>%
     mutate(cyt_met = gsub(" NES", "", cyt_met_NES)) %>%
     select(pathway, cyt_met, NES, padj) %>%
-    filter(padj < .1 & NES > 0 & pathway == key_pathway) %>%
+    filter(padj < .05 & NES > 0 & pathway == key_pathway) %>%
     arrange(padj)
   
   signature <- tmp_input$cyt_met
