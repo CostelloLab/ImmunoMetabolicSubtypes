@@ -415,6 +415,24 @@ filterCyt_Mets <- function(toplot, formatted_gsea, key_pathway, gene_sets, num_c
 
 }
 
+
+filterCyt_Mets_unbiased <- function( formatted_gsea, key_pathway, gene_sets, num_cyt_met) {
+
+    gene_set <- gene_sets[[key_pathway]]
+    tmp_gsea <- formatted_gsea %>%
+        t()    %>%
+         as.data.frame()    %>%
+        arrange(-!!sym(key_pathway))
+
+    cyt_mets <- rownames(tmp_gsea)[1:num_cyt_met]
+
+    cyt_mets <- gsub(" NES", "", cyt_mets)
+
+    return(cyt_mets)
+
+}
+
+
 clusterGeneRanks <- function(cyt_mets, long_z_list, key_pathway, gene_sets ) {
 
     clusters <- as.character(c("T21","D21",1,2,3,4,5))
@@ -554,3 +572,6 @@ mediationSignatures <- function(key_pathway, tmp_gsea_formatted, tmp_toplot_clus
   return(signature)
   
 } 
+
+
+
