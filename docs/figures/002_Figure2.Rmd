@@ -48,7 +48,6 @@ dev.off()
 
 #### Figure 2B
 ```{r}
-### placeholder for long_z file
 library(tidyverse)
 library(ggplot2)
 load("~/OneDrive - The University of Colorado Denver/Projects/subPhenoDS/results/partial_correlation_results/long_z_12_4.RData")
@@ -72,10 +71,10 @@ p1 <- ggplot(single_rel_z, aes(x = rank, y = combined_Z)) +
   geom_point(data = single_rel_z[single_rel_z$gene == "STAT1",], aes(x = rank, y = combined_Z),  color ="darkgreen")+
   annotate("text", y= single_rel_z[single_rel_z$gene == "STAT1","combined_Z"],x =single_rel_z[single_rel_z$gene == "STAT1","rank"]+ 1050, angle = 0,  label="STAT1", color = "darkgreen", size = 6)+
   theme_classic() +
-  xlab("rank") +
+nn  xlab("rank") +
   ylab("Z score")
 
-pdf(paste0("~/OneDrive - The University of Colorado Denver/Projects/subPhenoDS/results/partial_correlation_results/figures/",key_cyt_met,"_Z_trend_plot.pdf"), width = 10, height = 6)
+pdf(paste0("~/OneDrive - The University of Colorado Denver/Projects/subPhenoDS/results/partial_correlation_results/figures/",key_cyt_met,"_Z_trend_plot.pdf"), width = 10, height = 8)
 print(p1)
 dev.off()
 
@@ -98,12 +97,12 @@ single_rel_z <- long_z[[1]] %>%
 p1 <- ggplot(single_rel_z, aes(x = rank, y = combined_Z)) +
   geom_point() +
   geom_point(data = single_rel_z[single_rel_z$cyt_met == "IFN-gamma-kynurenine",], aes(x = rank, y = combined_Z),  color ="red")+
-    annotate("text", y= single_rel_z[single_rel_z$cyt_met == "IFN-gamma-kynurenine","combined_Z"],x =single_rel_z[single_rel_z$cyt_met == "IFN-gamma-kynurenine","rank"]+ 250, angle = 0,  label="IFN-gamma-kynurenine", color = "red", size = 6) +
+    annotate("text", y= single_rel_z[single_rel_z$cyt_met == "IFN-gamma-kynurenine","combined_Z"],x =single_rel_z[single_rel_z$cyt_met == "IFN-gamma-kynurenine","rank"]+ 100, angle = 0,  label="IFN-gamma-kynurenine", color = "red", size = 6) +
   theme_classic() +
   xlab("rank") +
   ylab("Z score")
 
-pdf(paste0("~/OneDrive - The University of Colorado Denver/Projects/subPhenoDS/results/partial_correlation_results/figures/",key_gene,"_Z_trend_plot.pdf"), width = 10, height = 6)
+pdf(paste0("~/OneDrive - The University of Colorado Denver/Projects/subPhenoDS/results/partial_correlation_results/figures/",key_gene,"_Z_trend_plot.pdf"), width = 10, height = 8)
 print(p1)
 dev.off()
 ```
@@ -395,6 +394,52 @@ tmp_full$gene[1:10]
 
 ```
 
+### Cytokine-metabolite mediation signatures
+```{r}
+tmp_gsea_results = gsea_results[[1]]
+tmp_gsea_results_formatted = gsea_results_formatted[[1]]
+tmp_toplot_clusters = toplot_clusters[[1]]
+
+pathways <- names(pathways_all)
+
+source("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/R/partial_correlation_functions.R")
+mediation_signatures <- lapply(pathways, function(x) mediationSignatures(key_pathway = x,tmp_gsea = tmp_gsea_results, tmp_toplot_clusters = tmp_toplot_clusters))
+
+
+names(mediation_signatures) <- pathways
+mediation_signatures[sapply(mediation_signatures, function(x) length(x) ==0)] <- NULL
+
+
+
+```
+
+
+#### Venn Diagram of mediation signatures 
+```{r}
+
+DS_pathways <- c("HALLMARK_INTERFERON_GAMMA_RESPONSE", 
+                 "HALLMARK_HEME_METABOLISM", 
+                 "HALLMARK_OXIDATIVE_PHOSPHORYLATION"
+                 )
+
+## if (!require(devtools)) install.packages("devtools")
+## devtools::install_github("yanlinlin82/ggvenn")
+
+library(ggvenn)
+
+x <- mediation_signatures[DS_pathways]
+names(x) <- gsub("HALLMARK_", "", names(x))
+
+venn <- ggvenn(
+  x, 
+  fill_color = c("#0073C2FF", "#EFC000FF", "#868686FF", "#CD534CFF"),
+  stroke_size = 0.5, set_name_size = 3
+  )
+
+
+ggsave(filename = "~/OneDrive - The University of Colorado Denver/Projects/subPhenoDS/results/partial_correlation_results/figures/mediation_signatures_venn.pdf", width = 10, height =5, units ="in")
+
+```
 
 
 
@@ -1083,38 +1128,6 @@ key_pathway <- "HALLMARK_INTERFERON_GAMMA_RESPONSE"
   
 library(fgsea)
 pathways_all <- gmtPathways("~/OneDrive - The University of Colorado Denver/Projects/subPhenoDS/data/pathway/h.all.v2023.1.Hs.symbols.gmt")
-pathways <- names(pathways_all)
-
-mediation_signatures <- lapply(pathways, mediationSignatures )
-names(mediation_signatures) <- pathways
-mediation_signatures[sapply(mediation_signatures, function(x) length(x) ==0)] <- NULL
-
-```
-
-#### Venn Diagram of mediation signatures 
-```{r}
-
-DS_pathways <- c("HALLMARK_INTERFERON_GAMMA_RESPONSE", 
-                 "HALLMARK_HEME_METABOLISM", 
-                 "HALLMARK_OXIDATIVE_PHOSPHORYLATION", 
-                 )
-
-if (!require(devtools)) install.packages("devtools")
-devtools::install_github("yanlinlin82/ggvenn")
-
-library(ggvenn)
-
-x <- mediation_signatures[DS_pathways]
-names(x) <- gsub("HALLMARK_", "", names(x))
-
-venn <- ggvenn(
-  x, 
-  fill_color = c("#0073C2FF", "#EFC000FF", "#868686FF", "#CD534CFF"),
-  stroke_size = 0.5, set_name_size = 3
-  )
-
-
-ggsave(filename = "~/OneDrive - The University of Colorado Denver/Projects/subPhenoDS/results/partial_correlation_results/figures/mediation_signatures_venn.pdf", width = 10, height =5, units ="in")
 
 ```
 
