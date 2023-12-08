@@ -36,14 +36,14 @@ multiMediators <- function(input, pathways) {
 ##         charcter key pathway to search
 ## Outputs: vector of adjusted p value, NES, leading edge genes
 
-gseaFinder <- function(cyt_met_example, key_pathway) {
+gseaFinder <- function(cyt_met_example, key_pathway, tmp_gsea_results_formatted, tmp_gsea_results) {
 
-  cyt_met_labels <- names(gsea_results_formatted[[1]]) 
+  cyt_met_labels <- names(tmp_gsea_results_formatted) 
   cyt_met_labels <- cyt_met_labels[grepl("NES", cyt_met_labels)]
   cyt_met_labels <- gsub(" NES", "", cyt_met_labels)
   path_id <- which(cyt_met_example ==cyt_met_labels)
   
-  tmp_gsea <- lapply(gsea_results, function(x)
+  tmp_gsea <- lapply(tmp_gsea_results, function(x)
     x[[path_id]])
   
   res <- lapply(tmp_gsea, function(x) {
@@ -347,11 +347,11 @@ multiHeatmapOrderedGSEA <- function(toplot1, toplot2, key_pathways,pathways_all,
                             col = column_col,
                             show_legend = rep(FALSE,length(key_pathways)),
                             annotation_name_side = "left",
-                            annotation_name_gp = gpar(fontsize = 8))
+                            annotation_name_gp = gpar(fontsize = 6))
 
     ## col_fun <- colorRamp2(c(min(toplot1), 2000, max(toplot1) ), c("blue", "white", "gray"))
     ## col_fun <- colorRamp2(c(1, median(apply(toplot1,2,median)), 12624 ), c("purple", "white", "yellow"))
-   col_fun <- colorRamp2(c(1, 4000, 12624 ), c("purple", "white", "yellow"))
+   col_fun <- colorRamp2(c(1, 4000, 12624 ), c("darkblue", "white", "gray"))
 
     
     p1 <- ComplexHeatmap::Heatmap(as.matrix(toplot1),
@@ -471,7 +471,7 @@ clusterGeneRanks <- function(cyt_mets, long_z_list, key_pathway, gene_sets ) {
 clusterHeatmap <- function(cluster_rank, name) {
 
     
-    col_fun <- colorRamp2(c(1, 4000, 12624 ), c("purple", "white", "yellow"))
+    col_fun <- colorRamp2(c(1, 4000, 12624 ), c("darkblue", "white", "gray"))
     p1 <- Heatmap(as.matrix(cluster_rank),
                   name = name,
             row_order = rownames(cluster_rank),
@@ -536,3 +536,21 @@ fullHeatmap <- function(input, title) {
 
 
 
+mediationSignatures <- function(key_pathway) {
+  
+  tmp_input <-  gsea_results_formatted[[1]] %>%                                              
+    filter(rownames(toplot_clusters[[1]]) == key_pathway) %>%
+    rownames_to_column("pathway") %>%
+    pivot_longer(cols = contains("NES"), values_to = "NES", names_to = "cyt_met_NES") %>%
+    pivot_longer(cols = contains("padj"), values_to = "padj", names_to = "cyt_met_padj") %>% 
+    filter(gsub(" NES", "", cyt_met_NES) == gsub(" padj", "", cyt_met_padj)) %>%
+    mutate(cyt_met = gsub(" NES", "", cyt_met_NES)) %>%
+    select(pathway, cyt_met, NES, padj) %>%
+    filter(padj < .1 & NES > 0 & pathway == key_pathway) %>%
+    arrange(padj)
+  
+  signature <- tmp_input$cyt_met
+  
+  return(signature)
+  
+} 
