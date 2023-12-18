@@ -87,6 +87,10 @@ htp_overlap$clinic = htp_overlap$clinic[rownames(htp_overlap[[1]]),]
 
 ```
 
+
+
+
+
 # Adjusting for confounding variables
 Several demographic variables are known to confound the relationships between molecular feature and co-occurring condition. Moreover, this data was collected at different time points ('sample_source'). Therefore, these data were linearly adjusted using a mixed effects model for each of these confounding variables. 'Age' and 'sex' were input as fixed effects. The 'sample_source' was input as a random effect. This was done for consistency with other studies by the Human Trisome Project
 
@@ -228,6 +232,7 @@ save(expression_list, file = "~/OneDrive - The University of Colorado Denver/Pro
 ```
 # Create 'Table 1' of cohort demographics
 ```{r}
+
 colnames(all.mixed$clinic) = gsub(" |/", "_", names(all.mixed$clinic))
 tab1 <- univariateTable(Karyotype~ Sex+Age_at_visit + BMI + Sample_source   +Anxiety+Any_autoimmune_skin_condition+Any_congenital_heart_defect+Any_hearing_loss_condition+ Any_hypothyroidism+Any_seizure_history+Any_sleep_apnea+                Asthma_reactive_airway_disease +Celiac_disease+Depression+ Frequent_Recurrent_pneumonia+Obesity+Recurrent_otitis_media  , all.mixed$clinic)
 kable(summary(tab1))
