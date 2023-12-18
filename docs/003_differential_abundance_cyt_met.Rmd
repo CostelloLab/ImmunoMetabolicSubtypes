@@ -1,0 +1,75 @@
+# Differential Abundance analysis of cytokines and metabolites
+This program executes the differential abundance analysis of cytokines and metabolites using helper scripts from data_prep_functions.R located in ./R
+
+
+### load libraries and scripts
+```r
+source("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/R/data_prep_functions.R")
+```
+
+
+### load the data
+```r
+load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/processed/all_cyt_met_standardized.RData")
+
+```
+
+### Cytokines
+
+```r
+cyt_diff <- diff_expr_wrapper(all_standardized$cytokines, all_standardized$clinic, "Karyotype", "Control", test = "wilcoxon")
+write.xlsx(cyt_diff, file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/tables/Immune Markers by Karyotype.xlsx", rowNames = T)
+```
+
+### Metabolites
+
+```r
+met_diff <- diff_expr_wrapper(all_standardized$metabolites, all_standardized$clinic, "Karyotype", "Control", test = "wilcoxon")
+write.xlsx(met_diff, file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/tables/Metabolic Markers by Karyotype.xlsx", rowNames = T)
+
+```
+
+
+### Plotting
+### Split violing plots
+```r
+tmp_data <- cbind(all_standardized$cytokines,all_standardized$metabolites,  Karyotype = all_standardized$clinic$Karyotype)
+
+tmp_data <- tmp_data %>%
+    pivot_longer(cols = -Karyotype)
+
+sig_cyt <- cyt_diff %>%
+    filter(q.value < .05) %>%
+    filter(abs(FC) > .53) %>%
+    rownames(.)
+
+sig_met <- met_diff %>%
+    filter(q.value < .05) %>%
+    filter(abs(FC) > .628) %>%
+    rownames(.)
+
+
+
+sapply(c(sig_cyt,sig_met), function(x) {
+    toplot <- tmp_data %>%
+        filter(name == x)
+    p1 <- ggplot(toplot, aes(x = name, y = value, fill = Karyotype, alpha = .9)) +
+        geom_split_violin(draw_quantiles = .5, scale = "count", trim = FALSE)+
+        theme_classic() +
+        theme(legend.position = "none",
+              axis.text.x = element_text(size = 0),
+              plot.title = element_text(hjust = 0.5,
+                                        size = 24),
+              axis.title   = element_text(size = 22),
+              axis.text.y = element_text(size = 22)
+              )+
+        xlab("D21                              T21") +
+        ylab("") +
+            scale_fill_manual(values = c("D21" = "grey", "T21" = "lightblue")) +
+            ggtitle(x)
+    pdf(paste0("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/feature_sina_plots/",make.names(x), ".pdf"))
+        print(p1)
+        dev.off()
+})
+
+```
