@@ -6,6 +6,8 @@
 ### load the libraries
 library(tidyverse)
 library(psych)
+library(ComplexHeatmap)
+library(circlize)
 ```
 
 ### load the data
@@ -17,7 +19,7 @@ load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSub
 ```
 
 
-### Calculated the correlations within Cytokines
+### Calculate the correlations within Cytokines
 
 ``` r
 T21_cytokine_correlations <- T21.mixed$cytokines %>%
@@ -28,7 +30,7 @@ D21_cytokine_correlations <- D21.mixed$cytokines %>%
 
 ```
 
-### Calculated the correlations within Metabolites
+### Calculate the correlations within Metabolites
 
 ``` r
 T21_metabolite_correlations <- T21.mixed$metabolites %>%
@@ -39,5 +41,95 @@ D21_metabolite_correlations <- D21.mixed$metabolites %>%
 
 ```
 
+### Heatmaps
 
-### 
+``` r
+cyt_heatmap = Heatmap(T21_cytokine_correlations$
+	r, 
+	name = "correlation coefficient",
+	row_dend_reorder = TRUE, 
+	column_dend_reorder = TRUE, 
+	show_row_dend = FALSE, 
+	show_column_dend = TRUE, 
+	column_names_gp = gpar(fontsize = 7),
+	row_names_gp = gpar(fontsize = 7), 
+	show_row_names = TRUE, 
+	show_column_names = FALSE,
+	column_split = 4,
+	row_split = 4,
+	row_title = NULL,
+	column_title = NULL,
+	col=colorRamp2(c(-.5, 0, .5), c("blue", "white", "red")),
+	heatmap_legend_param = list(direction = "horizontal")
+    )
+
+pdf("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/correlation_heatmaps/T21_Cytokines_Correlation_Heatmap.pdf")
+draw(cyt_heatmap, heatmap_legend_side = "bottom")
+dev.off()
+
+```
+
+``` r
+met_heatmap = Heatmap(T21_metabolite_correlations$r, 
+	name = "correlation coefficient",
+	row_dend_reorder = TRUE, 
+	column_dend_reorder = TRUE, 
+	show_row_dend = FALSE, 
+	show_column_dend = TRUE, 
+	column_names_gp = gpar(fontsize = 3),
+	row_names_gp = gpar(fontsize = 3), 
+	show_row_names = TRUE, 
+	show_column_names =FALSE,
+	column_split = 4,
+    row_title = NULL,
+	row_split = 4,
+	column_title = NULL,
+	col=colorRamp2(c(-.5, 0, .5), c("blue", "white", "red")),
+	heatmap_legend_param = list(direction = "horizontal")
+    )
+pdf("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/correlation_heatmaps/T21_Metabolites_Correlation_Heatmap.pdf")
+draw(met_heatmap, heatmap_legend_side = "bottom")
+dev.off()
+
+```
+
+### Calculate the correlations across molecular classs
+
+``` r
+T21.omics <- cbind(T21.mixed$metabolites, T21.mixed$cytokines)
+
+T21_correlations <- T21.omics %>%
+    corr.test(method = "spearman", adjust = "fdr")
+
+D21.omics <- cbind(D21.mixed$metabolites, D21.mixed$cytokines)
+
+D21_correlations <- D21.omics %>%
+    corr.test(method = "spearman", adjust = "fdr")
+```
+
+
+### Heatmap of multiomic correlations
+
+``` r
+all_heatmap = Heatmap(T21_correlations$r, 
+	name = "correlation coefficient",
+	row_dend_reorder = TRUE, 
+	column_dend_reorder = TRUE, 
+	show_row_dend = FALSE, 
+	show_column_dend = TRUE, 
+	column_names_gp = gpar(fontsize = 3),
+	row_names_gp = gpar(fontsize = 2), 
+	show_row_names = TRUE, 
+	show_column_names =FALSE,
+	column_split = 4,
+    row_title = NULL,
+	row_split = 4,
+	column_title = NULL,
+	col=colorRamp2(c(-.5, 0, .5), c("blue", "white", "red")),
+	heatmap_legend_param = list(direction = "horizontal")
+    )
+pdf("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/correlation_heatmaps/T21_ALL_Correlation_Heatmap.pdf")
+draw(all_heatmap, heatmap_legend_side = "bottom")
+dev.off()
+
+```
