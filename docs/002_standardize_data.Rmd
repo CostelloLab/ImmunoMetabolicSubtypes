@@ -27,6 +27,6 @@ rownames(metabolites) <- rownames(clinic)
 
 ## save standardized dataset
 ```r
-all_standardized = list(cytokines = cytokines, metatbolites = metabolites, clinic = clinic)
+all_standardized = list(cytokines = cytokines, metabolites = metabolites, clinic = clinic)
 save(all_standardized, file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/processed/all_cyt_met_standardized.RData")
 ```
