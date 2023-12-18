@@ -11,7 +11,7 @@ output: html_document
 Prior to running this script you may need to first download the necessary libraries. 
 
 ```{r}
-source("./R/data_prep_functions.R")
+source("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/R/data_prep_functions.R")
 library(Publish)
 library(knitr)
 library(datawizard)
@@ -29,11 +29,11 @@ Also, it assumes that you have the necessary data files.
 
 ```{r}
 # Reading in the data
-cytokine_file <- "./data/HTP_data/MSD_200413_EXPLORER_noMeta_Exp3456_firstPIDsampleOnly_meansOnly_FINAL_JRS_v5.tsv"
-metabolite_file <- "./data/HTP_data/P4C_LCMS_abundance_long_TrisomExplorer_08092020.tsv"
-metadata_file <-"./data/HTP_data/P4C_metadata_021921_Costello.txt"
-comorbidity_file <- "./data/HTP_data/P4C_Comorbidity_020921.tsv"
-transcriptomic_file <- "./data/HTP_data/HTP_WholeBlood_RNAseq_FPKMs_Synapse.txt"
+cytokine_file <- "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/HTP_data/MSD_200413_EXPLORER_noMeta_Exp3456_firstPIDsampleOnly_meansOnly_FINAL_JRS_v5.tsv"
+metabolite_file <- "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/HTP_data/P4C_LCMS_abundance_long_TrisomExplorer_08092020.tsv"
+metadata_file <-"~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/HTP_data/P4C_metadata_021921_Costello.txt"
+comorbidity_file <- "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/HTP_data/P4C_Comorbidity_020921.tsv"
+transcriptomic_file <- "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/HTP_data/HTP_WholeBlood_RNAseq_FPKMs_Synapse.txt"
 ```
 
 # Processing Data into a single object 
@@ -127,12 +127,11 @@ T21.mixed = only_T21(list(c(mixed, list(htp_overlap$clinic))))
 D21.mixed = only_D21(list(c(mixed, list(htp_overlap$clinic))))
 all.mixed = list(cytokines = mixed[[1]], metabolites = mixed[[2]], clinic =  htp_overlap$clinic)
 
-save(T21.mixed, file = "./data/processed/T21_mixed.Rdata")
-save(D21.mixed, file = "./data/processed/D21_mixed.Rdata")
-save(all.mixed, file = "./data/processed/all_age_sex_mixed.Rdata")
+save(T21.mixed, file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/processed/T21_mixed_cyt_met.Rdata")
+save(D21.mixed, file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/processed/D21_mixed_cyt_met.Rdata")
+save(all.mixed, file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/processed/all_age_sex_mixed_cyt_met.Rdata")
 
 ```
-
 
 # Gene Expression Data
 
@@ -218,7 +217,7 @@ mixed <- mixed %>% dplyr::select(!(names(metadata)))
 htp_expr <- mixed
 
 expression_list<- list(expression = htp_expr,gene_map = gene_map)
-save(expression_list, file = "./data/processed_transcriptome.RData")
+save(expression_list, file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/processed/processed_transcriptome.RData")
 
 ```
 
