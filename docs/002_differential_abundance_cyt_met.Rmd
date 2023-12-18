@@ -1,0 +1,23 @@
+# Differential Abundance analysis of cytokines and metabolites
+This program executes the differential abundance analysis of cytokines and metabolites using helper scripts from data_prep_functions.R located in ./R
+
+
+### load libraries and scripts
+```r
+source("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/R/data_prep_functions.R")
+```
+
+
+### load the data
+```r
+load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/processed/all_cyt_met_standardized.RData")
+
+```
+
+### Cytokines
+
+```r
+cyt_diff <- diff_expr_wrapper(all_standardized$cytokines, all_standardized$clinic, "Karyotype", "Control", test = "wilcoxon")
+    
+```
+
