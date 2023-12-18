@@ -1,0 +1,43 @@
+#### This is a program for calculating the spearman correlations between cytokine and metabolite abundances.
+
+### load the libraries
+
+```{r}
+### load the libraries
+library(tidyverse)
+library(psych)
+```
+
+### load the data
+
+```{r}
+load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/processed/T21_mixed_cyt_met.RData")
+load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/processed/D21_mixed_cyt_met.RData")
+
+```
+
+
+### Calculated the correlations within Cytokines
+
+``` r
+T21_cytokine_correlations <- T21.mixed$cytokines %>%
+    corr.test(method = "spearman", adjust = "fdr")
+
+D21_cytokine_correlations <- D21.mixed$cytokines %>%
+    corr.test(method = "spearman", adjust = "fdr")
+
+```
+
+### Calculated the correlations within Metabolites
+
+``` r
+T21_metabolite_correlations <- T21.mixed$metabolites %>%
+    corr.test(method = "spearman", adjust = "fdr")
+
+D21_metabolite_correlations <- D21.mixed$metabolites %>%
+    corr.test(method = "spearman", adjust = "fdr")
+
+```
+
+
+### 
