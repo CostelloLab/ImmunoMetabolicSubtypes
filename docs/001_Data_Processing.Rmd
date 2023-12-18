@@ -51,20 +51,12 @@ htp_overlap <- get_overlap(cytokine_data = htp$cytokines,
 						   clinic_data = htp$clinic)
 ```
 
-# Create 'Table 1' of cohort demographics
-```{r}
-
-colnames(htp_overlap$clinic) = gsub(" |/", "_", names(htp_overlap$clinic))
-tab1 <- univariateTable(Karyotype~ Sex+Age_at_visit + BMI + Sample_source   +Anxiety+Any_autoimmune_skin_condition+Any_congenital_heart_defect+Any_hearing_loss_condition+ Any_hypothyroidism+Any_seizure_history+Any_sleep_apnea+                Asthma_reactive_airway_disease +Celiac_disease+Depression+ Frequent_Recurrent_pneumonia+Obesity+Recurrent_otitis_media  , htp_overlap$clinic)
-kable(summary(tab1))
-## write.csv(summary(tab1), file = "./results/tables/Table1.csv", row.names = F) ## For initial writing, but afterwards this is updated in format for the publication. No need to update again. 
 
 ```
 # Log Transform the data
 ``` {r}
 ## Log transform
 htp_overlap[1:2] = lapply(htp_overlap[1:2], log2)
-
 
 ```
 # PCA plots of the data
@@ -222,6 +214,7 @@ expression_list<- list(expression = htp_expr,gene_map = gene_map)
 ``` r
 T21.mixed <- lapply(T21.mixed, function(x) x %>% filter(rownames(x) %in% rownames(expression_list$expression)))
 D21.mixed <- lapply(D21.mixed, function(x) x %>% filter(rownames(x) %in% rownames(expression_list$expression)))
+all.mixed$clinic <- all.mixed$clinic %>% filter(rownames(all.mixed$clinic) %in% rownames(expression_list$expression))
 
 ```
 
@@ -233,6 +226,12 @@ save(D21.mixed, file = "~/OneDrive - The University of Colorado Denver/Projects/
 save(expression_list, file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/processed/processed_transcriptome.RData")
 
 ```
+# Create 'Table 1' of cohort demographics
+```{r}
+colnames(all.mixed$clinic) = gsub(" |/", "_", names(all.mixed$clinic))
+tab1 <- univariateTable(Karyotype~ Sex+Age_at_visit + BMI + Sample_source   +Anxiety+Any_autoimmune_skin_condition+Any_congenital_heart_defect+Any_hearing_loss_condition+ Any_hypothyroidism+Any_seizure_history+Any_sleep_apnea+                Asthma_reactive_airway_disease +Celiac_disease+Depression+ Frequent_Recurrent_pneumonia+Obesity+Recurrent_otitis_media  , all.mixed$clinic)
+kable(summary(tab1))
+ write.csv(summary(tab1), file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/tables/Table1.csv", row.names = F) ## For initial writing, but afterwards this is updated in format for the publication. No need to update again. 
 
 
 ```{r}
