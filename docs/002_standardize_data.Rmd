@@ -23,6 +23,8 @@ cytokines <- as.data.frame(apply(cytokines, 2, scale))
 rownames(cytokines) <- rownames(clinic)
 metabolites <- as.data.frame(apply(metabolites, 2, scale))
 rownames(metabolites) <- rownames(clinic)
+
+ 
 ```
 
 ## save standardized dataset
