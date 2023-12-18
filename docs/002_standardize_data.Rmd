@@ -1,0 +1,32 @@
+# This is a script for standardizing the datasets for comparison between omic data types
+The input data is the output from 001_Data_processing.Rmd. 
+
+## load the data
+
+```r
+load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/processed/T21_mixed_cyt_met.RData")
+load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/processed/D21_mixed_cyt_met.RData")
+```
+
+## Combine the T21 and D21 omic data into single datasets
+```r
+cytokines <- rbind(T21.mixed$cytokines, D21.mixed$cytokines)
+metabolites <- rbind(T21.mixed$metabolites, D21.mixed$metabolites)
+clinic <- rbind(T21.mixed$clinic, D21.mixed$clinic)
+```
+
+
+## Standardize the data across the cohort
+
+```r
+cytokines <- as.data.frame(apply(cytokines, 2, scale))
+rownames(cytokines) <- rownames(clinic)
+metabolites <- as.data.frame(apply(metabolites, 2, scale))
+rownames(metabolites) <- rownames(clinic)
+```
+
+## save standardized dataset
+```r
+all_standardized = list(cytokines = cytokines, metatbolites = metabolites, clinic = clinic)
+save(all_standardized, file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/processed/all_cyt_met_standardized.RData")
+```
