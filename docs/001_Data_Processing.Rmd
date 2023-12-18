@@ -211,13 +211,17 @@ mixed <- adjust(mixed, effect = "Age_at_visit", exclude = to_exclude, keep_inter
 mixed <- adjust(mixed, effect = "Sex", exclude = to_exclude, keep_intercept = TRUE)
 
 names(mixed) <- names(expr_metadata)
-mixed <- mixed %>% dplyr::select(!(names(metadata)))
+mixed <- mixed %>%
+    column_to_rownames("LabID")
+
+mixed <- mixed %>% dplyr::select(!(make.names(names(metadata)[-5])))
 
 htp_expr <- mixed
 
 expression_list<- list(expression = htp_expr,gene_map = gene_map)
 save(expression_list, file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/processed/processed_transcriptome.RData")
 ```
+
 
 
 
