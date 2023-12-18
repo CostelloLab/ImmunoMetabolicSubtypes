@@ -127,10 +127,6 @@ T21.mixed = only_T21(list(c(mixed, list(htp_overlap$clinic))))
 D21.mixed = only_D21(list(c(mixed, list(htp_overlap$clinic))))
 all.mixed = list(cytokines = mixed[[1]], metabolites = mixed[[2]], clinic =  htp_overlap$clinic)
 
-save(T21.mixed, file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/processed/T21_mixed_cyt_met.Rdata")
-save(D21.mixed, file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/processed/D21_mixed_cyt_met.Rdata")
-save(all.mixed, file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/processed/all_age_sex_mixed_cyt_met.Rdata")
-
 ```
 
 # Gene Expression Data
@@ -219,11 +215,24 @@ mixed <- mixed %>% dplyr::select(!(make.names(names(metadata)[-5])))
 htp_expr <- mixed
 
 expression_list<- list(expression = htp_expr,gene_map = gene_map)
-save(expression_list, file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/processed/processed_transcriptome.RData")
 ```
 
+### Filter all the datasets to only include the overlapping set
 
+``` r
+T21.mixed <- lapply(T21.mixed, function(x) x %>% filter(rownames(x) %in% rownames(expression_list$expression)))
+D21.mixed <- lapply(D21.mixed, function(x) x %>% filter(rownames(x) %in% rownames(expression_list$expression)))
 
+```
+
+### save the datasets
+
+``` r
+save(T21.mixed, file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/processed/T21_mixed_cyt_met.Rdata")
+save(D21.mixed, file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/processed/D21_mixed_cyt_met.Rdata")
+save(expression_list, file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/processed/processed_transcriptome.RData")
+
+```
 
 
 ```{r}
