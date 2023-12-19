@@ -8,6 +8,7 @@ library(tidyverse)
 library(psych)
 library(ComplexHeatmap)
 library(circlize)
+library(ggpubr)
 ```
 
 ### load the data
@@ -133,3 +134,54 @@ draw(all_heatmap, heatmap_legend_side = "bottom")
 dev.off()
 
 ```
+
+
+
+### Cytokine-metabolite scatter plots
+
+#### Cytokines
+``` r
+T21_cytokine_correlations$long <- T21_cytokine_correlations$r %>%
+    as.data.frame() %>%
+    rownames_to_column("A") %>%
+    pivot_longer(cols = -A, names_to = "B") %>%
+    filter(A!=B)
+
+T21_cytokine_correlations$p_long <- T21_cytokine_correlations$p %>%
+    as.data.frame() %>%
+    rownames_to_column("A") %>%
+    pivot_longer(cols = -A, names_to = "B") %>%
+    filter(A!=B)
+
+
+
+T21_cytokine_correlations$long <- cbind(T21_cytokine_correlations$long, p = T21_cytokine_correlations$p_long, fdr = T21_cytokine_correlations$p.adj)
+
+T21_cytokine_correlations$long <- T21_cytokine_correlations$long %>%
+    filter(fdr < .1) %>%
+    arrange(-value) 
+
+options(ggpubr.parse_aes = FALSE)
+
+sapply(1:10, function(i) {
+    tmp.1 = T21_cytokine_correlations$long$A[i]
+    tmp.2 = T21_cytokine_correlations$long$B[i]
+    tmp.plot =  ggscatter(data = T21.mixed$cytokines,
+                          x =  tmp.1,
+                          y = tmp.2,
+                          add = "reg.line",  # Add regression line
+                          add.params = list(color = "blue", fill = "lightgray"), # Customize reg. line
+                          conf.int = TRUE # Add confidence interval
+                          ) +
+        stat_cor( aes(label = paste(..r.label.., ..p.label.., sep = "~`,`~")), method = "spearman",label.sep = "\n", size = 8)+
+        theme(axis.text = element_text(size =18),
+              axis.title = element_text(size =20))
+    pdf(paste0("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/correlation_scatter_plots/cytokines/",make.names(tmp.1), " - ", make.names(tmp.2), ".pdf"))
+    print(tmp.plot)
+    dev.off()
+})
+
+```
+
+
+
