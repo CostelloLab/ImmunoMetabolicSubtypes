@@ -7,23 +7,35 @@ LongCorr <- function(psych_object) {
         as.data.frame() %>%
         rownames_to_column("A") %>%
         pivot_longer(cols = -A, names_to = "B") %>%
-        filter(A!=B)
+        filter(A!=B) %>%
+        rowwise() %>%
+        mutate(cyt_met = list(sort(c(A,B)))) %>%
+        ungroup() %>%
+        distinct(cyt_met, .keep_all = T) %>%
+        select(-cyt_met)
 
-    psych_object$p_long <- psych_object$p %>%
+    psych_object[["p_long"]] <- psych_object$p %>%
         as.data.frame() %>%
         rownames_to_column("A") %>%
         pivot_longer(cols = -A, names_to = "B") %>%
-        filter(A!=B)
+        filter(A!=B) %>%
+        rowwise() %>%
+        mutate(cyt_met = list(sort(c(A,B)))) %>%
+        ungroup() %>%
+        distinct(cyt_met, .keep_all = T) %>%
+        select(-cyt_met)
 
 
-
-    psych_object$long <- cbind(psych_object$long, p = psych_object$p_long$value, fdr = psych_object$p.adj)
 
     psych_object$long <- psych_object$long %>%
-        filter(fdr < .1) %>%
-        arrange(-value)
+        full_join(psych_object$p_long, by = c("A", "B")) %>%
+        arrange(value.y)
 
-    names(psych_object$long)[3] <- "r"
+    psych_object[["long"]] <- psych_object[["long"]] %>%
+        arrange()
+
+
+    names(psych_object[["long"]])[3:4] <- c("r", "fdr")
 
     return(psych_object)
 }
@@ -118,4 +130,4 @@ corrScatterPlotsMultiple <- function(psych_object, molecule_classes, omics_data)
     })
     
 }
-s
+
