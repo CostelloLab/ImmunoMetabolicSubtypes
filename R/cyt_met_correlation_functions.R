@@ -131,3 +131,42 @@ corrScatterPlotsMultiple <- function(psych_object, molecule_classes, omics_data)
     
 }
 
+
+
+# pathEnrich is a function for identifying enriched metabolite pathways
+pathEnrich = function(cluster_features, cyt_path, met_path){
+	
+	#enriched = data.frame(pathway = character(), p_value = numeric(), OR = numeric())
+	enriched = data.frame(pathway = character(), p_value = numeric(), num_hits = numeric(), perc = numeric())
+
+	metabolites = unique(met_path$X)
+	num_met = length(metabolites)
+	num_sig_met = length(metabolites[metabolites %in% cluster_features])
+
+	for(path in unique(met_path$pathway)){
+		tmp = met_path[met_path$pathway ==path & met_path$value == 1 ,]
+		num_path = dim(tmp)[1]
+		if(num_path > 1){
+			sig_in_path  = sum(tmp$X %in% cluster_features)
+			perc = sig_in_path/num_path
+			sig_out_path =  num_sig_met - sig_in_path
+			un_in_path = num_path - sig_in_path
+			un_out_path = num_met - (sig_in_path+sig_out_path+un_in_path)
+
+			cntg_tab = matrix(ncol = 2, nrow = 2,
+							c(sig_in_path, sig_out_path,un_in_path, un_out_path))
+			res = fisher.test(cntg_tab, alternative = "greater")
+			met_p = res$p.value
+			#met_OR  = res$estimate
+			enriched = rbind(enriched, c(path,met_p, sig_in_path,perc))
+		}
+
+	}
+
+
+	names(enriched) = c("pathway", "p.value", "num_hits","percent")
+	enriched[2:3] = apply(enriched[2:3],2,as.numeric)
+
+	return(enriched)
+
+}
