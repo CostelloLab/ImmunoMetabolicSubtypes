@@ -5,10 +5,10 @@
 ```{r}
 ### load the libraries
 library(tidyverse)
-library(psych)
 library(ComplexHeatmap)
 library(circlize)
-library(ggpubr)
+source("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/R/cyt_met_correlation_functions.R")
+
 ```
 
 ### load the data
@@ -139,47 +139,31 @@ dev.off()
 
 ### Cytokine-metabolite scatter plots
 
-#### Cytokines
+
 ``` r
-T21_cytokine_correlations$long <- T21_cytokine_correlations$r %>%
-    as.data.frame() %>%
-    rownames_to_column("A") %>%
-    pivot_longer(cols = -A, names_to = "B") %>%
-    filter(A!=B)
-
-T21_cytokine_correlations$p_long <- T21_cytokine_correlations$p %>%
-    as.data.frame() %>%
-    rownames_to_column("A") %>%
-    pivot_longer(cols = -A, names_to = "B") %>%
-    filter(A!=B)
 
 
+T21_cytokine_correlations <- LongCorr(T21_cytokine_correlations)
+T21_metabolite_correlations <- LongCorr(T21_metabolite_correlations)
+T21_correlations <- LongCorr(T21_correlations)
+T21_correlations$long <- T21_correlations$long %>%
+    filter(A %in% names(T21.mixed$cytokines) & B %in% names(T21.mixed$metabolites))
 
-T21_cytokine_correlations$long <- cbind(T21_cytokine_correlations$long, p = T21_cytokine_correlations$p_long, fdr = T21_cytokine_correlations$p.adj)
+corrScatterPlotsSingle(psych_object = T21_cytokine_correlations,
+                       molecule_class = "cytokines",
+                       omics_data = T21.mixed)
 
-T21_cytokine_correlations$long <- T21_cytokine_correlations$long %>%
-    filter(fdr < .1) %>%
-    arrange(-value) 
 
-options(ggpubr.parse_aes = FALSE)
+corrScatterPlotsSingle(psych_object = T21_metabolite_correlations,
+                       molecule_class = "metabolites",
+                       omics_data = T21.mixed)
 
-sapply(1:10, function(i) {
-    tmp.1 = T21_cytokine_correlations$long$A[i]
-    tmp.2 = T21_cytokine_correlations$long$B[i]
-    tmp.plot =  ggscatter(data = T21.mixed$cytokines,
-                          x =  tmp.1,
-                          y = tmp.2,
-                          add = "reg.line",  # Add regression line
-                          add.params = list(color = "blue", fill = "lightgray"), # Customize reg. line
-                          conf.int = TRUE # Add confidence interval
-                          ) +
-        stat_cor( aes(label = paste(..r.label.., ..p.label.., sep = "~`,`~")), method = "spearman",label.sep = "\n", size = 8)+
-        theme(axis.text = element_text(size =18),
-              axis.title = element_text(size =20))
-    pdf(paste0("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/correlation_scatter_plots/cytokines/",make.names(tmp.1), " - ", make.names(tmp.2), ".pdf"))
-    print(tmp.plot)
-    dev.off()
-})
+
+
+corrScatterPlotsMultiple(psych_object = T21_correlations,
+                       molecule_classes = c("cytokines","metabolites"),
+                       omics_data = T21.mixed)
+
 
 ```
 
