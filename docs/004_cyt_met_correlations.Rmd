@@ -7,6 +7,7 @@
 library(tidyverse)
 library(ComplexHeatmap)
 library(circlize)
+library(psych)
 source("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/R/cyt_met_correlation_functions.R")
 
 ```
@@ -47,7 +48,7 @@ D21_metabolite_correlations <- D21.mixed$metabolites %>%
 ``` r
 cyt_heatmap = Heatmap(T21_cytokine_correlations$
 	r, 
-	name = "correlation coefficient",
+	name = "conrrelation coefficient",
 	row_dend_reorder = TRUE, 
 	column_dend_reorder = TRUE, 
 	show_row_dend = FALSE, 
@@ -97,12 +98,12 @@ dev.off()
 ### Calculate the correlations across molecular classs
 
 ``` r
-T21.omics <- cbind(T21.mixed$metabolites, T21.mixed$cytokines)
+T21.omics <- cbind( T21.mixed$cytokines, T21.mixed$metabolites)
 
 T21_correlations <- T21.omics %>%
     corr.test(method = "spearman", adjust = "fdr")
 
-D21.omics <- cbind(D21.mixed$metabolites, D21.mixed$cytokines)
+D21.omics <- cbind( D21.mixed$cytokines,D21.mixed$metabolites)
 
 D21_correlations <- D21.omics %>%
     corr.test(method = "spearman", adjust = "fdr")
@@ -139,16 +140,21 @@ dev.off()
 
 ### Cytokine-metabolite scatter plots
 
+#### Convert data to long format
 
 ``` r
-
 
 T21_cytokine_correlations <- LongCorr(T21_cytokine_correlations)
 T21_metabolite_correlations <- LongCorr(T21_metabolite_correlations)
 T21_correlations <- LongCorr(T21_correlations)
+
 T21_correlations$long <- T21_correlations$long %>%
     filter(A %in% names(T21.mixed$cytokines) & B %in% names(T21.mixed$metabolites))
 
+```
+
+#### Plot creation
+```r
 corrScatterPlotsSingle(psych_object = T21_cytokine_correlations,
                        molecule_class = "cytokines",
                        omics_data = T21.mixed)
@@ -162,10 +168,37 @@ corrScatterPlotsSingle(psych_object = T21_metabolite_correlations,
 
 corrScatterPlotsMultiple(psych_object = T21_correlations,
                        molecule_classes = c("cytokines","metabolites"),
-                       omics_data = T21.mixed)
+                       omics_data = T21.mixed)					   
+```
 
+
+### Compare T21 and D21 Correlations
+
+``` r
+D21_correlations <- LongCorr(D21_correlations)
+D21_correlations$long <- D21_correlations$long %>%
+    filter(A %in% names(D21.mixed$cytokines) & B %in% names(D21.mixed$metabolites))
+
+all_correlations <- T21_correlations$long %>%
+    full_join(D21_correlations$long, by = c("A","B"))
+
+all_correlations$diff <- all_correlations$r.x - all_correlations$r.y
+
+all_correlations <- all_correlations %>%
+    arrange(-abs(diff))
+
+sig_correlations <- all_correlations %>%
+    filter(fdr.x < .2 & fdr.y < .2)
+
+ggplot(sig_correlations, aes(x = r.x, y = r.y)) +
+    geom_
 
 ```
 
 
+### Metabolite Pathway enrichment
+
+``` r
+
+```
 
