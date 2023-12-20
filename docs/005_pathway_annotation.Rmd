@@ -8,156 +8,47 @@ For downstream enrichment analyses, we annotated features based on prior knowled
 
 # Necessary Libraries
 ```{r}
-library(biomaRt)
-library(data.table)
+library(openxlsx)
 ```
-# Load the molecular data
+# Load the molecular data and pathway data
 
 ```{r}
 load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/processed/T21_mixed_cyt_met.Rdata")
-
+met_path <- read.xlsx("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/pathway/HTP_P4C_metabolites_original_annotation(10212) copy.xlsx")
 ```
 
-# Metabolites
-# First create a list containing a vector of the compounds to be queried (separated by a semi-colon)  
-# and another character vector containing the compound id type.
-# The items in the list MUST be queryList and inputType
-# Valid input types are: "name", "hmdb", "kegg", "pubchem", "chebi", "metlin"
+## Align IDs
 
-``` r
-mets = names(T21.mixed$metabolites)
-name.vec <- paste(mets, collapse = ";")
-toSend = list(queryList = name.vec, inputType = "name")
+```r
 
-library(httr)
-if (!requireNamespace("BiocManager", quietly = TRUE))
-    install.packages("BiocManager")
-
-BiocManager::install("metaboliteIDmapping", force = TRUE)
-
-library( metaboliteIDmapping)
-
-# The MetaboAnalyst API url
-call <- "http://api.xialab.ca/mapcompounds"
-
-# Use httr::POST to send the request to the MetaboAnalyst API
-# The response will be saved in query_results
-query_results <- httr::POST(call, body = toSend, encode = "json")
-
-# Check if response is ok (TRUE)
-# 200 is ok! 401 means an error has occured on the user's end.
-query_results$status_code==200
-
-# Parse the response into a table
-# Will show mapping to "hmdb_id", "kegg_id", "pubchem_id", "chebi_id", "metlin_id", "smiles" 
-query_results_text <- content(query_results, "text", encoding = "UTF-8")
-query_results_json <- rjson::fromJSON(query_results_text)
-query_results_list = lapply(query_results_json, as.character)
-query_results_table = do.call(cbind, query_results_list)
-
-write.csv(met_anno, file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/pathway/metabolite_annotations.csv", row.names = F)
+library(fuzzyjoin)
+library(tidyverse)
+library(stringdist)
+metsA <- data.frame(met = names(T21.mixed$metabolites)) 
+metsB <- data.frame(met = met_path$compound)
 
 
-### After manual curation read back in annotated results
-met_anno = read.csv("./data/pathway/metabolite_annotations_all.csv")
-
-to_pathway = character()
-for(i in 1:nrow(met_anno)){
-	tmp = ifelse(!is.na(met_anno[i,"CAS"]), sprintf("CAS:%s",met_anno[i,"CAS"] ),
-			ifelse(!is.na(met_anno[i,"KEGG"]), sprintf("kegg:%s",met_anno[i,"KEGG"]),
-			ifelse(!is.na(met_anno[i,"ChEBI"]), sprintf("chebi:%s",met_anno[i,"ChEBI"] ),
-		    ifelse(!is.na(met_anno[i,"HMDB"]), sprintf("hmdb:%s",met_anno[i,"HMDB"] ),
-			sprintf("LIPIDMAPS:%s",met_anno[i,"Lipid.Maps"] )))))
-	to_pathway = c(to_pathway, tmp)
-}
+met_map <- stringdist_left_join(metsA, metsB,by = "met", distance_col = "dist")%>%
+    group_by(met.x) %>%
+    filter(dist < 1) %>%
+    as.data.frame()
 
 
-install.packages("remotes")
-remotes::install_github("Mathelab/RaMP-DB")
-library(RaMP)
-pkg.globals <- setConnectionToRaMP(dbname="ramp2",username="root",conpass="",
-                                   host = "localhost")
-test = chemicalClassSurvey(mets = to_pathway)
-test = as.data.frame(test$met_classes)
-test = test[grep("sub_class", test$class_level_name),]
+no_match <- which(is.na(match(metsA$met, met_map$met.x)))
+no_match <- metsA$met[no_match]
 
-pathway_map = as.data.frame(cbind(metabolite = met_anno$Query, to_pathway))
+map_to <-which(grepl(no_match[1], metsB$met, ignore.case = T))
+met_map[nrow(met_map)+1 ,1:2] <- c(no_match[1], metsB$met[map_to])
 
-met_classes = merge(pathway_map, test, by.x = "to_pathway", by.y = "sourceId", all = T )
-met_classes = dcast(met_classes, metabolite ~class_name)
-met_classes = t(met_classes)
-met_classes = apply(met_classes,2, function(x){
-					if(!is.na(any(x == "lipidmaps"))){
-						ifelse(x == "hmdb", NA, x)
-					} else {
-						x = x 
-					}
-				})
+dist_to <- sapply(metsB$met, function(x) stringdist(no_match[2],x))
+map_to <- which(dist_to == min(dist_to))
+
+met_map[nrow(met_map)+1 ,1:2] <- c(no_match[2], metsB$met[map_to])
 
 
-colnames(met_classes) = met_classes[1,]
-met_classes =met_classes[-1,]
-met_classes = ifelse(!is.na(met_classes),1,0)
-write.csv(met_classes, "./data/pathway/metabolite_pathway.csv")
-save(met_classes, file = "./data/pathway/metabolite_pathway.RData")
+met_path <- met_path %>%
+    full_join(met_map, by = c("compound" = "met.y"))
+names(met_path)[7] <- "name"
 
-
-
-
-
-# Cytokines
-## Getting Ensembl IDs
-Annotation begins by matching the cytokine names to proteins in the protein atlas to get the Ensembl ids. Since mot all of the cytokine names had a perfect match, I had to hand annotate the remaining features. 
-```{r}
-cytokines = rownames(all.mixed$cytokines)
-
-# download the human protein atlas
-dir.create("./data/pathway_annotation")
-system("wget https://www.proteinatlas.org/download/proteinatlas.tsv.zip  -P ./data/pathway_annotation")
-system("unzip ./data/pathway_annotation/proteinatlas.tsv.zip -d ./data/pathway_annotation")
-
-protein_atlas <- read.delim("./data/pathway_annotation/proteinatlas.tsv")
-
-protein_atlas_cytokine_id <- sapply(cytokines, function(x) {which(grepl(x, protein_atlas$Gene, ignore.case = T) | grepl(x, protein_atlas$Gene.synonym, ignore.case = T))})
-protein_atlas_cytokine_id <- unlist(protein_atlas_cytokine_id)
-
-protein_atlas_cytokine <- protein_atlas[protein_atlas_cytokine_id,1:5]
-
-write.csv(protein_atlas_cytokine,"./data/pathway_annotation/cytokine_annotation_raw.csv")
-## I proceeded to manually annotate the remaining cytokines by manual search in the proteinatlas tsv file. The final file was saved as cytokine_annotation_processed.csv
-
+save(met_path, file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/pathway/metabolite_pathway.RData")
 ```
-## Matching the ensembl ids to GO processes
-```{r}
-cytokine_annotation = read.csv("./data/pathway_annotation/cytokine_annotation_processed.csv")
-cytokine_annotation = cbind(cytokine = cytokines, cytokine_anno)
-
-cyt_ens <- cytokine_anno$Ensembl
-
-ensembl <- useEnsembl(biomart = "genes", dataset = "hsapiens_gene_ensembl")
-resultTable <- biomaRt::getBM(attributes = c("ensembl_gene_id", "name_1006", "go_linkage_type", "namespace_1003"),       
-                      filters    = "ensembl_gene_id",       
-                      values     = cyt_ens,         
-                      mart       = ensembl) 
-resultTable = resultTable[resultTable$go_linkage_type == "IDA",]
-resultTable = resultTable[resultTable$namespace_1003 == "biological_process",]
-
-cytokine_go <- merge(resultTable, cytokine_annotation, by.x = "ensembl_gene_id", by.y = "Ensembl", all.y = TRUE)
-
-cyt_go <- table(cytokine_go$name_1006, cytokine_go$cytokine )
-
-
-
-cyt_path = t(cyt_go)
-ind = !duplicated(cyt_path[,1:ncol(cyt_path)])
-cyt_path = cyt_path[, ind]
-cyt_path = melt(cyt_path)
-colnames(cyt_path)[1:2] = c("X", "pathway")
-cyt_path$value = as.numeric(cyt_path$value)
-
-save(cyt_path, file = "./data/pathway/cytokine_pathway.RData")
-
-
-```
-
-
