@@ -14,12 +14,27 @@ source("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicS
 
 ### load the data
 
-```{r}
-load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/processed/T21_mixed_cyt_met.RData")
-load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/processed/D21_mixed_cyt_met.RData")
-
+```r
+load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/processed/all_cyt_met_standardized.RData")
 ```
 
+## Separate T21 and D21 subjects
+
+``` r
+T21.mixed <- lapply(all_standardized, function(x) {
+    x %>%
+        filter(rownames(x) %in% (all_standardized$clinic %>% filter(Karyotype == "T21") %>% .$LabID))
+})
+D21.mixed <- lapply(all_standardized, function(x) {
+    x %>%
+        filter(rownames(x) %in% (all_standardized$clinic %>% filter(Karyotype == "Control") %>% .$LabID))
+})
+
+
+save(T21.mixed,file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/processed/T21_standardized_cyt_met.RData")
+save(D21.mixed,file= "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/processed/D21_standardized_cyt_met.RData")
+
+```
 
 ### Calculate the correlations within Cytokines
 
@@ -190,8 +205,7 @@ all_correlations <- all_correlations %>%
 sig_correlations <- all_correlations %>%
     filter(fdr.x < .2 & fdr.y < .2)
 
-ggplot(sig_correlations, aes(x = r.x, y = r.y)) +
-    geom_
+
 
 ```
 
