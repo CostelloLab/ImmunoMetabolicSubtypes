@@ -36,6 +36,13 @@ save(D21.mixed,file= "~/OneDrive - The University of Colorado Denver/Projects/Im
 
 ```
 
+## Load the data in subsequent analyses
+
+``` r
+load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/processed/T21_standardized_cyt_met.RData")
+load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/processed/D21_standardized_cyt_met.RData")
+```
+
 ### Calculate the correlations within Cytokines
 
 ``` r
@@ -189,7 +196,8 @@ corrScatterPlotsMultiple(psych_object = T21_correlations,
 
 ### Compare T21 and D21 Correlations
 
-``` r
+```r
+library(ggrepel)
 D21_correlations <- LongCorr(D21_correlations)
 D21_correlations$long <- D21_correlations$long %>%
     filter(A %in% names(D21.mixed$cytokines) & B %in% names(D21.mixed$metabolites))
@@ -197,13 +205,30 @@ D21_correlations$long <- D21_correlations$long %>%
 all_correlations <- T21_correlations$long %>%
     full_join(D21_correlations$long, by = c("A","B"))
 
-all_correlations$diff <- all_correlations$r.x - all_correlations$r.y
+names(all_correlations) <- c("cytokine", "metabolite", "T21_r", "T21_fdr", "D21_r", "D21_fdr")
 
-all_correlations <- all_correlations %>%
-    arrange(-abs(diff))
+all_correlations$significance <- ifelse(all_correlations$T21_fdr < .1 & all_correlations$D21_fdr < .1, "Both",
+                                 ifelse(all_correlations$T21_fdr < .1 & all_correlations$D21_fdr > .1, "T21 only",
+                                        ifelse(all_correlations$T21_fdr > .1 & all_correlations$D21_fdr < .1, "D21 only", "None")))
 
-sig_correlations <- all_correlations %>%
-    filter(fdr.x < .2 & fdr.y < .2)
+all_correlations$diff <- abs(all_correlations$T21_r - all_correlations$D21_r)
+
+all_correlations$label <- ifelse(all_correlations$diff > .5 & all_correlations$significance %in% c("T21 only","D21 only") , paste(all_correlations$cytokine, "-",all_correlations$metabolite), "")
+all_correlations$label <- ifelse(abs(all_correlations$T21_r) > .35 | abs(all_correlations$D21_r) > .5 | all_correlations$diff > .55 , paste(all_correlations$cytokine, "-",all_correlations$metabolite), "")
+
+p1 <- ggplot(all_correlations, aes(x = T21_r, y = D21_r, color = significance,label = label, alpha = significance ))+
+    geom_point(size = 2) +
+    geom_label_repel(max.overlaps = 1e6, size = 2)+
+    theme_classic() +
+    theme(legend.position = "bottom") +
+    xlim(-.6,.6) + ylim(-.6,.6) +
+    geom_vline(xintercept = 0, linetype = "dashed", color = "grey") +
+    geom_hline(yintercept = 0, linetype = "dashed", color = "grey") +
+    scale_color_manual(values = c("Both" = "red", "T21 only" = "blue", "D21 only" = "brown", "None" = "gray"))+
+    scale_alpha_manual(values = c(1,1,.2,1))   
+pdf("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/correlation_scatter_plots/karyotype/T21_D21_correlation_scatter.pdf")
+print(p1)
+dev.off()
 
 
 
