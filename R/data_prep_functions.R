@@ -5,15 +5,10 @@
 # 	* MSD cytokine profiling data. Plasma concentration values (pg/mL) for each of the cytokines and related immune factors measured across multiple MSD assay plates was imported to R, combined, and analytes with >10% of values outside of detection or fit curve range flagged. For each analyte, missing values were replaced with either the minimum (if below fit curve range) or maximum (if above fit curve range) calculated concentration and means of duplicate wells used in all further analysis. Use "Adjusted_Concentration", not really adjusted but we were trying to have similar names.
 # 	* MS-metabolite data. Relative abundance values. 0/missing values were replaced with a random value sampled from between 0 and 0.5x the minimum non-zero intensity value for that metabolite. Data was then normalized using a scaling factor derived from the global median intensity value across all metabolites / sample median intensity across all proteins. Use "adjusted_relative_abundance".
 
-
-
-library(data.table)
-library(reshape2)
 library(ggplot2)
 library(openxlsx)
 library(limma)
-library(impute)
-
+library(data.table)
 
  options(stringsAsFactors = FALSE)
 
