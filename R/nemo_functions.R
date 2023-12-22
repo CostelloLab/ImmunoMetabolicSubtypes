@@ -65,7 +65,7 @@ nemo.num.clusters <- function(W, NUMC=2:15) {
 #' @return A single matrix measuring similarity between the samples across all omics.
 #' @export
 
-nemo.affinity.graph <- function(raw.data, k=NA, num.clusters) {
+nemo.affinity.graph <- function(raw.data, k=NA, num.clusters = NA) {
   if (is.na(k)) { k =ncol(raw.data[[1]])/num.clusters}
 
   sim.data = lapply(1:length(raw.data), function(i) {affinityMatrix(SNFtool::dist2(as.matrix(t(raw.data[[i]])),
