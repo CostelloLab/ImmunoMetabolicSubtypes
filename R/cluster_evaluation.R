@@ -12,9 +12,9 @@ library(dplyr)
 # library(umap)
 library(ggbeeswarm)
 library(igraph)
+library(cluster)
 
-source("./R/data_prep_functions.R")
-
+set.seed(1234)
 
 
 
@@ -123,57 +123,57 @@ pairwise_mi = function(clustering_list){
 }
 
 
-robust_clust = function(clustering_list){
-	n = 1
-	pmi_tab = data.frame(item1 = character(), item2 = character(), ave_pmi = numeric() )
+robust_clust <- function(clustering_list) {
+    n <- 1
+    pmi_tab <- data.frame(item1 <- character(), item2 <- character(), ave_pmi <- numeric() )
 
-	sim = list()
-	for(z in 1:(length(clustering_list)-1)){
+    sim <- list()
+    for(z in 1:(length(clustering_list)-1)){
 
-		tab1 = as.data.frame(clustering_list[[z]])
-		names(tab1)[1] = 'clustering'
-		design1 = as.data.frame(model.matrix(~0+as.factor(clustering), data = tab1))
-		design1$LabID = rownames(design1)
-		design1 = tibble(design1)
-		
+        tab1 <- as.data.frame(clustering_list[[z]])
+        names(tab1)[1] <- 'clustering'
+        design1 <- as.data.frame(model.matrix(~0+as.factor(clustering), data <- tab1))
+        design1$LabID <- rownames(design1)
+        design1 <- tibble(design1)
+        
 
-		for(x in 1:(length(clustering_list)-z)){
-			tab2 = as.data.frame(clustering_list[[z+x]])
-			names(tab2)[1] = 'clustering'
-			design2 = as.data.frame(model.matrix(~0+as.factor(clustering), data = tab2))
-			design2$LabID = rownames(design2)
-			design2 = tibble(design2)
-			
+        for(x in 1:(length(clustering_list)-z)){
+            tab2 <- as.data.frame(clustering_list[[z+x]])
+            names(tab2)[1] <- 'clustering'
+            design2 <- as.data.frame(model.matrix(~0+as.factor(clustering), data <- tab2))
+            design2$LabID <- rownames(design2)
+            design2 <- tibble(design2)
+            
 
 
 
-			for(col1 in names(design1)[-ncol(design1)]) {
-				tmp1 = design1[,c(col1,"LabID")]
-				names(tmp1)[1] = 'clustering' 
-				
-				for(col2 in names(design2)[-ncol(design2)]) {
-					tmp2 = design2[,c(col2,"LabID")]
-					names(tmp2)[1] = 'clustering'
-					tab = merge(tmp1,tmp2, by = "LabID")
-					score = AMI(tab$clustering.x, tab$clustering.y)
-#					sub_tab = tab[tab$clustering !=0,]
-#					tot = nrow(sub_tab)
-#					dup = 2*sum(duplicated(sub_tab$LabID))
-#					score = dup/tot
-					sim[[n]] = data.frame(clust1 = sprintf("solution %s: %s",z ,col1), clust2 = sprintf("solution %s: %s",x+z ,col2) , score = score)
-					n = n+1
+            for(col1 in names(design1)[-ncol(design1)]) {
+                tmp1 <- design1[,c(col1,"LabID")]
+                names(tmp1)[1] <- 'clustering' 
+                
+                for(col2 in names(design2)[-ncol(design2)]) {
+                    tmp2 <- design2[,c(col2,"LabID")]
+                    names(tmp2)[1] <- 'clustering'
+                    tab <- merge(tmp1,tmp2, by <- "LabID")
+                    score <- AMI(tab$clustering.x, tab$clustering.y)
+                                        #					sub_tab <- tab[tab$clustering !<-0,]
+                                        #					tot <- nrow(sub_tab)
+                                        #					dup <- 2*sum(duplicated(sub_tab$LabID))
+                                        #					score <- dup/tot
+                    sim[[n]] <- data.frame(clust1 <- sprintf("solution %s: %s",z ,col1), clust2 <- sprintf("solution %s: %s",x+z ,col2) , score <- score)
+                    n <- n+1
 
-				}
+                }
 
-			}
-		}
+            }
+        }
 
-	}
+    }
 
-	res = rbindlist(sim)
-	res = res[order(-res$score),]
+    res <- rbindlist(sim)
+    res <- res[order(-res$score),]
 
-	return(res)
+    return(res)
 
 }
 
@@ -298,124 +298,125 @@ within_cluster_pmi = function(pmi_tab, clustering){
 ##### permute_associations is a function for performing permutations over cluster association tests
 
 
-association_test = function(clustering, clinic, phenotypes){
+association_test = function(clustering, clinic, phenotypes) {
 
-clustering = as.data.frame(clustering)
-dat = merge(clinic, clustering, by.x = "LabID", by.y = 0)
+    clustering = as.data.frame(clustering)
+    dat = merge(clinic, clustering, by.x = "LabID", by.y = 0)
 
 
 
-res <- matrix(0,nrow =  length(unique(dat$clustering)), ncol = 2*length(phenotypes))
-dir = matrix(0,nrow =  length(unique(dat$clustering)), ncol = length(phenotypes))
-lcl = matrix(0,nrow =  length(unique(dat$clustering)), ncol = length(phenotypes))
-ucl = matrix(0,nrow =  length(unique(dat$clustering)), ncol = length(phenotypes))
-ratio = matrix(0,nrow =  length(unique(dat$clustering)), ncol = length(phenotypes))
+    res <- matrix(0,nrow =  length(unique(dat$clustering)), ncol = 2*length(phenotypes))
+    dir = matrix(0,nrow =  length(unique(dat$clustering)), ncol = length(phenotypes))
+    lcl = matrix(0,nrow =  length(unique(dat$clustering)), ncol = length(phenotypes))
+    ucl = matrix(0,nrow =  length(unique(dat$clustering)), ncol = length(phenotypes))
+    ratio = matrix(0,nrow =  length(unique(dat$clustering)), ncol = length(phenotypes))
 
-for(i in 1:length(phenotypes)) {
+    for(i in 1:length(phenotypes)) {
 
-	# counter for results
+                                        # counter for results
 	n = 1
 
-	# test variable type
+                                        # test variable type
 	if(length(unique(dat[,phenotypes[i]])) < 7| class(dat[,phenotypes[i]]) != "numeric"){ # categorical
-		
-			tab <- table(dat[ ,phenotypes[i]],dat$clustering)
-			if(nrow(tab) == 1){next}
+            
+            tab <- table(dat[ ,phenotypes[i]],dat$clustering)
+            if(nrow(tab) == 1){next}
 
-			cntg_tab <- matrix(0,nrow = nrow(tab), ncol = 2)
+            cntg_tab <- matrix(0,nrow = nrow(tab), ncol = 2)
 
-		for(j in unique(dat$clustering)){
-			for(z in 1:nrow(tab)){
-				cntg_tab[z,1] <- sum(tab[z,])- tab[z,paste(j)]
-				cntg_tab[z,2] <- tab[z,paste(j)]
+            for(j in unique(dat$clustering)){
+                for(z in 1:nrow(tab)){
+                    cntg_tab[z,1] <- sum(tab[z,])- tab[z,paste(j)]
+                    cntg_tab[z,2] <- tab[z,paste(j)]
 
-			}
-			ft<-  fisher.test(cntg_tab, simulate.p.value = T)
+                }
+                ft<-  fisher.test(cntg_tab, simulate.p.value = T)
  		if(sum(!is.na(unique(dat[,phenotypes[i]]))) ==2){
-			
-				res[j,(i*2-1)] <- sprintf("Clust:%s%% | All:%s%%",round((tab[2,paste(j)]/sum(tab[,paste(j)]))*100,0), round((sum(tab[2,])/sum(tab))*100,0))
-				res[j,(i*2)] <- ft$p.value
-				ratio[j,i] = tab[2,paste(j)]/sum(tab[, paste(j)])
-				dir[j,i] = ft$estimate
-				lcl[j,i] = ft$conf.int[1]
-				ucl[j,i] = ft$conf.int[2]
-				
-			
+                    
+                    res[j,(i*2-1)] <- sprintf("Clust:%s%% | All:%s%%",round((tab[2,paste(j)]/sum(tab[,paste(j)]))*100,0), round((sum(tab[2,])/sum(tab))*100,0))
+                    res[j,(i*2)] <- ft$p.value
+                    ratio[j,i] = tab[2,paste(j)]/sum(tab[, paste(j)])
+                    dir[j,i] = ft$estimate
+                    lcl[j,i] = ft$conf.int[1]
+                    ucl[j,i] = ft$conf.int[2]
+                    
+                    
 
 
-			}
-		 else { 
-			
+                }
+                else { 
+                    
 
-				ft<-  fisher.test(cntg_tab, simulate.p.value = T)
-				rownames(cntg_tab) <- names(tab[,paste(j)])
-				tmp = rownames(cntg_tab)
-				perc = round((cntg_tab[,1]/sum(cntg_tab[,1]))*100,2)
-				est = paste0(tmp,":",perc, "%")
+                    ft<-  fisher.test(cntg_tab, simulate.p.value = T)
+                    rownames(cntg_tab) <- names(tab[,paste(j)])
+                    tmp = rownames(cntg_tab)
+                    perc = round((cntg_tab[,1]/sum(cntg_tab[,1]))*100,2)
+                    est = paste0(tmp,":",perc, "%")
 
-				res[j,(i*2-1)] <- paste(est, collapse = " | ")
-				res[j,(i*2)] <- ft$p.value
-				ratio[j,i] = tab[2,paste(j)]/sum(tab[, paste(j)])
-				dir[j,i] = "not calculated"
-				lcl[j,i] = NA
-				ucl[j,i] = NA
-				
-			
-			}
-		}
-		
+                    res[j,(i*2-1)] <- paste(est, collapse = " | ")
+                    res[j,(i*2)] <- ft$p.value
+                    ratio[j,i] = tab[2,paste(j)]/sum(tab[, paste(j)])
+                    dir[j,i] = "not calculated"
+                    lcl[j,i] = NA
+                    ucl[j,i] = NA
+                    
+                    
+                }
+            }
+            
 
 	} else { # numeric
-		for(j in unique(dat$clustering)){
+            for(j in unique(dat$clustering)){
 
-			tt <- t.test(dat[dat$clustering == j, phenotypes[i]], dat[dat$clustering != j, phenotypes[i]])
-			res[n,(i*2-1)] <- sprintf("Clust %s mean:%s | Other %s mean:%s", phenotypes[i], round(mean(dat[dat$clustering == j, phenotypes[i]],na.rm = T), 1), phenotypes[i], round(mean(dat[dat$clustering != j, phenotypes[i]], na.rm = T),1))
-			
-			res[j,(i*2)] <-tt$p.value
-			ratio = mean(dat[dat$clustering == j, phenotypes[i]],na.rm = T)
-			dir[j,i] =round(mean(dat[dat$clustering == j, phenotypes[i]],na.rm = T), 1) - round(mean(dat[dat$clustering != j, phenotypes[i]],na.rm = T), 1)
-			lcl[j,i] = NA
-			ucl[j,i] = NA
-			n = n+1		
-		}
-		
+                tt <- t.test(dat[dat$clustering == j, phenotypes[i]], dat[dat$clustering != j, phenotypes[i]])
+                res[n,(i*2-1)] <- sprintf("Clust %s mean:%s | Other %s mean:%s", phenotypes[i], round(mean(dat[dat$clustering == j, phenotypes[i]],na.rm = T), 1), phenotypes[i], round(mean(dat[dat$clustering != j, phenotypes[i]], na.rm = T),1))
+                
+                res[j,(i*2)] <-tt$p.value
+                ratio[j,i] = mean(dat[dat$clustering == j, phenotypes[i]],na.rm = T)
+                dir[j,i] =round(mean(dat[dat$clustering == j, phenotypes[i]],na.rm = T), 1) - round(mean(dat[dat$clustering != j, phenotypes[i]],na.rm = T), 1)
+                lcl[j,i] = NA
+                ucl[j,i] = NA
+                n = n+1		
+            }
+            
 
 	}
-	if(nrow(res > 2)){res[,(i*2)] = p.adjust(res[,(i*2)], method = "fdr")}
-}
+        if(nrow(res > 2)){res[,(i*2)] = p.adjust(res[,(i*2)], method = "fdr")}
+        
+    }
 
-name = character()
-for(i in 1:length(phenotypes)){
+    name = character()
+    for(i in 1:length(phenotypes)){
 	name[i*2-1] <- paste(phenotypes[i],"values")
 	name[i*2] <- paste(phenotypes[i],"q.value")
-}
-colnames(res) <- name
-pvals= apply(res[,seq(2,ncol(res),2)],2, as.numeric)
-# dir = apply(dir, 2, as.numeric)
-# lcl = apply(lcl, 2, as.numeric)
-# ucl = apply(ucl, 2, as.numeric)
+    }
+    colnames(res) <- name
+    pvals= apply(res[,seq(2,ncol(res),2)],2, as.numeric)
+                                        # dir = apply(dir, 2, as.numeric)
+                                        # lcl = apply(lcl, 2, as.numeric)
+                                        # ucl = apply(ucl, 2, as.numeric)
 
 
-rownames(res) <- paste("cluster", 1:length(unique(dat$clustering)))
-rownames(pvals) <- paste("cluster", 1:length(unique(dat$clustering)))
-rownames(dir) <- paste("cluster", 1:length(unique(dat$clustering)))
-rownames(ratio) = paste("cluster", 1:length(unique(dat$clustering)))
-colnames(dir) = paste(phenotypes, "OR")
-colnames(lcl) = paste(phenotypes, "lcl")
-colnames(ucl) = paste(phenotypes, "ucl")
-colnames(ratio) = phenotypes
+    rownames(res) <- paste("cluster", 1:length(unique(dat$clustering)))
+    rownames(pvals) <- paste("cluster", 1:length(unique(dat$clustering)))
+    rownames(dir) <- paste("cluster", 1:length(unique(dat$clustering)))
+    rownames(ratio) = paste("cluster", 1:length(unique(dat$clustering)))
+    colnames(dir) = paste(phenotypes, "OR")
+    colnames(lcl) = paste(phenotypes, "lcl")
+    colnames(ucl) = paste(phenotypes, "ucl")
+    colnames(ratio) = phenotypes
 
 
-# comining pvals and dir (Odds ratio) into a single table
-dir.pvals = cbind(dir,pvals)
-dir.pvals = dir.pvals[order(rownames(dir.pvals)), order(colnames(dir.pvals))]
+                                        # comining pvals and dir (Odds ratio) into a single table
+    dir.pvals = cbind(dir,pvals)
+    dir.pvals = dir.pvals[order(rownames(dir.pvals)), order(colnames(dir.pvals))]
 
 
-dir.pvals.confint = cbind(dir.pvals,lcl,ucl)
-dir.pvals.confint = dir.pvals.confint[order(rownames(dir.pvals.confint)), order(colnames(dir.pvals.confint))]
+    dir.pvals.confint = cbind(dir.pvals,lcl,ucl)
+    dir.pvals.confint = dir.pvals.confint[order(rownames(dir.pvals.confint)), order(colnames(dir.pvals.confint))]
 
 
-return(list(full.res = res, pvals = pvals, dir = dir, dir.pvals = dir.pvals, dir.pvals.confint = dir.pvals.confint, ratio = ratio ))
+    return(list(full.res = res, pvals = pvals, dir = dir, dir.pvals = dir.pvals, dir.pvals.confint = dir.pvals.confint, ratio = ratio ))
 
 }
 
@@ -432,8 +433,6 @@ permute_associations = function(clustering, clinic, phenotypes, comorbidity_meta
 	pdist = lapply(1:num_permutations,function(x) {
 		random.clustering = sample(x = clustering )
 		names(random.clustering) = names(clustering);
-
-		association_test(random.clustering, clinic, phenotypes, id)$pvals
 
 		association_test(random.clustering, clinic, phenotypes)$pvals
 
@@ -642,8 +641,8 @@ diff_expr_wilcoxon <- function(omics.data,clustering){
 	sig[,2:ncol(sig)] = t(apply(sig[,2:ncol(sig)], 1, function(x) p.adjust(x,method = "fdr")))
 	names(sig)[2:ncol(sig)] = paste0("q.value.",colnames(design))
 
-	FC = res[, grepl("logFC|feature",names(res) )]
-	names(FC)[2:ncol(FC)] = paste0("logFC.",colnames(design))
+	FC = res[, grepl("FC|feature",names(res) )]
+	names(FC)[2:ncol(FC)] = paste0("FC.",colnames(design))
 
 
 	return(list(sig = sig, FC = FC))
@@ -816,124 +815,47 @@ plot_umap = function(graph, clustering,clinic, plot_var, title, output_file){
 
 
 
-clusterEval = function(omics.list, clinic, phenotypes, iterations = 100, NUMC = 2:7,  diff_sig_threshold = .01, clinical_threshold = .1){
+clusterEval <- function(omics.list, clinic, phenotypes, iterations = 100, NUMC = 2:7,  diff_sig_threshold = .01, clinical_threshold = .1, num_neighbors = 100) {
+
+    set.seed(1234)
+    omics.data <- as.data.frame(rbindlist(lapply(omics.list,as.data.frame)))
+    rownames(omics.data) <- unlist(sapply(omics.list,rownames))
+
+    min_cluster <- .05 * ncol(omics.data)
+
+    final_NUMC <- numeric()
+    results <- list()
+    feature_diff <- list()
+    condition_diff <- list()
+    
+    for(i in NUMC) {
+        print(paste("Testing" ,i, "Clusters"))
+
+        nemo_clustering <- nemo.clustering(omics.list, num.clusters = i, num.neighbors = num_neighbors)
+
+        if(min(table(nemo_clustering$clustering)) > min_cluster) {final_NUMC <- c(final_NUMC,i)}
+        
+        cluster_eval <- association_test(clustering <- nemo_clustering$clustering, clinic, phenotypes)
+        condition_diff[[i]] <- cluster_eval
+        num_sig <- sum(cluster_eval$pvals[,!(colnames(cluster_eval$pvals) %in% c("Sex q.value","Age_at_visit q.value"))]  < clinical_threshold)
+        if(i ==2){ num_sig <- num_sig/2}                                         # Divide by two in the case of 2 clusters, because each cluster will have the same score
+            
+        diff.expr.cluster <- diff_expr_wilcoxon(omics.data,nemo_clustering$clustering)
+        feature_diff[[i]] <- diff.expr.cluster
+        num_diff <- diff.expr.cluster$sig
+        num_diff <- sum(apply(num_diff[2:ncol(num_diff)],1, function(x) any(x < diff_sig_threshold)))
+        results[[i]] <- c(i, num_sig,num_diff, min(table(nemo_clustering$clustering)))
+    } 
+    
 
 
+    final.results <-  data.frame(do.call(rbind,results))
+    names(final.results) <- c("# of clusters", "# of enriched conditions","# of differential features", "Minimum cluster size")
 
-	omics.data = as.data.frame(rbindlist(lapply(omics.list,as.data.frame)))
-	rownames(omics.data) = unlist(sapply(omics.list,rownames))
+    eigengap <- estimateNumberOfClustersGivenGraph(W = nemo_clustering[["graph"]], final_NUMC)
+    nemo_num <- nemo.num.clusters(W = nemo_clustering[["graph"]], final_NUMC)
 
-	results = list()
-
-	for(i in NUMC){
-		robust = subClust(omics.list = omics.list, num.clusters = i, iterations = iterations)
-
-		if(any(!is.na(robust$scores))){
-			clust_means = robust$cluster_means
-			ave_clust_means = mean(clust_means)
-
-
-			cluster_eval = association_test(robust$results$clustering, clinic, phenotypes, id)
-
-			cluster_eval = association_test(robust$results$clustering, clinic, phenotypes)
-
-			num_sig = sum(cluster_eval$pvals < clinical_threshold)
-
-
-			# Divide by two in the case of 2 clusters, because each cluster will have the same score
-			if(i ==2){ num_sig = num_sig/2}
- 
-			diff.expr.cluster = diff_expr_wilcoxon(omics.data,robust$results$clustering)
-
-			num_diff = diff.expr.cluster$sig
-			num_diff = sum(apply(num_diff[2:ncol(num_diff)],1, function(x) any(x < diff_sig_threshold)))
-
-			# Removing pathway enrichment
-			#num_enriched = wrapper_pathEnrich(diff.expr.cluster,cyt_path, met_path, diff_sig_threshold = .01, enriched_sig_threshold = .1 )$num_enriched
-
-			results[[i]] = c(i, paste0(round(clust_means,3),collapse = ";"), round(ave_clust_means,3), num_sig,num_diff,  min(table(robust$results$clustering)))
-		} else {
-			results[[i]] = c(i, NA, NA, NA,NA,NA)
-		}
-	}
-
-
-	final.results =  data.frame(do.call(rbind,results))
-	names(final.results) = c("# of clusters", "average robustness by cluster", "average robustness for all clusters", "# of enriched conditions (q < .2)","# of differential features (q < .01)", "Minimum cluster size")
-
-
-	new.NUMC = which(!apply(final.results,1,function(x) any(is.na(x))))
-
-	elbow = elbow.num.clusters(nemo.affinity.graph(omics.list), NUMC)
-
-
-	return(list(summary = final.results,  num.clusts = elbow$num.clusts, plot = elbow$plot))
-
-}
-
-
-
-
-# pathEnrich is a function for identifying enriched pathways per cluster 
-pathEnrich = function(cluster_features, cyt_path, met_path){
-	
-	#enriched = data.frame(pathway = character(), p_value = numeric(), OR = numeric())
-	enriched = data.frame(pathway = character(), p_value = numeric(), num_hits = numeric(), perc = numeric())
-
-	cytokines = unique(cyt_path$X)
-	num_cyt = length(cytokines)
-	num_sig_cyt = length(cytokines[cytokines %in% cluster_features])
-
-	for(path in unique(cyt_path$pathway)){
-		tmp = cyt_path[cyt_path$pathway ==path & cyt_path$value == 1 ,]
-		num_path = dim(tmp)[1]
-		if(num_path > 1){
-			sig_in_path  = sum(tmp$X %in% cluster_features)
-			perc = sig_in_path/num_path
-			sig_out_path =  num_sig_cyt - sig_in_path
-			un_in_path = num_path - sig_in_path
-			un_out_path = num_cyt - (sig_in_path+sig_out_path+un_in_path)
-
-			cntg_tab = matrix(ncol = 2, nrow = 2,
-							c(sig_in_path, sig_out_path,un_in_path, un_out_path))
-			res = fisher.test(cntg_tab, alternative = "greater")
-			cyt_p = res$p.value
-			#cyt_OR  = res$estimate
-			enriched = rbind(enriched, c(path, cyt_p,sig_in_path,perc))			
-		}
-
-	}
-
-
-	metabolites = unique(met_path$X)
-	num_met = length(metabolites)
-	num_sig_met = length(metabolites[metabolites %in% cluster_features])
-
-	for(path in unique(met_path$pathway)){
-		tmp = met_path[met_path$pathway ==path & met_path$value == 1 ,]
-		num_path = dim(tmp)[1]
-		if(num_path > 1){
-			sig_in_path  = sum(tmp$X %in% cluster_features)
-			perc = sig_in_path/num_path
-			sig_out_path =  num_sig_met - sig_in_path
-			un_in_path = num_path - sig_in_path
-			un_out_path = num_met - (sig_in_path+sig_out_path+un_in_path)
-
-			cntg_tab = matrix(ncol = 2, nrow = 2,
-							c(sig_in_path, sig_out_path,un_in_path, un_out_path))
-			res = fisher.test(cntg_tab, alternative = "greater")
-			met_p = res$p.value
-			#met_OR  = res$estimate
-			enriched = rbind(enriched, c(path,met_p, sig_in_path,perc))
-		}
-
-	}
-
-
-	names(enriched) = c("pathway", "p.value", "num_hits","percent")
-	enriched[2:3] = apply(enriched[2:3],2,as.numeric)
-
-	return(enriched)
+    return(list(summary  = final.results,  eigengap = num_clusts, nemo = nemo_num, feature = feature_diff, condition = condition_diff))
 
 }
 
@@ -969,7 +891,7 @@ wrapper_pathEnrich = function(diff_expr, cyt_path, met_path,  enriched_sig_thres
 
 
 }
-
+ 
 
 featureSelection = function(all_clust,omics.data, diff_expr) {
 
