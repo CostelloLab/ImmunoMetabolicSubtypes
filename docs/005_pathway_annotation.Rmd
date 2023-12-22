@@ -6,10 +6,8 @@ output: html_document
 ---
 For downstream enrichment analyses, we annotated features based on prior knowledge of biological pathways. 
 
-# Necessary Libraries
-```{r}
-library(openxlsx)
-```
+
+
 # Load the molecular data and pathway data
 
 ```{r}
@@ -20,7 +18,6 @@ met_path <- read.xlsx("~/OneDrive - The University of Colorado Denver/Projects/I
 ## Align IDs
 
 ```r
-
 library(fuzzyjoin)
 library(tidyverse)
 library(stringdist)
