@@ -229,8 +229,7 @@ diff_expr_single = function(x,y, test ){
 	}
 	p = test$p.value
 	stat = test$statistic
-	#parameter = test$parameter
-	FC = (mean(x) - mean(y))
+        FC = mean(x, na.rm = T) - mean(y, na.rm = T)
 	res = c(p, FC)
 	return(res)
 }
@@ -242,7 +241,7 @@ diff_expr_single = function(x,y, test ){
 
 
 diff_expr_wrapper = function(data, clinic, phenotype, control, q_cutoff = 0.05, test ){
-
+    data <- as.data.frame(t(data))
 	vals = unique(clinic[, phenotype])
 	which_x = which(clinic[, phenotype] == vals[vals != control])
 	which_y = which(clinic[, phenotype] == vals[vals == control])
@@ -251,7 +250,7 @@ diff_expr_wrapper = function(data, clinic, phenotype, control, q_cutoff = 0.05, 
     y_dat = data[which_y,]
 
        res = sapply(1:ncol(data), function(i){
-				diff_expr_single(as.numeric(x_dat[,i]), as.numeric(y_dat[,i]), test)
+				diff_expr_single(x =as.numeric(x_dat[,i]), as.numeric(y_dat[,i]), test)
 	})
 	res = as.data.frame(t(res))
 	rownames(res) = names(data)
