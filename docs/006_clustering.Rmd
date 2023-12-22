@@ -31,54 +31,50 @@ load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSub
 7. Descibing and profiling the clusters - 
 
 
+## Metrics for determining the number of clusters
+1. Eigengap
+	* 
+2. Robust Clust
+   *
+3. Davies-Bouldin
+   * Lower index values indicate a better clustering result. The index is improved (lowered) by increased separation between clusters and decreased variation within clusters.
+4. Calinksi-Harabasz
+   * A higher value of CH indicates a better clustering, because it means that the data points are more spread out between clusters than they are within clusters.
+
 ## Determining the number of clusters based on the number of overlaps between two co-occurring conditions
+
+
 An  approach may consider that we are interested in finding axes of disease co-occurance among the data. Therefore, we will restrict our number of neighbors to the mean number of neighbors. 
 
-``` r
+```r
+diff_sig_threshold = .1
+clinical_threshold = .1
+omics.list = list(t(T21.mixed$cytokines),t(T21.mixed$metabolites))
+NUMC <- 2:8
+phenotypes =  names(T21.mixed$clinic)[c(2,6,9:21)]
+
 overlap <- sapply(phenotypes[3:length(phenotypes)], function(x) {
     sapply(phenotypes[3:length(phenotypes)], function(y) {
         tmp <- table(T21.mixed$clinic[[x]],T21.mixed$clinic[[y]])
         return(tmp["1","1"])
     })})
-    
+
 num_neighbors = floor(mean(overlap[upper.tri(overlap)]))
-omics.list = list(t(T21.mixed$cytokines),t(T21.mixed$metabolites))
-NUMC <- 2:8
 
 res <- clusterEval(omics.list = list(t(T21.mixed$cytokines),t(T21.mixed$metabolites)),
                 clinic = T21.mixed$clinic,
                 phenotypes = phenotypes,
-                iterations = iterations,
                 NUMC = NUMC,  
                 diff_sig_threshold = diff_sig_threshold,
                 clinical_threshold = clinical_threshold,
-                num_neighbors = num_neighbors )
+                num_neighbors = num_neighbors)
 
 res$summary
 res$eigengap
 res$nemo
-```
 
-## How stable are the clusters over the number of neighbors?
-
-``` r
-num_neighbors_grid <- seq(10,60,10)
-
-multi_omic_res = lapply(num_neighbors_grid, function(x) {
-    print(x)
-    clusterEval(omics.list = list(t(T21.mixed$cytokines),t(T21.mixed$metabolites)),
-                clinic = T21.mixed$clinic,
-                phenotypes = phenotypes,
-                iterations = iterations,
-                NUMC = NUMC,  
-                diff_sig_threshold = diff_sig_threshold,
-                clinical_threshold = clinical_threshold,
-                num_neighbors = x)
-})
-
-lapply(multi_omic_res, function(x) x$nemo)
-lapply(multi_omic_res, function(x) x$eigen)
-lapply(multi_omic_res, function(x) x$summary)
+W <- nemo.affinity.graph(raw.data = omics.list, num.clusters = 5, k = num_neighbors)
+clustering <- spectralClustering(W, K = 5)
 
 ```
 
@@ -86,8 +82,7 @@ lapply(multi_omic_res, function(x) x$summary)
 
 ``` r
 ##detach("package:ComplexHeatmap", unload = TRUE)
-diff_sig_threshold = .1
-clinical_threshold = .2
+
 NUMC = 2:8
 phenotypes =  names(T21.mixed$clinic)[c(2,6,9:21)]
 
@@ -139,39 +134,39 @@ write.csv(cytokine_res$summary, row.names = F, file = "~/OneDrive - The Universi
 write.csv(metabolite_res$summary, row.names = F, file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/tables/metabolite_clustering_results.csv")
 ```
 
-## Choose Clustering based on results
 
-``` r
+## How stable are the clusters over the number of neighbors?
 
-```
+```r
+num_neighbors_grid <- seq(10,25,1)
 
+multi_omic_res = lapply(num_neighbors_grid, function(x) {
+    print(x)
+    clusterEval(omics.list = list(t(T21.mixed$cytokines),t(T21.mixed$metabolites)),
+                clinic = T21.mixed$clinic,
+                phenotypes = phenotypes,
+                iterations = iterations,
+                NUMC = NUMC,  
+                diff_sig_threshold = diff_sig_threshold,
+                clinical_threshold = clinical_threshold,
+                num_neighbors = x)
+})
 
-## Clustering all 3 datasets
-## Combine the metabolite, cytokine, and gene expression data
-``` r
-load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/processed/processed_transcriptome.RData")
-T21.expression <- expression_list$expression %>%
-    filter(rownames(expression_list$expression) %in% rownames(T21.mixed$cytokines))
-identical(rownames(T21.expression), rownames(T21.mixed$cytokines))
-```
+names(multi_omic_res) <- num_neighbors_grid
 
-``` r
-## Perform the clustering
-omics.list <-  list(t(T21.mixed$cytokines),t(T21.mixed$metabolites), t(T21.expression))
-diff_sig_threshold = .1
-clinical_threshold = .2
-iterations = 2
-NUMC = 2:6
-phenotypes =  names(T21.mixed$clinic)[c(2,6,9:21)]
+enriched_conditions <- sapply(multi_omic_res, function(x) x$summary$`# of enriched conditions`)
+enriched_conditions <- as.data.frame(enriched_conditions)
+enriched_conditions$clusters <- NUMC
 
-all_omics_res = clusterEval(omics.list = omics.list,
-						clinic = T21.mixed$clinic,
-					 	phenotypes =phenotypes,
-					  	iterations = iterations,
-						NUMC = NUMC,  
-                      diff_sig_threshold = diff_sig_threshold,
-                      clinical_threshold = clinical_threshold)
+enriched_conditions <- enriched_conditions %>%
+    pivot_longer(cols = -clusters)
 
-write.csv(all_omics_res$summary, row.names = F, file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/tables/cyt_met_gene_clustering_results.csv")
+ggplot(enriched_conditions, aes(x = clusters, y = value, color = as.factor(name))) +
+    geom_line() +
+    theme_classic()
+
+lapply(multi_omic_res[1:4], function(x) x$summary)
+lapply(multi_omic_res[1:4], function(x) x$eigen)
+lapply(multi_omic_res[1:4], function(x) x$nemo)
 
 ```
