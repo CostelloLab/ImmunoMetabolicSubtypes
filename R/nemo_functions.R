@@ -257,79 +257,79 @@ RobustClust = function(omics.list, iterations = 100, num.clusters = NA){
 }
 
 
-## subClust is a function that defines subsets of the data and clusters them. 
+## ## subClust is a function that defines subsets of the data and clusters them. 
 
-# The subsampling will have a parameter that defines what pecentage of the data to subsample. There is no replacement, so each individiual will only be sampled once. Also, the number of clusters will be fixed to the same number as the full clustered data. This 
+## # The subsampling will have a parameter that defines what pecentage of the data to subsample. There is no replacement, so each individiual will only be sampled once. Also, the number of clusters will be fixed to the same number as the full clustered data. This 
 
-subClust = function(omics.list, iterations = 10, sampling.perc = .8, num.clusters = NA) {
+## subClust = function(omics.list, iterations = 10, sampling.perc = .8, num.clusters = NA) {
     
-                                        # find the minimum cluster size
-    min.cluster.size = floor(.05*ncol(omics.list[[1]]))
-                                        #min.cluster.size = 0
+##                                         # find the minimum cluster size
+##     min.cluster.size = floor(.05*ncol(omics.list[[1]]))
+##                                         #min.cluster.size = 0
 
-    full_clusters = nemo.clustering(omics.list, num.clusters = num.clusters) 
-    full_clustering = full_clusters$clustering
+##     full_clusters = nemo.clustering(omics.list, num.clusters = num.clusters) 
+##     full_clustering = full_clusters$clustering
 
-    if(min(table(full_clustering)) <= min.cluster.size){
-        print("Smallest cluster < Minimum cluster size ")
-        return(list(scores = NA, cluster_means = NA, results = NA))
-    } else {
+##     if(min(table(full_clustering)) <= min.cluster.size){
+##         print("Smallest cluster < Minimum cluster size ")
+##         return(list(scores = NA, cluster_means = NA, results = NA))
+##     } else {
 
-                                        # resample the subjects
-        subjects = colnames(omics.list[[1]])
-        num_subjects = ncol(omics.list[[1]])
+##                                         # resample the subjects
+##         subjects = colnames(omics.list[[1]])
+##         num_subjects = ncol(omics.list[[1]])
 
-        scores = list()
+##         scores = list()
 
-        for(i in 1:iterations){
+##         for(i in 1:iterations){
 
-            lessThanMin = TRUE 
+##             lessThanMin = TRUE 
             
-            while(lessThanMin) {
-                resampled_subjects = sample(subjects,floor(num_subjects * sampling.perc) , replace = F) 
-                resampled.list = lapply(omics.list, function(x) x[,resampled_subjects])
-                                        #resampled.min.cluster.size = floor(.05*ncol(resampled.list[[1]]))
-                resampled_clusters = nemo.clustering(omics.list = resampled.list,  num.clusters =full_clusters$num.clusters )
-                resampled_clustering = resampled_clusters$clustering
-                if(min(table(resampled_clustering)) > min.cluster.size) {
-                    lessThanMin = FALSE }
-            }
+##             while(lessThanMin) {
+##                 resampled_subjects = sample(subjects,floor(num_subjects * sampling.perc) , replace = F) 
+##                 resampled.list = lapply(omics.list, function(x) x[,resampled_subjects])
+##                                         #resampled.min.cluster.size = floor(.05*ncol(resampled.list[[1]]))
+##                 resampled_clusters = nemo.clustering(omics.list = resampled.list,  num.clusters =full_clusters$num.clusters )
+##                 resampled_clustering = resampled_clusters$clustering
+##                 if(min(table(resampled_clustering)) > min.cluster.size) {
+##                     lessThanMin = FALSE }
+##             }
 
-                                        #unique_resampled = unique(resampled_subjects)
-                                        #num_unique = length(unique_resampled)
+##                                         #unique_resampled = unique(resampled_subjects)
+##                                         #num_unique = length(unique_resampled)
 
-            tmp.scores = numeric()
-            intersects <- list()
-            resampled_length <- length(resampled_clustering)
-            for(j  in 1: max(full_clustering)){
-                full_cluster_names <- names(full_clustering)[full_clustering ==j]
+##             tmp.scores = numeric()
+##             intersects <- list()
+##             resampled_length <- length(resampled_clustering)
+##             for(j  in 1: max(full_clustering)){
+##                 full_cluster_names <- names(full_clustering)[full_clustering ==j]
                
-                    jaccard <- sapply(1: max(full_clustering), function(x) {
-                        resampled_cluster_names <- names(resampled_clustering)[resampled_clustering == x ]
-                        length(intersect(full_cluster_names,resampled_cluster_names))/length(union(full_cluster_names,resampled_cluster_names))
+##                     jaccard <- sapply(1: max(full_clustering), function(x) {
+##                         resampled_cluster_names <- names(resampled_clustering)[resampled_clustering == x ]
+##                         length(intersect(full_cluster_names,resampled_cluster_names))/length(union(full_cluster_names,resampled_cluster_names))
                         
-                    })
-                print(jaccard)
-                }
+##                     })
+##                 print(jaccard)
+##                 }
 
-                tmp.scores[[j]] <- max(jaccard)
+##                 tmp.scores[[j]] <- max(jaccard)
 
 
-            }
+##             }
             
 
-            scores[[i]]= tmp.scores
-        }
+##             scores[[i]]= tmp.scores
+##         }
 
 
-        scores = data.frame(do.call(rbind,scores))
-        names(scores) = paste0("cluster",1:max(full_clustering))
+##         scores = data.frame(do.call(rbind,scores))
+##         names(scores) = paste0("cluster",1:max(full_clustering))
 
-        cluster_means = colMeans(scores)
+##         cluster_means = colMeans(scores)
 
 
 
-        return(list(scores = scores, cluster_means = cluster_means, results = full_clusters))
+##         return(list(scores = scores, cluster_means = cluster_means, results = full_clusters))
 
-    }
-}
+##     }
+## }
