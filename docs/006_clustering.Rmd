@@ -20,33 +20,19 @@ load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSub
 load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/processed/processed_transcriptome.RData")
 ```
 
-## NEMO way to find the number of  neighbors for clustering
-The NEMO clustering approach requires one to choose the number of neighbors to include in the creation of the similarity matrix. In the paper they sugest that one do so based on this formula: #samples/#clusters if one knows the number of clusters. To evaluate this, we explored the clustering solutions using this approach. 
+## Steps in clustering as defined by Milligan(1996)
 
-``` r
-diff_sig_threshold = .1
-clinical_threshold = .2
-NUMC = 2:8
-phenotypes =  names(T21.mixed$clinic)[c(2,6,9:21)]
-omics.list = list(t(T21.mixed$cytokines),t(T21.mixed$metabolites))
+1. Selection of objects and variables - overlap of cyt, met, RNA data (001)
+2. Decisions concerning variable normalization - adjustment for age, sex, and sample_source, standardized (001)
+3. Selection of a distance measure - NEMO (nemo_functions.R)
+4. Selection of a clustering method - spectral clustering (nemo_functions.R)
+5. Determining the numebr of clusters - (cluster_comparison.R)
+6. Validating the clusters - 
+7. Descibing and profiling the clusters - 
 
-res <- clusterEval(omics.list = omics.list,
-                clinic = T21.mixed$clinic,
-                phenotypes = phenotypes,
-                iterations = iterations,
-                NUMC = NUMC,  
-                diff_sig_threshold = diff_sig_threshold,
-                clinical_threshold = clinical_threshold,
-                num_neighbors = NA)
-
-res$summary
-res$eigengap
-res$nemo
-
-```
 
 ## Determining the number of clusters based on the number of overlaps between two co-occurring conditions
-An alternative approach may consider that we are interested in finding axes of disease co-occurance among the data. Therefore, we will restrict our number of neighbors to the mean number of neighbors. 
+An  approach may consider that we are interested in finding axes of disease co-occurance among the data. Therefore, we will restrict our number of neighbors to the mean number of neighbors. 
 
 ``` r
 overlap <- sapply(phenotypes[3:length(phenotypes)], function(x) {
@@ -56,27 +42,21 @@ overlap <- sapply(phenotypes[3:length(phenotypes)], function(x) {
     })})
     
 num_neighbors = floor(mean(overlap[upper.tri(overlap)]))
-
-diff_sig_threshold = .1
-clinical_threshold = .2
-NUMC = 2:8
-phenotypes =  names(T21.mixed$clinic)[c(2,6,9:21)]
 omics.list = list(t(T21.mixed$cytokines),t(T21.mixed$metabolites))
+NUMC <- 2:8
 
-res <- clusterEval(omics.list = omics.list,
+res <- clusterEval(omics.list = list(t(T21.mixed$cytokines),t(T21.mixed$metabolites)),
                 clinic = T21.mixed$clinic,
                 phenotypes = phenotypes,
                 iterations = iterations,
                 NUMC = NUMC,  
                 diff_sig_threshold = diff_sig_threshold,
                 clinical_threshold = clinical_threshold,
-                num_neighbors = 20)
+                num_neighbors = num_neighbors )
 
 res$summary
 res$eigengap
 res$nemo
-
-
 ```
 
 ## How stable are the clusters over the number of neighbors?
