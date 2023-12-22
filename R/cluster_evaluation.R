@@ -1,17 +1,8 @@
 #### Cluster evaluation
-#library(aricode)
 library(ggplot2)
 library(limma)
-#library(EnhancedVolcano)
-#library(Rtsne)
 library(RColorBrewer)
-#library(widyr)
-library(dplyr)
-# library(metap)
-# library(randomcoloR)
-# library(umap)
 library(ggbeeswarm)
-library(igraph)
 library(cluster)
 
 set.seed(1234)
