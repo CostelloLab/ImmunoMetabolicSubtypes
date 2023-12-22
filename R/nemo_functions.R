@@ -116,25 +116,22 @@ get.elbow <- function(x, y, NUMC) {
 #' @return A single matrix measuring similarity between the samples across all omics.
 #' @export
 
-NUM.NEIGHBORS.RATIO = 5
-nemo.affinity.graph <- function(raw.data, k=NA) {
-  if (is.na(k)) {
-    k = as.numeric(lapply(1:length(raw.data), function(i) round(ncol(raw.data[[i]]) / NUM.NEIGHBORS.RATIO)))
-  } else if (length(k) == 1) {
-    k = rep(k, length(raw.data))
-  }
+nemo.affinity.graph <- function(raw.data, k=NA, num.clusters) {
+  if (is.na(k)) { k =ncol(raw.data[[1]])/num.clusters}
+
   sim.data = lapply(1:length(raw.data), function(i) {affinityMatrix(SNFtool::dist2(as.matrix(t(raw.data[[i]])),
-                                                                as.matrix(t(raw.data[[i]]))), k[i], 0.5)})
+                                                                as.matrix(t(raw.data[[i]]))), k, 0.5)})
   affinity.per.omic = lapply(1:length(raw.data), function(i) {
-    sim.datum = sim.data[[i]]
-    non.sym.knn = apply(sim.datum, 1, function(sim.row) {
+      sim.datum = sim.data[[i]]
+      non.sym.knn = apply(sim.datum, 1, function(sim.row) {
       returned.row = sim.row
-      threshold = sort(sim.row, decreasing = T)[k[i]]
+      threshold = sort(sim.row, decreasing = T)[k]
       returned.row[sim.row < threshold] = 0
       row.sum = sum(returned.row)
       returned.row[sim.row >= threshold] = returned.row[sim.row >= threshold] / row.sum
       return(returned.row)
     })
+
     sym.knn = non.sym.knn + t(non.sym.knn)
     return(sym.knn)
   })
@@ -175,7 +172,7 @@ nemo.affinity.graph <- function(raw.data, k=NA) {
 #' @return A single matrix measuring similarity between the samples across all omics.
 #' @export
 nemo.clustering <- function(omics.list, num.clusters=NA, num.neighbors=NA) {
-  graph = nemo.affinity.graph(omics.list, k = num.neighbors)
+  graph = nemo.affinity.graph(omics.list, k = num.neighbors, num.clusters)
 
   clustering = spectralClustering(graph,num.clusters) 
 	names(clustering) = colnames(graph)
@@ -302,14 +299,24 @@ subClust = function(omics.list, iterations = 10, sampling.perc = .8, num.cluster
                                         #num_unique = length(unique_resampled)
 
             tmp.scores = numeric()
-
+            intersects <- list()
+            resampled_length <- length(resampled_clustering)
             for(j  in 1: max(full_clustering)){
-                tmp.clust = full_clustering[names(full_clustering[full_clustering ==j])]
-                tmp.clust = tmp.clust[names(tmp.clust) %in% resampled_subjects]
-                tmp.resampled = resampled_clustering[names(resampled_clustering) %in% names(tmp.clust)]
-                counts = table(tmp.resampled)
-                tmp.scores = c(tmp.scores,max(counts)/sum(counts))
+                full_cluster_names <- names(full_clustering)[full_clustering ==j]
+               
+                    jaccard <- sapply(1: max(full_clustering), function(x) {
+                        resampled_cluster_names <- names(resampled_clustering)[resampled_clustering == x ]
+                        length(intersect(full_cluster_names,resampled_cluster_names))/length(union(full_cluster_names,resampled_cluster_names))
+                        
+                    })
+                print(jaccard)
+                }
+
+                tmp.scores[[j]] <- max(jaccard)
+
+
             }
+            
 
             scores[[i]]= tmp.scores
         }
