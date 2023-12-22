@@ -4,13 +4,7 @@ library(limma)
 library(RColorBrewer)
 library(ggbeeswarm)
 library(cluster)
-
-set.seed(1234)
-
-
-
-
-
+library(clusterSim)
 ### adjustedMutualInformation is a function that uses the aricode function "AMI" to create a table of the mutual information indeces between the lists of clusterings. 
 
 adjustedMutualInformation = function(clustering_list, plot = F){
@@ -773,7 +767,6 @@ plot_tsne = function(graph, clustering,clinic, plot_var, output_file){
 
 
 plot_umap = function(graph, clustering,clinic, plot_var, title, output_file){
-	set.seed(1234)
 	umap = umap(graph, theta = 0)	
 	umap <- merge(umap$layout, as.data.frame(clustering), by= 0)
 	umap <- merge(umap, clinic, by.x = "Row.names", by.y = "LabID" )
@@ -808,7 +801,7 @@ plot_umap = function(graph, clustering,clinic, plot_var, title, output_file){
 
 clusterEval <- function(omics.list, clinic, phenotypes, iterations = 100, NUMC = 2:7,  diff_sig_threshold = .01, clinical_threshold = .1, num_neighbors = 100) {
 
-    set.seed(1234)
+    W <- nemo.affinity.graph(omics.list, k = num_neighbors)
     omics.data <- as.data.frame(rbindlist(lapply(omics.list,as.data.frame)))
     rownames(omics.data) <- unlist(sapply(omics.list,rownames))
 
@@ -822,34 +815,38 @@ clusterEval <- function(omics.list, clinic, phenotypes, iterations = 100, NUMC =
     for(i in NUMC) {
         print(paste("Testing" ,i, "Clusters"))
 
-        nemo_clustering <- nemo.clustering(omics.list, num.clusters = i, num.neighbors = num_neighbors)
+        clustering <- spectralClustering(W, i)
+        names(clustering) <- colnames(W)
 
-        if(min(table(nemo_clustering$clustering)) > min_cluster) {final_NUMC <- c(final_NUMC,i)}
+        if(min(table(clustering)) > min_cluster) {final_NUMC <- c(final_NUMC,i)}
         
-        cluster_eval <- association_test(clustering <- nemo_clustering$clustering, clinic, phenotypes)
+        cluster_eval <- association_test(clustering <- clustering, clinic, phenotypes)
         condition_diff[[i]] <- cluster_eval
         num_sig <- sum(cluster_eval$pvals[,!(colnames(cluster_eval$pvals) %in% c("Sex q.value","Age_at_visit q.value"))]  < clinical_threshold)
         if(i ==2){ num_sig <- num_sig/2}                                         # Divide by two in the case of 2 clusters, because each cluster will have the same score
             
-        diff.expr.cluster <- diff_expr_wilcoxon(omics.data,nemo_clustering$clustering)
+        diff.expr.cluster <- diff_expr_wilcoxon(omics.data,clustering)
         feature_diff[[i]] <- diff.expr.cluster
         num_diff <- diff.expr.cluster$sig
         num_diff <- sum(apply(num_diff[2:ncol(num_diff)],1, function(x) any(x < diff_sig_threshold)))
-        results[[i]] <- c(i, num_sig,num_diff, min(table(nemo_clustering$clustering)))
+        DB <- index.DB(x = W, cl = clustering)$DB ## Davies-Bouldin
+        CH <- index.G1(x = W, cl = clustering) ## Calinkski-Harabasz
+        
+        
+        results[[i]] <- c(i, num_sig,num_diff, min(table(clustering)), DB, CH)
     } 
     
 
+    eigengap <- estimateNumberOfClustersGivenGraph(W,final_NUMC)
+    nemo_num <- nemo.num.clusters(W = W, NUMC = final_NUMC)
 
     final.results <-  data.frame(do.call(rbind,results))
-    names(final.results) <- c("# of clusters", "# of enriched conditions","# of differential features", "Minimum cluster size")
+    names(final.results) <- c("# of clusters", "# of enriched conditions","# of differential features", "Minimum cluster size", "DB", "CH")
 
-    eigengap <- estimateNumberOfClustersGivenGraph(W = nemo_clustering[["graph"]], final_NUMC)
-    nemo_num <- nemo.num.clusters(W = nemo_clustering[["graph"]], final_NUMC)
 
-    return(list(summary  = final.results,  eigengap = num_clusts, nemo = nemo_num, feature = feature_diff, condition = condition_diff))
+    return(list(summary  = final.results,  eigengap = eigengap, nemo = nemo_num, feature = feature_diff, condition = condition_diff))
 
 }
-
 
 
 
@@ -888,7 +885,6 @@ featureSelection = function(all_clust,omics.data, diff_expr) {
 
 	library(caret)
 	library(randomForest)
-	set.seed(1234)
 
 
 	# define the control using a random forest selection function
