@@ -213,9 +213,8 @@ all_correlations$significance <- ifelse(all_correlations$T21_fdr < .1 & all_corr
 
 all_correlations$diff <- abs(all_correlations$T21_r - all_correlations$D21_r)
 
-all_correlations$label <- ifelse(all_correlations$diff > .5 & all_correlations$significance %in% c("T21 only","D21 only") , paste(all_correlations$cytokine, "-",all_correlations$metabolite), "")
-all_correlations$label <- ifelse(abs(all_correlations$T21_r) > .35 | abs(all_correlations$D21_r) > .5 | all_correlations$diff > .55 , paste(all_correlations$cytokine, "-",all_correlations$metabolite), "")
-
+all_correlations$label <- ifelse(abs(all_correlations$T21_r) > .25 & abs(all_correlations$D21_r) < .15, paste(all_correlations$cytokine, "-",all_correlations$metabolite),
+                               ifelse(abs(all_correlations$T21_r) < .1 & abs(all_correlations$D21_r) > .5, paste(all_correlations$cytokine, "-",all_correlations$metabolite) ,""))
 p1 <- ggplot(all_correlations, aes(x = T21_r, y = D21_r, color = significance,label = label, alpha = significance ))+
     geom_point(size = 2) +
     geom_label_repel(max.overlaps = 1e6, size = 2)+
@@ -225,29 +224,51 @@ p1 <- ggplot(all_correlations, aes(x = T21_r, y = D21_r, color = significance,la
     geom_vline(xintercept = 0, linetype = "dashed", color = "grey") +
     geom_hline(yintercept = 0, linetype = "dashed", color = "grey") +
     scale_color_manual(values = c("Both" = "red", "T21 only" = "blue", "D21 only" = "brown", "None" = "gray"))+
-    scale_alpha_manual(values = c(1,1,.2,1))   
+    scale_alpha_manual(values = c(1,1,.2,1))  +
+    xlab("T21 correlation coefficient") +
+    ylab("D21 correlation coefficient")
 pdf("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/correlation_scatter_plots/karyotype/T21_D21_correlation_scatter.pdf")
 print(p1)
 dev.off()
-
-
 
 ```
 
 
 ### Metabolite Pathway enrichment
 
-``` r
+```r
 load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/pathway/metabolite_pathway.RData")
 
-features <- T21_correlations$long %>%
-    filter(A == "IL-7") %>%
-    filter(fdr < .1) %>%
-    .$B
+
+correlations_long <- T21_correlations$long
 
 
-pathEnrich(features, met_path)
+T21_enrichment <- correlationsEnrichmentWrapper(T21_correlations$long,met_path)
+
+enrich_plot_data <- enrichmentPlotPrep(T21_enrichment)
+
+p1 <- ggplot(enrich_plot_data, aes(x = cytokine, y = pathway, fill = avg_corr, size = -log10(fdr))) +
+    geom_point(shape = 21) +
+    scale_fill_continuous(type = "viridis") +
+    theme_classic() +
+    theme(legend.position = "bottom",
+          axis.text.x = element_text(angle = 60,hjust = 1, size = 12),
+          axis.text.y = element_text(size = 12),
+          axis.title = element_text(size = 14)
+          )
+
+pdf("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/enrichment/T21_enrichment.pdf")
+print(p1)
+dev.off()
+```
 
 
+## Comparing enrichments between karyotypes
+
+```r
+
+D21_enrichment <- correlationsEnrichmentWrapper(D21_correlations$long,met_path)
+
+D21_enrich_plot_data <- enrichmentPlotPrep(D21_enrichment)
 ```
 
