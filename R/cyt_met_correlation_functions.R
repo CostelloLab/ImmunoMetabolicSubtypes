@@ -164,40 +164,31 @@ pathEnrich = function(features, met_path) {
 
 
 	names(enriched) = c("pathway", "p.value", "num_hits","percent")
-	enriched[2:3] = apply(enriched[2:3],2,as.numeric)
+    enriched[2:3] = apply(enriched[2:3],2,as.numeric)
+    enriched$fdr <- p.adjust(enriched$p.value, method = "fdr")
 
 	return(enriched)
 
 }
 
 
+correlationsEnrichmentWrapper <- function(correlations_long, met_path) {
 
-wrapper_pathEnrich = function(diff_expr, cyt_path, met_path,  enriched_sig_threshold = .1){
+    cytokines <- correlations_long %>%
+        filter(fdr < .1) %>%
+        distinct(A) %>%
+        .$A
+    
+    results <- lapply(cytokines, function(x) {
 
-	enriched = list()
-	tmp = diff_expr$sig
-	tmp.FC = diff_expr$FC
-	
-	for(i in 2:ncol(tmp)){
-		# positive
-		cluster_features = tmp$feature[tmp[,i] < enriched_sig_threshold & tmp.FC[,i] > 0]
-#		cluster_features = cluster_features[!is.na(cluster_features)]
-		tmp.pos = pathEnrich(cluster_features, cyt_path, met_path)
-		tmp.pos$signed_p = -log10(tmp.pos$p.value)
-		# negative
-		cluster_features = tmp$feature[tmp[,i] < enriched_sig_threshold & tmp.FC[,i] < 0]
-		#cluster_features = cluster_features[!is.na(cluster_features)]
-		tmp.neg = pathEnrich(cluster_features, cyt_path, met_path)
-		tmp.neg$signed_p = -log10(tmp.neg$p.value) * -1
+        features <- correlations_long  %>%
+            filter(A == x) %>%
+            filter(fdr < .1) %>%
+            .$B
 
-		enriched[[i]] = rbind(tmp.pos, tmp.neg)
-	}
+        pathEnrich(features,met_path)
+    })
 
-	enriched = enriched[lapply(enriched, length)>1]
-	enriched = lapply(enriched, function(x) x[order(x$p.value),])
-	enriched = lapply(enriched, function(x) x[!duplicated(x$pathway),])
-
-	return( enriched)
-
-
+    names(results) <- cytokines
+    return(results)
 }
