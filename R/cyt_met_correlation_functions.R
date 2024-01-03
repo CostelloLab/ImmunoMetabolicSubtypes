@@ -134,20 +134,19 @@ corrScatterPlotsMultiple <- function(psych_object, molecule_classes, omics_data)
 
 
 # pathEnrich is a function for identifying enriched metabolite pathways
-pathEnrich = function(cluster_features, cyt_path, met_path){
+pathEnrich = function(features, met_path) {
 	
-	#enriched = data.frame(pathway = character(), p_value = numeric(), OR = numeric())
 	enriched = data.frame(pathway = character(), p_value = numeric(), num_hits = numeric(), perc = numeric())
 
-	metabolites = unique(met_path$X)
+	metabolites = unique(met_path$name)
 	num_met = length(metabolites)
-	num_sig_met = length(metabolites[metabolites %in% cluster_features])
+	num_sig_met = length(metabolites[metabolites %in% features])
 
-	for(path in unique(met_path$pathway)){
-		tmp = met_path[met_path$pathway ==path & met_path$value == 1 ,]
+	for(path in unique(met_path$Pathway)){
+		tmp = met_path[met_path$Pathway ==path ,]
 		num_path = dim(tmp)[1]
 		if(num_path > 1){
-			sig_in_path  = sum(tmp$X %in% cluster_features)
+			sig_in_path  = sum(tmp$name %in% features)
 			perc = sig_in_path/num_path
 			sig_out_path =  num_sig_met - sig_in_path
 			un_in_path = num_path - sig_in_path
@@ -168,5 +167,37 @@ pathEnrich = function(cluster_features, cyt_path, met_path){
 	enriched[2:3] = apply(enriched[2:3],2,as.numeric)
 
 	return(enriched)
+
+}
+
+
+
+wrapper_pathEnrich = function(diff_expr, cyt_path, met_path,  enriched_sig_threshold = .1){
+
+	enriched = list()
+	tmp = diff_expr$sig
+	tmp.FC = diff_expr$FC
+	
+	for(i in 2:ncol(tmp)){
+		# positive
+		cluster_features = tmp$feature[tmp[,i] < enriched_sig_threshold & tmp.FC[,i] > 0]
+#		cluster_features = cluster_features[!is.na(cluster_features)]
+		tmp.pos = pathEnrich(cluster_features, cyt_path, met_path)
+		tmp.pos$signed_p = -log10(tmp.pos$p.value)
+		# negative
+		cluster_features = tmp$feature[tmp[,i] < enriched_sig_threshold & tmp.FC[,i] < 0]
+		#cluster_features = cluster_features[!is.na(cluster_features)]
+		tmp.neg = pathEnrich(cluster_features, cyt_path, met_path)
+		tmp.neg$signed_p = -log10(tmp.neg$p.value) * -1
+
+		enriched[[i]] = rbind(tmp.pos, tmp.neg)
+	}
+
+	enriched = enriched[lapply(enriched, length)>1]
+	enriched = lapply(enriched, function(x) x[order(x$p.value),])
+	enriched = lapply(enriched, function(x) x[!duplicated(x$pathway),])
+
+	return( enriched)
+
 
 }
