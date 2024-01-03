@@ -134,20 +134,25 @@ corrScatterPlotsMultiple <- function(psych_object, molecule_classes, omics_data)
 
 
 # pathEnrich is a function for identifying enriched metabolite pathways
-pathEnrich = function(features, met_path) {
+pathEnrich = function(correlations, met_path) {
 	
-	enriched = data.frame(pathway = character(), p_value = numeric(), num_hits = numeric(), perc = numeric())
+	enriched = data.frame(pathway = character(), p_value = numeric(), num_hits = numeric(), perc = numeric(), avg_corr = numeric())
 
 	metabolites = unique(met_path$name)
 	num_met = length(metabolites)
-	num_sig_met = length(metabolites[metabolites %in% features])
+	num_sig_met = length(metabolites[metabolites %in% correlations[["B"]]])
 
 	for(path in unique(met_path$Pathway)){
 		tmp = met_path[met_path$Pathway ==path ,]
 		num_path = dim(tmp)[1]
 		if(num_path > 1){
-			sig_in_path  = sum(tmp$name %in% features)
-			perc = sig_in_path/num_path
+                    sig_in_path  = sum(tmp$name %in% correlations[["B"]])
+                    avg_corr <- correlations %>%
+                        filter(B %in% tmp$name) %>%
+                        summarise(res = mean(r)) %>%
+                        .$res
+                    
+			perc = sig_in_path/num_sig_met
 			sig_out_path =  num_sig_met - sig_in_path
 			un_in_path = num_path - sig_in_path
 			un_out_path = num_met - (sig_in_path+sig_out_path+un_in_path)
@@ -157,14 +162,14 @@ pathEnrich = function(features, met_path) {
 			res = fisher.test(cntg_tab, alternative = "greater")
 			met_p = res$p.value
 			#met_OR  = res$estimate
-			enriched = rbind(enriched, c(path,met_p, sig_in_path,perc))
+			enriched = rbind(enriched, c(path,met_p, sig_in_path,perc,avg_corr))
 		}
 
 	}
 
 
-	names(enriched) = c("pathway", "p.value", "num_hits","percent")
-    enriched[2:3] = apply(enriched[2:3],2,as.numeric)
+	names(enriched) = c("pathway", "p.value", "num_hits","percent", "avg_corr")
+    enriched[2:5] = apply(enriched[2:5],2,as.numeric)
     enriched$fdr <- p.adjust(enriched$p.value, method = "fdr")
 
 	return(enriched)
@@ -181,14 +186,44 @@ correlationsEnrichmentWrapper <- function(correlations_long, met_path) {
     
     results <- lapply(cytokines, function(x) {
 
-        features <- correlations_long  %>%
+        correlations <- correlations_long  %>%
             filter(A == x) %>%
             filter(fdr < .1) %>%
-            .$B
+            as.data.frame()
 
-        pathEnrich(features,met_path)
+        pathEnrich(correlations,met_path)
     })
 
     names(results) <- cytokines
     return(results)
 }
+
+
+enrichmentPlotPrep <- function(enrichment_list) {
+
+    sig_enriched <- lapply(enrichment_list, function(x) {
+        x %>%
+            filter(fdr < .1)
+    })
+
+    cytokines <- sapply(sig_enriched,nrow)
+    cytokines <- names(cytokines)[cytokines >0]
+    pathways <- unique(unlist(sapply(sig_enriched, function(x) x$pathway)))
+
+    toplot <- lapply(cytokines, function(x) {
+        tmp <- enrichment_list[[x]]
+        tmp$cytokine <- x
+        tmp <- tmp %>%
+            filter(pathway %in% pathways)
+        return(tmp)
+    })
+
+    toplot <- toplot %>%
+        bind_rows()
+
+    return(toplot)
+}
+
+    
+                     
+                     
