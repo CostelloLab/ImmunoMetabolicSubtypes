@@ -81,13 +81,7 @@ res <- clusterEval(omics.list = list(t(T21.mixed$cytokines),t(T21.mixed$metaboli
 res$summary
 res$eigengap
 res$nemo
-
-
-
-W <- nemo.affinity.graph(raw.data = omics.list,  k = num_neighbors)
-clustering <- spectralClustering(W, K = res$nemo)
-table(clustering)
-
+write_csv(x = res$summary,file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/tables/cyt_met_clustering_results.csv")
 
 
 cytokine_res = clusterEval(omics.list = list(t(T21.mixed$cytokines)),
@@ -101,6 +95,7 @@ cytokine_res = clusterEval(omics.list = list(t(T21.mixed$cytokines)),
 cytokine_res$summary
 cytokine_res$eigengap
 cytokine_res$nemo
+write_csv(x = cytokine_res$summary,file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/tables/cytokine_clustering_results.csv")
 
 metabolite_res = clusterEval(omics.list = list(t(T21.mixed$metabolites)),
 						clinic = T21.mixed$clinic,
@@ -113,19 +108,24 @@ metabolite_res = clusterEval(omics.list = list(t(T21.mixed$metabolites)),
 metabolite_res$summary
 metabolite_res$eigengap
 metabolite_res$nemo
+write_csv(x = metabolite_res$summary,file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/tables/metabolite_clustering_results.csv")
+
 ```
 
 ## Perform the clustering
 
 ``` r
-write.csv(multi_omic_res$summary, row.names = F, file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/tables/cyt_met_clustering_results.csv")
+
+all_clust <- nemo.clustering(omics.list = list(t(T21.mixed$cytokines),t(T21.mixed$metabolites)),num.clusters = 4,num.neighbors = 43)
+save(all_clust, file ="~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/clusterings/all_clust.RData")
+
+cyt_clust <- nemo.clustering(omics.list = list(t(T21.mixed$cytokines)),num.clusters = 2,num.neighbors = 43)
+save(cyt_clust, file ="~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/clusterings/cyt_clust.RData")
+
+met_clust <- nemo.clustering(omics.list = list(t(T21.mixed$metabolites)),num.clusters = 3,num.neighbors = 43)
+save(met_clust, file ="~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/clusterings/cyt_clust.RData")
 
 
-
-
-
-write.csv(cytokine_res$summary, row.names = F, file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/tables/cytokine_clustering_results.csv")
-write.csv(metabolite_res$summary, row.names = F, file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/tables/metabolite_clustering_results.csv")
 ```
 
 
