@@ -238,10 +238,15 @@ dev.off()
 ### Metabolite Pathway enrichment
 
 ``` r
+load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/pathway/metabolite_pathway.RData")
+
+features <- T21_correlations$long %>%
+    filter(A == "IL-7") %>%
+    filter(fdr < .1) %>%
+    .$B
 
 
-
-
+pathEnrich(features, met_path)
 
 
 ```
