@@ -22,13 +22,13 @@ load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSub
 
 ## Steps in clustering as defined by Milligan(1996)
 
-1. Selection of objects and variables - overlap of cyt, met, RNA data (001)
-2. Decisions concerning variable normalization - adjustment for age, sex, and sample_source, standardized (001)
-3. Selection of a distance measure - NEMO (nemo_functions.R)
-4. Selection of a clustering method - spectral clustering (nemo_functions.R)
-5. Determining the numebr of clusters - (cluster_comparison.R)
-6. Validating the clusters - 
-7. Descibing and profiling the clusters - 
+1. Selection of objects and variables - overlap of cyt, met, RNA data (protein coding with some variance) (001_Data_Processing.Rmd, data_prep_functions.R)
+2. Decisions concerning variable normalization - adjustment for age, sex, and sample_source, standardized (001_Data_Processing.Rmd, data_prep_functions.R)
+3. Selection of a distance measure - NEMO ( 006_clustering.Rmd,nemo_functions.R)
+4. Selection of a clustering method - spectral clustering ( 006_clustering.Rmd,nemo_functions.R)
+5. Determining the numeber of clusters - eigengap, rotation cost, NEMO modified eigengap (eigengap * num_clusters)(006_clustering.Rmd, cluster_evaluation.R)
+6. Validating the clusters - bootstrapping, 1000 iterations (006_clustering.Rmd, cluster_evaluation.R)
+7. Descibing and profiling the clusters - (007_cluster_profile.Rmd, cluster_evaluation.R) 
 
 
 ## Metrics for determining the number of clusters
@@ -46,20 +46,29 @@ load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSub
 
 An  approach may consider that we are interested in finding axes of disease co-occurance among the data. Therefore, we will restrict our number of neighbors to the mean number of neighbors. 
 
+The number of clusters with the best overall score is 4, with this number of neighbors. 
+
 ```r
 diff_sig_threshold = .1
-clinical_threshold = .1
+clinical_threshold = .2
 omics.list = list(t(T21.mixed$cytokines),t(T21.mixed$metabolites))
-NUMC <- 2:8
+NUMC <- 2:6
 phenotypes =  names(T21.mixed$clinic)[c(2,6,9:21)]
+iterations = 1000
 
-overlap <- sapply(phenotypes[3:length(phenotypes)], function(x) {
-    sapply(phenotypes[3:length(phenotypes)], function(y) {
-        tmp <- table(T21.mixed$clinic[[x]],T21.mixed$clinic[[y]])
-        return(tmp["1","1"])
-    })})
+condition_counts <- T21.mixed$clinic %>%
+    dplyr::select(phenotypes) %>%
+    dplyr::select(-c(Sex, Age_at_visit)) %>%
+    reframe(count = colSums(., na.rm = T)) 
+num_neighbors <- median(condition_counts$count)
 
-num_neighbors = floor(mean(overlap[upper.tri(overlap)]))
+## overlap <- sapply(phenotypes[3:length(phenotypes)], function(x) {
+##     sapply(phenotypes[3:length(phenotypes)], function(y) {
+##         tmp <- table(T21.mixed$clinic[[x]],T21.mixed$clinic[[y]])
+##         return(tmp["1","1"])
+##     })})
+## num_neighbors = floor(mean(overlap[upper.tri(overlap)]))
+
 
 res <- clusterEval(omics.list = list(t(T21.mixed$cytokines),t(T21.mixed$metabolites)),
                 clinic = T21.mixed$clinic,
@@ -67,66 +76,51 @@ res <- clusterEval(omics.list = list(t(T21.mixed$cytokines),t(T21.mixed$metaboli
                 NUMC = NUMC,  
                 diff_sig_threshold = diff_sig_threshold,
                 clinical_threshold = clinical_threshold,
-                num_neighbors = num_neighbors)
-
+                num_neighbors = num_neighbors,
+                iterations = iterations)
 res$summary
 res$eigengap
 res$nemo
 
-W <- nemo.affinity.graph(raw.data = omics.list, num.clusters = 5, k = num_neighbors)
-clustering <- spectralClustering(W, K = 5)
-
-```
-
-## Perform the clustering
-
-``` r
-##detach("package:ComplexHeatmap", unload = TRUE)
-
-NUMC = 2:8
-phenotypes =  names(T21.mixed$clinic)[c(2,6,9:21)]
 
 
-res <- clusterEval(omics.list = list(t(T21.mixed$cytokines),t(T21.mixed$metabolites)),
-                clinic = T21.mixed$clinic,
-                phenotypes = phenotypes,
-                iterations = iterations,
-                NUMC = NUMC,  
-                diff_sig_threshold = diff_sig_threshold,
-                clinical_threshold = clinical_threshold,
-                num_neighbors = 20)
-res$summary
-res$eigen
+W <- nemo.affinity.graph(raw.data = omics.list,  k = num_neighbors)
+clustering <- spectralClustering(W, K = res$nemo)
+table(clustering)
 
-
-
-
-write.csv(multi_omic_res$summary, row.names = F, file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/tables/cyt_met_clustering_results.csv")
 
 
 cytokine_res = clusterEval(omics.list = list(t(T21.mixed$cytokines)),
 						clinic = T21.mixed$clinic,
-					 	phenotypes = names(clinic[c(9:21)]),
+					 	phenotypes = phenotypes,
 					  	iterations = iterations, 
 						NUMC = NUMC,  
                       diff_sig_threshold = diff_sig_threshold,
                       clinical_threshold = clinical_threshold,
-                      num_neighbors = 20)
+                      num_neighbors = num_neighbors)
 cytokine_res$summary
 cytokine_res$eigengap
 cytokine_res$nemo
 
 metabolite_res = clusterEval(omics.list = list(t(T21.mixed$metabolites)),
 						clinic = T21.mixed$clinic,
-					 	phenotypes = names(clinic[c(9:21)]),
+					 	phenotypes = phenotypes,
 					  	iterations = iterations, 
-						NUMC = NUMC,  
+						NUMC = 2:5,  
                       diff_sig_threshold = diff_sig_threshold ,
                       clinical_threshold = clinical_threshold,
                       num_neighbors = num_neighbors)
 metabolite_res$summary
 metabolite_res$eigengap
 metabolite_res$nemo
+```
+
+## Perform the clustering
+
+``` r
+write.csv(multi_omic_res$summary, row.names = F, file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/tables/cyt_met_clustering_results.csv")
+
+
 
 
 
@@ -138,7 +132,16 @@ write.csv(metabolite_res$summary, row.names = F, file = "~/OneDrive - The Univer
 ## How stable are the clusters over the number of neighbors?
 
 ```r
-num_neighbors_grid <- seq(10,25,1)
+
+diff_sig_threshold = .1
+clinical_threshold = .2
+omics.list = list(t(T21.mixed$cytokines),t(T21.mixed$metabolites))
+NUMC <- 2:6
+phenotypes =  names(T21.mixed$clinic)[c(2,6,9:21)]
+iterations = 1
+
+
+num_neighbors_grid <- seq(10,100,5)
 
 multi_omic_res = lapply(num_neighbors_grid, function(x) {
     print(x)
@@ -163,10 +166,22 @@ enriched_conditions <- enriched_conditions %>%
 
 ggplot(enriched_conditions, aes(x = clusters, y = value, color = as.factor(name))) +
     geom_line() +
-    theme_classic()
+    theme_classic() +
+    ylab("# of enriched features") + xlab("# of clusters")
+
+
+nemo <- as.data.frame(sapply(multi_omic_res, function(x) x$nemo)) %>%
+    as.data.frame() %>%
+    rownames_to_column("neighbors")
+names(nemo)[2] <- "nemo"
+
+plot(nemo$neighbors, nemo$nemo)
+lines(nemo$neighbors, nemo$nemo)
+
+
 
 lapply(multi_omic_res[1:4], function(x) x$summary)
 lapply(multi_omic_res[1:4], function(x) x$eigen)
-lapply(multi_omic_res[1:4], function(x) x$nemo)
+
 
 ```
