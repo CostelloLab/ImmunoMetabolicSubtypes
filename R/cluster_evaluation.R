@@ -831,9 +831,13 @@ clusterEval <- function(omics.list, clinic, phenotypes, iterations = 100, NUMC =
         num_diff <- sum(apply(num_diff[2:ncol(num_diff)],1, function(x) any(x < diff_sig_threshold)))
         DB <- index.DB(x = W, cl = clustering)$DB ## Davies-Bouldin
         CH <- index.G1(x = W, cl = clustering) ## Calinkski-Harabasz
+
+        bootstrap <- boostrapCluster(omics.list = omics.list,
+                                     iterations = iterations,
+                                     num.clusters = i,
+                                     num.neighbors = num_neighbors)
         
-        
-        results[[i]] <- c(i, num_sig,num_diff, min(table(clustering)), DB, CH)
+        results[[i]] <- c(i, num_sig,num_diff, min(table(clustering)), DB, CH, bootstrap)
     } 
     
 
@@ -841,7 +845,7 @@ clusterEval <- function(omics.list, clinic, phenotypes, iterations = 100, NUMC =
     nemo_num <- nemo.num.clusters(W = W, NUMC = final_NUMC)
 
     final.results <-  data.frame(do.call(rbind,results))
-    names(final.results) <- c("# of clusters", "# of enriched conditions","# of differential features", "Minimum cluster size", "DB", "CH")
+    names(final.results) <- c("# of clusters", "# of enriched conditions","# of differential features", "Minimum cluster size", "DB", "CH", "bootstrap")
 
 
     return(list(summary  = final.results,  eigengap = eigengap, nemo = nemo_num, feature = feature_diff, condition = condition_diff))
@@ -850,35 +854,6 @@ clusterEval <- function(omics.list, clinic, phenotypes, iterations = 100, NUMC =
 
 
 
-wrapper_pathEnrich = function(diff_expr, cyt_path, met_path,  enriched_sig_threshold = .1){
-
-	enriched = list()
-	tmp = diff_expr$sig
-	tmp.FC = diff_expr$FC
-	
-	for(i in 2:ncol(tmp)){
-		# positive
-		cluster_features = tmp$feature[tmp[,i] < enriched_sig_threshold & tmp.FC[,i] > 0]
-#		cluster_features = cluster_features[!is.na(cluster_features)]
-		tmp.pos = pathEnrich(cluster_features, cyt_path, met_path)
-		tmp.pos$signed_p = -log10(tmp.pos$p.value)
-		# negative
-		cluster_features = tmp$feature[tmp[,i] < enriched_sig_threshold & tmp.FC[,i] < 0]
-		#cluster_features = cluster_features[!is.na(cluster_features)]
-		tmp.neg = pathEnrich(cluster_features, cyt_path, met_path)
-		tmp.neg$signed_p = -log10(tmp.neg$p.value) * -1
-
-		enriched[[i]] = rbind(tmp.pos, tmp.neg)
-	}
-
-	enriched = enriched[lapply(enriched, length)>1]
-	enriched = lapply(enriched, function(x) x[order(x$p.value),])
-	enriched = lapply(enriched, function(x) x[!duplicated(x$pathway),])
-
-	return( enriched)
-
-
-}
  
 
 featureSelection = function(all_clust,omics.data, diff_expr) {
@@ -935,3 +910,21 @@ featureSelection = function(all_clust,omics.data, diff_expr) {
 	return(predictors_df)
 }
 
+
+
+
+
+### bootstrap clustering
+boostrapCluster <- function(omics.list, iterations = 100, num.clusters, num.neighbors) {
+    W <- nemo.affinity.graph(omics.list,num.neighbors)
+    gold.clustering <- spectralClustering(W,num.clusters)
+
+    bootstrap_results <- sapply(1:iterations, function(x) {
+        rand <- sample(colnames(omics.list[[1]]), replace = T)
+        rand.omics.list <- lapply(omics.list, function(x) x[,rand])
+        rand.W <- nemo.affinity.graph(rand.omics.list, num.neighbors)
+        rand.gold.clustering <- spectralClustering(rand.W, num.clusters)
+        return(comparing.Partitions(gold.clustering, rand.gold.clustering, type = "rand"))
+    })
+    return(mean(bootstrap_results, na.rm = T))
+}
