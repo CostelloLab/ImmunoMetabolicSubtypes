@@ -85,7 +85,8 @@ nemo.affinity.graph <- function(raw.data, k=NA, num.clusters = NA) {
     sym.knn = non.sym.knn + t(non.sym.knn)
     return(sym.knn)
   })
-  patient.names = Reduce(union, lapply(raw.data, colnames))
+  ## patient.names = Reduce(union, lapply(raw.data, colnames))
+  patient.names <- colnames(raw.data[[1]]) # this allows to validate clusters with bootstrapping
   num.patients = length(patient.names)
   returned.affinity.matrix = matrix(0, ncol = num.patients, nrow=num.patients)
   rownames(returned.affinity.matrix) = patient.names
@@ -121,6 +122,7 @@ nemo.affinity.graph <- function(raw.data, k=NA, num.clusters = NA) {
 #' number of neighbors to be the number of samples divided by NUM.NEIGHBORS.RATIO.
 #' @return A single matrix measuring similarity between the samples across all omics.
 #' @export
+
 nemo.clustering <- function(omics.list, num.clusters=NA, num.neighbors=NA) {
   graph = nemo.affinity.graph(omics.list, k = num.neighbors, num.clusters)
 
