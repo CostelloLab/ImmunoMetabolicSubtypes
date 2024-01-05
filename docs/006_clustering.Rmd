@@ -125,7 +125,6 @@ save(cyt_clust, file ="~/OneDrive - The University of Colorado Denver/Projects/I
 met_clust <- nemo.clustering(omics.list = list(t(T21.mixed$metabolites)),num.clusters = 3,num.neighbors = 43)
 save(met_clust, file ="~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/clusterings/cyt_clust.RData")
 
-
 ```
 
 
