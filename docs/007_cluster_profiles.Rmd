@@ -1,18 +1,189 @@
 # Cluster Profiles
 
+## Load the data
+```r
+load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/clusterings/all_clust.RData")
+load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/clusterings/cyt_clust.RData")
+load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/clusterings/met_clust.RData")
+
+
+load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/processed/T21_standardized_cyt_met.RData")
+source("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/R/cluster_evaluation.R")
+source("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/R/data_prep_functions.R")
+
+```
+
 ## Differential Expression
 
 ```r
-load(
-
-
+omics.data <- as.data.frame(t(cbind(T21.mixed$cytokines, T21.mixed$metabolites)))
+differential_expression <- diff_expr_wilcoxon(omics.data,all_clust$clustering)
 ```
+
+## Clinical Associations
+
+```r
+cluster_associations <- association_test(clinic = T21.mixed$clinic,
+                                         clustering = all_clust$clustering,
+                                         phenotypes = names(T21.mixed$clinic)[10:21])
+```
+
 
 ## Visualizing and profiling the clusters
 
 
 
 ```r
+p1 <- clusterHeatmap(omics.data = omics.data,
+               diff_expr = differential_expression,
+               clustering = all_clust$clustering,
+               cluster_assoc = cluster_associations,
+               threshold = .1,
+               split_num = 4,
+               title = "T21",
+               fontsize = 5,
+               phenotypes = names(T21.mixed$clinic)[10:21],
+               clinical_threshold = .2
+               )
+
+pdf("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/cluster_heatmaps/T21_cyt_met_diff_clinic_4clusters_25neighbors_heatmap.pdf", width = 12, height = 8)
+print(p1)
+dev.off()
+
+```
+
+## Individual Omics Heatmaps
+
+```r
+cyt_differential_expression <- diff_expr_wilcoxon(t(T21.mixed$cytokines),cyt_clust$clustering)
+
+cyt_cluster_associations <- association_test(clinic = T21.mixed$clinic,
+                                         clustering = cyt_clust$clustering,
+                                         phenotypes = names(T21.mixed$clinic)[10:21])
+
+
+p1 <- clusterHeatmap(omics.data = t(T21.mixed$cytokines),
+               diff_expr = cyt_differential_expression,
+               clustering = cyt_clust$clustering,
+               cluster_assoc = cyt_cluster_associations,
+               threshold = .1,
+               split_num = 2,
+               title = "T21 cytokines",
+               fontsize = 5,
+               phenotypes = names(T21.mixed$clinic)[10:21],
+               clinical_threshold = .2
+               )
+
+pdf("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/cluster_heatmaps/cyt_diff_clinic_2clusters_25neighbors_heatmap.pdf", width = 12, height = 8)
+print(p1)
+dev.off()
+
+
+
+met_differential_expression <- diff_expr_wilcoxon(t(T21.mixed$metabolites),met_clust$clustering)
+
+met_cluster_associations <- association_test(clinic = T21.mixed$clinic,
+                                         clustering = met_clust$clustering,
+                                         phenotypes = names(T21.mixed$clinic)[10:21])
+
+
+p1 <- clusterHeatmap(omics.data = t(T21.mixed$metabolites),
+               diff_expr = met_differential_expression,
+               clustering = met_clust$clustering,
+               cluster_assoc = met_cluster_associations,
+               threshold = .1,
+               split_num = 3,
+               title = "T21 metokines",
+               fontsize = 5,
+               phenotypes = names(T21.mixed$clinic)[10:21],
+               clinical_threshold = .2
+               )
+
+pdf("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/cluster_heatmaps/met_diff_clinic_3clusters_25neighbors_heatmap.pdf", width = 12, height = 8)
+print(p1)
+dev.off()
+
+```
+
+
+
+## River plots between clusterings
+
+```r
+library(ggalluvial)
+
+cyt_met_all_clusterings <- cbind(cytokine = cyt_clust$clustering,
+                                 integrated = all_clust$clustering,
+                                 metabolite = met_clust$clustering)
+
+
+cyt_met_all_clusterings <- cyt_met_all_clusterings %>%
+    as.data.frame() %>%
+    count(cytokine, integrated,metabolite)
+
+cyt_met_all_clusterings[1:3] <- apply(cyt_met_all_clusterings[1:3],2,as.factor)
+    
+p1 <- ggplot(as.data.frame(cyt_met_all_clusterings),
+       aes(y = n, axis1 = cytokine, axis2 = metabolite)) +
+  geom_alluvium(aes(fill = cytokine), width = 1/12) +
+  geom_stratum(width = 1/12, fill = "black", color = "grey") +
+  geom_label(stat = "stratum", aes(label = after_stat(stratum))) +
+  scale_x_discrete(limits = c("cytokine", "metabolite"), expand = c(.05, .05)) +
+  scale_fill_brewer(type = "qual", palette = "Set1") +
+    ggtitle("Cytokine vs. Metabolite clusterings") +
+    theme_classic()
+
+ggsave(p1,file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/riverplots/cyt_met_25neighbors_riverplot.pdf")
+
+
+p2 <- ggplot(as.data.frame(cyt_met_all_clusterings),
+       aes(y = n, axis1 = cytokine, axis2 = integrated, axis3  = metabolite)) +
+  geom_alluvium(aes(fill = integrated), width = 1/12) +
+  geom_stratum(width = 1/12, fill = "black", color = "grey") +
+  geom_label(stat = "stratum", aes(label = after_stat(stratum))) +
+  scale_x_discrete(limits = c("cytokine", "metabolite"), expand = c(.05, .05)) +
+  scale_fill_brewer(type = "qual", palette = "Set1") +
+    ggtitle(" Cytokine vs. Integrated vs. Metabolite clusterings") +
+    theme_classic()
+
+ggsave(p2,file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/riverplots/cyt_integrated_met_25neighbors_riverplot.pdf")
+
+
+```
+
+
+
+
+
+
+### Umap plots
+
+```r
+library(umap)
+library(randomcoloR)
+
+all_umap <- umap(t(omics.data))
+all_umap <- umap(all_clust$graph,)
+
+library(Rtsne)
+all_tsne <- Rtsne(X = all_clust$graph)
+all_umap$layout <- all_tsne$Y
+
+clusterings <- list(cytokine = cyt_clust$clustering,
+                    integrated = all_clust$clustering,
+                    metabolite = met_clust$clustering)
+
+set.seed(1234)
+
+plot_umap(graph = all_clust$graph,
+          clusterings = clusterings,
+          clinic = T21.mixed$clinic,
+          plot_var = "clustering",
+          output_file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/umaps/all_umaps.pdf")
+
+
+
+
 
 
 ```
