@@ -202,6 +202,14 @@ D21_correlations <- LongCorr(D21_correlations)
 D21_correlations$long <- D21_correlations$long %>%
     filter(A %in% names(D21.mixed$cytokines) & B %in% names(D21.mixed$metabolites))
 
+T21_correlations$long %>%
+    filter(fdr < .1)
+
+D21_correlations$long %>%
+    filter(fdr < .1)
+
+
+
 all_correlations <- T21_correlations$long %>%
     full_join(D21_correlations$long, by = c("A","B"))
 
