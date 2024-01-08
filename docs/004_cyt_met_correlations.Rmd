@@ -208,6 +208,12 @@ T21_correlations$long %>%
 D21_correlations$long %>%
     filter(fdr < .1)
 
+write.csv(T21_correlations$long, file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/tables/T21_cyt_met_correlations.csv", row.names = F)
+write.csv(D21_correlations$long, file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/tables/D21_cyt_met_correlations.csv", row.names = F)
+
+```
+
+```r
 
 
 all_correlations <- T21_correlations$long %>%
