@@ -224,10 +224,15 @@ save(expression_list, file = "~/OneDrive - The University of Colorado Denver/Pro
 ```
 # Create 'Table 1' of cohort demographics
 ```{r}
+load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/processed/T21_mixed_cyt_met.Rdata")
+load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/processed/D21_mixed_cyt_met.Rdata")
+
+all.mixed <- list()
+all.mixed$clinic <- rbind(T21.mixed$clinic,D21.mixed$clinic)
 
 colnames(all.mixed$clinic) = gsub(" |/", "_", names(all.mixed$clinic))
+all.mixed$clinic[,9:21] <- apply(all.mixed$clinic[,9:21],2,as.factor)
 tab1 <- univariateTable(Karyotype~ Sex+Age_at_visit + BMI + Sample_source   +Anxiety+Any_autoimmune_skin_condition+Any_congenital_heart_defect+Any_hearing_loss_condition+ Any_hypothyroidism+Any_seizure_history+Any_sleep_apnea+                Asthma_reactive_airway_disease +Celiac_disease+Depression+ Frequent_Recurrent_pneumonia+Obesity+Recurrent_otitis_media  , all.mixed$clinic)
-kable(summary(tab1))
  write.csv(summary(tab1), file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/tables/Table1.csv", row.names = F) ## For initial writing, but afterwards this is updated in format for the publication. No need to update again. 
 
 
