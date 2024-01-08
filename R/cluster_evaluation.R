@@ -5,6 +5,7 @@ library(RColorBrewer)
 library(ggbeeswarm)
 library(cluster)
 library(clusterSim)
+library(gridExtra)
 ### adjustedMutualInformation is a function that uses the aricode function "AMI" to create a table of the mutual information indeces between the lists of clusterings. 
 
 adjustedMutualInformation = function(clustering_list, plot = F){
@@ -766,31 +767,35 @@ plot_tsne = function(graph, clustering,clinic, plot_var, output_file){
 }
 
 
-plot_umap = function(graph, clustering,clinic, plot_var, title, output_file){
+plot_umap = function(graph, clusterings,clinic, plot_var, title, output_file){
 	umap = umap(graph, theta = 0)	
-	umap <- merge(umap$layout, as.data.frame(clustering), by= 0)
-	umap <- merge(umap, clinic, by.x = "Row.names", by.y = "LabID" )
+	umap <- merge(umap$layout, clinic, by.x = 0, by.y = "LabID" )
 	names(umap)[2:3] <- c("umap1", "umap2")
-	umap$clustering <- as.factor(umap$clustering)
-	cols = distinctColorPalette(k = length(unique(umap$clustering)))
-	p1 <- ggplot(umap, aes(x = umap1, y = umap2, color = 	umap[, plot_var])) + 
-			geom_point(aes(size = 4)) + 
-			guides(color =guide_legend(override.aes = list(size = 5) ) )+
-			theme_classic() + 
-			scale_color_manual(values = cols) + 
-			labs(col = plot_var)+ 
-			theme(axis.title = element_text(size = 24), 
-				axis.text = element_text(size = 24), 
-				legend.text = element_text(size = 24), 
-				legend.title = element_text(size = 24),
-				plot.title = element_text(hjust = .5, size = 26), 
-				legend.position = "bottom")+
-			guides(size = "none")+
-			ggtitle(title)
+        plot_list <- list()
+        cols = distinctColorPalette(k = max(sapply(clusterings, function(x) length(table(x)))))
+        
+        
+        plot_list <- sapply(1:length(clusterings), function(i) {
+            umap_tmp <- umap
+            clustering = clusterings[[i]]
+            umap_tmp <- merge(umap_tmp, as.data.frame(clustering), by.x = "Row.names", by.y = 0)
+            umap_tmp$clustering <- as.factor(umap_tmp$clustering)
+            ggplot(umap_tmp, aes(x = umap1, y = umap2, color = 	umap_tmp[, plot_var])) + 
+                geom_point(size =3) + 
+                guides(color =guide_legend(override.aes = list(size = 5) ) )+
+                theme_classic() + 
+                scale_color_manual(values = cols) + 
+                labs(col = plot_var)+ 
+                theme(legend.position = "bottom",
+                      plot.title = element_text(hjust = 0.5 )) +
+                guides(size = "none")+
+                ggtitle(names(clusterings[i]))
+        },simplify  = F)
+            
 
-	pdf(output_file)
-	print(p1)
-	dev.off()
+       p1 <-  grid.arrange(grobs = plot_list, ncol = 3)
+
+        ggsave(p1, file = output_file,width = 12, height = 5)
 
 
 }
@@ -928,3 +933,221 @@ boostrapCluster <- function(omics.list, iterations = 100, num.clusters, num.neig
     })
     return(mean(bootstrap_results, na.rm = T))
 }
+
+
+
+## heatmap of clusters
+clusterHeatmap = function(omics.data,clustering,diff_expr, cluster_assoc,threshold, phenotypes, split_num, clinical_threshold, title, fontsize, dendrogram = TRUE,enrichment = NULL, column_names = TRUE, legend_pos_auto = TRUE ){
+	library(ComplexHeatmap)
+	library(RColorBrewer)
+	library(circlize)
+
+	omics = t(omics.data)
+	sig = apply(diff_expr$sig[,2:ncol(diff_expr$sig)],2, function(x) diff_expr$sig$feature[x<threshold])
+	sig = unlist(sig)
+	unique_features = sig[!duplicated(sig)]
+
+	FC = diff_expr$FC
+	rownames(FC) = FC$feature 
+	FC = FC[,-1]
+	FC = FC[colnames(omics)[colnames(omics) %in% unique_features],]
+
+
+	padj_mat = diff_expr$sig
+	rownames(padj_mat) = padj_mat$feature
+	padj_mat = padj_mat[,-1]
+	padj_mat = padj_mat[colnames(omics)[colnames(omics) %in% unique_features],]
+	padj_mat = t(padj_mat)
+
+	padj_fun <- function(j, i, x, y, width, height, fill) {
+
+	  if(padj_mat[i, j] < .01)
+	    grid.text(
+	      # "\u066D", # asterisk but not very well centered
+	      "*", # asterisk but not very well centered
+	      x, y, gp = gpar(fontsize = 8))
+
+	}
+
+
+names(FC) = paste(1:length(unique(clustering)))
+
+ 	clustering = as.factor(clustering)
+	ha = rowAnnotation(
+		Cluster = clustering, 
+		col = list(Cluster = c("1" = "#7FC97F", "2" = "#BEAED4", "3" = "#FDC086", "4" = "#FFFF99", "5" = "#386CB0", "6" = "#F0027F","7" = "#BF5B17", "8" ="#666666")))
+
+	col_fun_main = colorRamp2(c(-2, 0, 2), c("blue", "white", "red"))
+	if(dendrogram){
+		ht <- Heatmap(t(FC),
+				name = "log2FC", 
+				show_row_names = FALSE, 
+				show_column_names = column_names, 
+				show_row_dend = FALSE, 
+				row_dend_reorder = FALSE,
+				column_title = title, 
+				row_title = "", 
+				column_km = split_num, 
+				row_split = rownames(t(FC)), 
+			#	column_names_rot = 60, 
+				column_names_gp = gpar(fontsize = fontsize),
+				heatmap_legend_param = list(legend_direction = "horizontal"),
+				border_gp = gpar(col = "black", lty = 1),
+				#cell_fun = padj_fun,
+				row_names_side = "left",
+				row_order = rownames(t(FC)),
+				show_heatmap_legend = legend_pos_auto,
+				col = col_fun_main
+
+			)
+	} else{
+		ht <- Heatmap(t(FC),
+				name = "log2FC", 
+				show_row_names = TRUE, 
+				show_column_names = column_names, 
+				row_order = rownames(t(FC)),
+				#right_annotation = ha, h_list
+				 
+				column_title = title, 
+				row_title = "Clusters", 
+				column_km = split_num, 
+				row_split = rownames(t(FC)), 
+			#	column_names_rot = 60, 
+				column_names_gp = gpar(fontsize = fontsize),
+				heatmap_legend_param = list(legend_direction = "horizontal"),
+				show_row_dend = FALSE, 
+				row_dend_reorder = FALSE,
+				show_column_dend = dendrogram, 
+				column_dend_reorder = dendrogram,
+				border_gp = gpar(col = "black", lty = 1),
+				#cell_fun = padj_fun
+				show_heatmap_legend = legend_pos_auto,
+				col = col_fun_main
+
+			)
+	}
+
+	#	ht = draw(ht)
+	cluster_assoc$dir[is.infinite(cluster_assoc$dir)] = 1.5
+
+	assoc_toplot = as.matrix(cluster_assoc$pvals)
+	tokeep = apply(assoc_toplot, 2, function(x) any(x< .5))
+	assoc_toplot = assoc_toplot[, tokeep]
+	assoc_toplot = -log10(assoc_toplot)
+	colnames(assoc_toplot) = gsub(" q.value","", colnames(assoc_toplot) )
+	
+	cluster_assoc$dir = cluster_assoc$dir[, tokeep]
+	colnames(cluster_assoc$dir) = colnames(assoc_toplot)
+
+	assoc_toplot = assoc_toplot[, colnames(assoc_toplot) %in% phenotypes]
+	cluster_assoc$dir = cluster_assoc$dir[, colnames(cluster_assoc$dir) %in% phenotypes]
+
+
+
+	for(i in colnames(assoc_toplot)){
+		if(min(cluster_assoc$dir[,i]) < 0){
+			assoc_toplot[,i] = ifelse(cluster_assoc$dir[,i] < 0, assoc_toplot[,i] * -1, assoc_toplot[,i])
+		} else{
+			assoc_toplot[,i] = ifelse(cluster_assoc$dir[,i] < 1, assoc_toplot[,i] * -1, assoc_toplot[,i])
+		}
+	}
+
+
+	assoc_mat = cluster_assoc$pvals[,grep(paste(colnames(assoc_toplot), collapse = "|"), colnames(cluster_assoc$pvals))]
+
+	padj_fun <- function(j, i, x, y, width, height, fill) {
+
+	  if(assoc_mat[i, j] < clinical_threshold)
+
+	    grid.text(
+
+	      # "\u066D", # asterisk but not very well centered
+
+	      "*", # asterisk but not very well centered
+
+	      x, y, gp = gpar(fontsize = 8))
+
+	}
+
+
+	col_fun_phen = colorRamp2(c(-2, 0, 2), c("purple", "white", "orange4"))
+	#col_fun = colorRamp2(c(min(assoc_toplot), 0, max(assoc_toplot)), c("purple", "white", "darkgreen"))
+	colnames(assoc_toplot) = gsub("_"," ", colnames(assoc_toplot))
+	colnames(assoc_toplot) = gsub("Any","", colnames(assoc_toplot))
+
+
+	hp= Heatmap(assoc_toplot,
+			name = "signed -log10(q)",
+			col = col_fun_phen,
+			row_order = unlist(row_order(ht)), 
+			column_order = colnames(assoc_toplot), 
+			column_title = "Phenotypes", 
+			column_names_gp = gpar(fontsize = fontsize),
+			cell_fun = padj_fun,
+			heatmap_legend_param = list(legend_direction = "horizontal"),
+			#column_names_rot = 60 ),
+			row_dend_reorder = dendrogram,
+			border_gp = gpar(col = "black", lty = 1),
+			width = ncol(assoc_toplot)*unit(4, "mm"),
+			show_row_names = FALSE,
+			show_heatmap_legend = legend_pos_auto
+	)
+
+
+	if(!is.null(enrichment)){
+		comp = suppressWarnings(Reduce(function(x,y) merge(x,y, by = "pathway"), enrichment))
+		comp.names = lapply(1:length(unique(clustering)), function(x)
+								c(	paste0("p.value",x),
+								 	paste0("num_hits",x),
+									paste0("percent",x),
+									paste0("cluster ",x)))
+		comp.names = Reduce(function(x,y) c(x,y), comp.names)
+		names(comp)[2:ncol(comp)] = comp.names
+
+		comp = comp[, c("pathway", names(comp)[grep("cluster",names(comp))])]
+		rownames(comp) = comp$pathway
+		comp = comp[,-1]
+
+		tokeep = lapply(1:ncol(comp), function(x) which(comp[,x] > 1))
+		tokeep = unique(unlist(tokeep))
+		comp = t(comp[tokeep,])
+
+		col_fun = colorRamp2(c(-3, 0, 3), c("darkgreen", "white", "orange"))
+
+		he= Heatmap(comp,
+			name = "pathways/classes signed -log10(q.value)",
+			col = col_fun,
+			row_order = unlist(row_order(ht)), 
+			column_order = colnames(comp), 
+			column_title = "Pathways/Classes", 
+			column_names_gp = gpar(fontsize = fontsize),
+			#cell_fun = padj_fun,
+			heatmap_legend_param = list(legend_direction = "horizontal"),
+			#column_names_rot = 60 ),
+			row_dend_reorder = dendrogram,
+			border_gp = gpar(col = "black", lty = 1),
+			show_heatmap_legend  =legend_pos_auto
+		)
+		h_list = ht+hp+he
+
+	} else{h_list = ht+hp}
+
+	#draw(h_list)
+
+	if(legend_pos_auto){
+		return(list(heatmap = h_list))
+	}else{
+		lgd = packLegend(
+			Legend(title = "log2FC", col_fun = col_fun_main, direction = "horizontal" ),
+			Legend(title = "signed -log10(q)", col_fun = col_fun_phen, direction = "horizontal"),
+			direction = "horizontal"
+		)
+		return(list(heatmap = h_list, lgd = lgd))
+	}
+
+
+
+	
+
+
+	}
