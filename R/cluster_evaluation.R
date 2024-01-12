@@ -996,8 +996,9 @@ names(FC) = paste(1:length(unique(clustering)))
 				#cell_fun = padj_fun,
 				row_names_side = "left",
 				row_order = rownames(t(FC)),
-				show_heatmap_legend = legend_pos_auto,
-				col = col_fun_main
+				show_heatmap_legend = ,
+                              col = col_fun_main,
+                              height = ncol(FC) * unit(5,"mm")
 
 			)
 	} else{
@@ -1022,7 +1023,8 @@ names(FC) = paste(1:length(unique(clustering)))
 				border_gp = gpar(col = "black", lty = 1),
 				#cell_fun = padj_fun
 				show_heatmap_legend = legend_pos_auto,
-				col = col_fun_main
+                              col = col_fun_main,
+                              height = ncol(FC) * unit(5,"mm")
 
 			)
 	}
