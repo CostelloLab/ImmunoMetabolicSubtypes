@@ -54,7 +54,7 @@ clinical_threshold = .2
 omics.list = list(t(T21.mixed$cytokines),t(T21.mixed$metabolites))
 NUMC <- 2:6
 phenotypes =  names(T21.mixed$clinic)[c(2,6,9:21)]
-iterations = 100
+iterations = 1000
 
 ## condition_counts <- T21.mixed$clinic %>%
 ##     dplyr::select(phenotypes) %>%
@@ -70,6 +70,7 @@ iterations = 100
 ## num_neighbors = floor(mean(overlap[upper.tri(overlap)]))
 
 num_neighbors = 25
+
 res <- clusterEval(omics.list = list(t(T21.mixed$cytokines),t(T21.mixed$metabolites)),
                 clinic = T21.mixed$clinic,
                 phenotypes = phenotypes,
@@ -130,7 +131,6 @@ save(met_clust, file ="~/OneDrive - The University of Colorado Denver/Projects/I
 ## How stable are the clusters over the number of neighbors?
 
 ```r
-
 diff_sig_threshold = .1
 clinical_threshold = .2
 omics.list = list(t(T21.mixed$cytokines),t(T21.mixed$metabolites))
@@ -162,10 +162,16 @@ enriched_conditions$clusters <- NUMC
 enriched_conditions <- enriched_conditions %>%
     pivot_longer(cols = -clusters)
 
-ggplot(enriched_conditions, aes(x = clusters, y = value, color = as.factor(name))) +
-    geom_line() +
+names(enriched_conditions)[2] <- "Neighbors"
+
+p1 <- ggplot(enriched_conditions, aes(x = clusters, y = value, color = Neighbors)) +
+    geom_line(size = 2.5) +
     theme_classic() +
-    ylab("# of enriched features") + xlab("# of clusters")
+    ylab("# of enriched features") + xlab("# of clusters") 
+    
+pdf("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/neighbors/num_neighbors_2024_01_12.pdf", height = 4, width = 10)
+print(p1)
+dev.off()
 
 
 nemo <- as.data.frame(sapply(multi_omic_res, function(x) x$nemo)) %>%
