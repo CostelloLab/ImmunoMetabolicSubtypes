@@ -244,32 +244,58 @@ dev.off()
 
 ``` r
 library(beeswarm)
-
 load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/processed/D21_standardized_cyt_met.RData")
-
 D21.omics.data <-  as.data.frame(t(cbind(D21.mixed$cytokines, D21.mixed$metabolites)))
 
+all.omics.data <- rbind(t(omics.data),t(D21.omics.data))
 
-
+omics.clinic <- merge(all.omics.data, clinic, by.x = 0, by.y = "LabID")
+omics.clinic <- merge(omics.clinic, as.data.frame(all_clust$clustering), by.x = "Row.names", by.y = 0, all = TRUE)
+omics.clinic <- merge(omics.clinic, as.data.frame(cyt_clust$clustering), by.x = "Row.names", by.y = 0, all = TRUE)
+omics.clinic <- merge(omics.clinic, as.data.frame(met_clust$clustering), by.x = "Row.names", by.y = 0, all = TRUE)
+names(omics.clinic)[(ncol(omics.clinic)-2):ncol(omics.clinic)] <- c("integrated", "cytokine", "metabolite")
+omics.clinic[,(ncol(omics.clinic)-2):ncol(omics.clinic)] <- apply(omics.clinic[,(ncol(omics.clinic)-2):ncol(omics.clinic)], 2,function(x) ifelse(is.na(x), "D21",x)) 
 
 for(feat in names(omics.clinic)[2:229]) {
-p1 = ggplot(omics.clinic, aes_string(y = sprintf("`%s`", feat), x = 'clustering', fill = 'clustering' ) ) +
-	geom_boxplot(alpha = .7) +
+    p1 = ggplot(omics.clinic, aes(y = omics.clinic[,feat], x = integrated, fill = integrated ) ) +
+        geom_boxplot(alpha = .7)    +
 	geom_beeswarm() +
     theme_classic() +
-    	scale_fill_manual(values = c("1" = "lightgoldenrod","2" = "salmon", "3" = "darkorchid", "4" = "green4","5" = "royalblue" )) +
-	theme(axis.title = element_text(size = 24), 
-				axis.text.x = element_text(size =22),
-				axis.text.y = element_text(size = 22), 
-				legend.text = element_text(size = 24),
-				legend.title = element_text(size = 0), 
-				plot.title = element_text(hjust = .5,size =26), 
-				legend.position= "none")+
-		ggtitle(feat)+
-		xlab("Integrated Omics \n Cluster")+
-		ylab("Standardized Abundance")  +
-		guides(alpha = "none")
-	pdf(file = sprintf("./results/figures/Cluster_sina_plots/%s.pdf", gsub("/", " ", feat), width = 3))
+    scale_fill_brewer(type = "qual", palette = "Set1")+
+    ggtitle(feat)+
+    xlab("Integrated Omics Cluster")+
+    ylab("Standardized Abundance")  +
+        guides(alpha = "none", fill = "none")+
+        theme(plot.title = element_text(hjust = .5))
+pdf(file = sprintf("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/cluster_sina_plots/integrated/%s.pdf", make.names(feat)))
+	print(p1)
+	dev.off()
+
+        p1 = ggplot(omics.clinic, aes(y = omics.clinic[,feat], x = cytokine, fill = cytokine ) ) +
+        geom_boxplot(alpha = .7)    +
+	geom_beeswarm() +
+    theme_classic() +
+    scale_fill_brewer(type = "qual", palette = "Set1")+
+    ggtitle(feat)+
+    xlab("Integrated Omics Cluster")+
+    ylab("Standardized Abundance")  +
+        guides(alpha = "none", fill = "none")+
+        theme(plot.title = element_text(hjust = .5))
+pdf(file = sprintf("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/cluster_sina_plots/cytokine/%s.pdf", make.names(feat)))
+	print(p1)
+	dev.off()
+
+            p1 = ggplot(omics.clinic, aes(y = omics.clinic[,feat], x = metabolite, fill = metabolite ) ) +
+        geom_boxplot(alpha = .7)    +
+	geom_beeswarm() +
+    theme_classic() +
+    scale_fill_brewer(type = "qual", palette = "Set1")+
+    ggtitle(feat)+
+    xlab("Integrated Omics Cluster")+
+    ylab("Standardized Abundance")  +
+        guides(alpha = "none", fill = "none")+
+        theme(plot.title = element_text(hjust = .5))
+pdf(file = sprintf("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/cluster_sina_plots/metabolite/%s.pdf", make.names(feat)) )
 	print(p1)
 	dev.off()
 }
