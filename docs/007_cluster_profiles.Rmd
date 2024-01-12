@@ -13,27 +13,17 @@ source("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicS
 
 ```
 
-## Differential Expression
-
-```r
-omics.data <- as.data.frame(t(cbind(T21.mixed$cytokines, T21.mixed$metabolites)))
-differential_expression <- diff_expr_wilcoxon(omics.data,all_clust$clustering)
-```
-
-## Clinical Associations
-
-```r
-cluster_associations <- association_test(clinic = T21.mixed$clinic,
-                                         clustering = all_clust$clustering,
-                                         phenotypes = names(T21.mixed$clinic)[10:21])
-```
 
 
 ## Visualizing and profiling the clusters
 
-
-
 ```r
+omics.data <- as.data.frame(t(cbind(T21.mixed$cytokines, T21.mixed$metabolites)))
+
+cluster_associations <- association_test(clinic = T21.mixed$clinic,
+                                         clustering = all_clust$clustering,
+                                         phenotypes = names(T21.mixed$clinic)[10:21])
+
 p1 <- clusterHeatmap(omics.data = omics.data,
                diff_expr = differential_expression,
                clustering = all_clust$clustering,
@@ -46,8 +36,8 @@ p1 <- clusterHeatmap(omics.data = omics.data,
                clinical_threshold = .2
                )
 
-pdf("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/cluster_heatmaps/T21_cyt_met_diff_clinic_4clusters_25neighbors_heatmap.pdf", width = 12, height = 8)
-print(p1)
+pdf("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/cluster_heatmaps/T21_cyt_met_diff_clinic_4clusters_25neighbors_heatmap.pdf", width = 12, height = 6)
+draw(p1$h, heatmap_legend_side = "bottom")
 dev.off()
 
 ```
@@ -60,7 +50,6 @@ cyt_differential_expression <- diff_expr_wilcoxon(t(T21.mixed$cytokines),cyt_clu
 cyt_cluster_associations <- association_test(clinic = T21.mixed$clinic,
                                          clustering = cyt_clust$clustering,
                                          phenotypes = names(T21.mixed$clinic)[10:21])
-
 
 p1 <- clusterHeatmap(omics.data = t(T21.mixed$cytokines),
                diff_expr = cyt_differential_expression,
@@ -75,7 +64,7 @@ p1 <- clusterHeatmap(omics.data = t(T21.mixed$cytokines),
                )
 
 pdf("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/cluster_heatmaps/cyt_diff_clinic_2clusters_25neighbors_heatmap.pdf", width = 12, height = 8)
-print(p1)
+draw(p1$h, heatmap_legend_side = "bottom")
 dev.off()
 
 
@@ -93,16 +82,15 @@ p1 <- clusterHeatmap(omics.data = t(T21.mixed$metabolites),
                cluster_assoc = met_cluster_associations,
                threshold = .1,
                split_num = 3,
-               title = "T21 metokines",
+               title = "T21 metabolites",
                fontsize = 5,
                phenotypes = names(T21.mixed$clinic)[10:21],
                clinical_threshold = .2
                )
 
 pdf("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/cluster_heatmaps/met_diff_clinic_3clusters_25neighbors_heatmap.pdf", width = 12, height = 8)
-print(p1)
+draw(p1$h, heatmap_legend_side = "bottom")
 dev.off()
-
 ```
 
 
@@ -115,7 +103,6 @@ library(ggalluvial)
 cyt_met_all_clusterings <- cbind(cytokine = cyt_clust$clustering,
                                  integrated = all_clust$clustering,
                                  metabolite = met_clust$clustering)
-
 
 cyt_met_all_clusterings <- cyt_met_all_clusterings %>%
     as.data.frame() %>%
@@ -131,9 +118,11 @@ p1 <- ggplot(as.data.frame(cyt_met_all_clusterings),
   scale_x_discrete(limits = c("cytokine", "metabolite"), expand = c(.05, .05)) +
   scale_fill_brewer(type = "qual", palette = "Set1") +
     ggtitle("Cytokine vs. Metabolite clusterings") +
-    theme_classic()
+    theme_classic()+
+    theme(axis.text = element_text(size = 12),
+          legend.position = "bottom")
 
-ggsave(p1,file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/riverplots/cyt_met_25neighbors_riverplot.pdf")
+ggsave(p1,file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/riverplots/cyt_met_25neighbors_riverplot.pdf", height = 4, width = 6)
 
 
 p2 <- ggplot(as.data.frame(cyt_met_all_clusterings),
@@ -141,20 +130,150 @@ p2 <- ggplot(as.data.frame(cyt_met_all_clusterings),
   geom_alluvium(aes(fill = integrated), width = 1/12) +
   geom_stratum(width = 1/12, fill = "black", color = "grey") +
   geom_label(stat = "stratum", aes(label = after_stat(stratum))) +
-  scale_x_discrete(limits = c("cytokine", "metabolite"), expand = c(.05, .05)) +
+  scale_x_discrete(limits = c("cytokine","integrated", "metabolite"), expand = c(.05, .05)) +
   scale_fill_brewer(type = "qual", palette = "Set1") +
-    ggtitle(" Cytokine vs. Integrated vs. Metabolite clusterings") +
-    theme_classic()
+    ggtitle("") +
+    theme_classic() +
+    ylab("count")+
+    theme(axis.text = element_text(size = 12),
+          legend.position = "bottom")
 
-ggsave(p2,file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/riverplots/cyt_integrated_met_25neighbors_riverplot.pdf")
+ggsave(p2,file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/riverplots/cyt_integrated_met_25neighbors_riverplot.pdf", height = 3, width = 5)
 
 
 ```
 
+## Cluster Descriptive Statistics
+
+## Cluster Barplots
+
+```r
+#### side_by_side barplots
+clinic <- rbind(T21.mixed$clinic, D21.mixed$clinic)
+toplot = cluster_associations$ratio
+tokeep = apply(cluster_associations$dir.pvals.confint[, grepl("q.value", colnames(cluster_associations$dir.pvals.confint))],2, function(x) any(x < .2) )
+tokeep = tokeep[tokeep == TRUE]
+tokeep = gsub(" q.value","",names(tokeep))
+tokeep = paste(tokeep, collapse = "|")
+toplot = toplot[, grepl(tokeep, colnames(toplot))]
+total_col = which(grepl(tokeep, colnames(T21.mixed$clinic)))
+totals = sapply(total_col, function(x) sum(clinic[clinic$Karyotype == "Control",x] ==1, na.rm = T)/sum(!is.na(clinic[clinic$Karyotype == "Control",x])))
+column_names = colnames(toplot)
+toplot = sapply(1:ncol(toplot), function(x) toplot[,x] - totals[x]  )
+#toplot = rbind(toplot,totals)
+colnames(toplot) = gsub(" ", "\n",column_names)
+#toplot = toplot[,4]
+toplot = melt(toplot)
+assoc_barplot = ggplot(toplot, aes(x = as.factor(Var2), y = value, fill = Var1, width = .7, alpha = .8)) +
+	geom_bar(stat = "identity", position = "dodge") + 
+	theme_classic() +
+     scale_fill_brewer(type = "qual", palette = "Set1")+
+	theme(legend.position = c(0.6,-0.3),
+          legend.direction  = "horizontal",
+          legend.key.width = unit(5, "mm"))+
+	xlab("") + ylab("Percent Normalized \n to D21 Indificudals")+
+    labs(fill = "") +
+    guides(alpha = "none")
+pdf("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/phenotype_barplots/T21_integrated_disease_enrichments.pdf", height = 3, width = 6)
+print(assoc_barplot)
+dev.off()
+
+#### side_by_side barplots - cytokines
+clinic <- rbind(T21.mixed$clinic, D21.mixed$clinic)
+toplot = cyt_cluster_associations$ratio
+tokeep = apply(cluster_associations$dir.pvals.confint[, grepl("q.value", colnames(cluster_associations$dir.pvals.confint))],2, function(x) any(x < .2) )
+tokeep = tokeep[tokeep == TRUE]
+tokeep = gsub(" q.value","",names(tokeep))
+tokeep = paste(tokeep, collapse = "|")
+toplot = toplot[, grepl(tokeep, colnames(toplot))]
+total_col = which(grepl(tokeep, colnames(T21.mixed$clinic)))
+totals = sapply(total_col, function(x) sum(clinic[clinic$Karyotype == "Control",x] ==1, na.rm = T)/sum(!is.na(clinic[clinic$Karyotype == "Control",x])))
+column_names = colnames(toplot)
+toplot = sapply(1:ncol(toplot), function(x) toplot[,x] - totals[x]  )
+#toplot = rbind(toplot,totals)
+colnames(toplot) = gsub(" ", "\n",column_names)
+#toplot = toplot[,4]
+toplot = melt(toplot)
+assoc_barplot = ggplot(toplot, aes(x = as.factor(Var2), y = value, fill = Var1, width = .7, alpha = .8)) +
+	geom_bar(stat = "identity", position = "dodge") + 
+	theme_classic() +
+    scale_fill_brewer(type = "qual", palette = "Set1")+
+    	theme(legend.position = c(0.6,-0.3),
+          legend.direction  = "horizontal",
+          legend.key.width = unit(5, "mm"))+
+	xlab("") + ylab("Percent Normalized \n to D21 Indificudals")+
+    labs(fill = "") +
+    guides(alpha = "none")
+pdf("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/phenotype_barplots/T21_cytokine_disease_enrichments.pdf", height = 3, width = 6)
+print(assoc_barplot)
+dev.off()
+
+#### side_by_side barplots
+clinic <- rbind(T21.mixed$clinic, D21.mixed$clinic)
+toplot = met_cluster_associations$ratio
+tokeep = apply(cluster_associations$dir.pvals.confint[, grepl("q.value", colnames(cluster_associations$dir.pvals.confint))],2, function(x) any(x < .2) )
+tokeep = tokeep[tokeep == TRUE]
+tokeep = gsub(" q.value","",names(tokeep))
+tokeep = paste(tokeep, collapse = "|")
+toplot = toplot[, grepl(tokeep, colnames(toplot))]
+total_col = which(grepl(tokeep, colnames(T21.mixed$clinic)))
+totals = sapply(total_col, function(x) sum(clinic[clinic$Karyotype == "Control",x] ==1, na.rm = T)/sum(!is.na(clinic[clinic$Karyotype == "Control",x])))
+column_names = colnames(toplot)
+toplot = sapply(1:ncol(toplot), function(x) toplot[,x] - totals[x]  )
+#toplot = rbind(toplot,totals)
+colnames(toplot) = gsub(" ", "\n",column_names)
+#toplot = toplot[,4]
+toplot = melt(toplot)
+assoc_barplot = ggplot(toplot, aes(x = as.factor(Var2), y = value, fill = Var1, width = .7, alpha = .8)) +
+	geom_bar(stat = "identity", position = "dodge") + 
+	theme_classic() +
+    scale_fill_brewer(type = "qual", palette = "Set1")+
+    theme(legend.position = c(0.6,-0.3),
+          legend.direction  = "horizontal",
+          legend.key.width = unit(5, "mm"))+
+	xlab("") + ylab("Percent Normalized \n to D21 Indificudals")+
+    labs(fill = "") +
+    guides(alpha = "none")
+pdf("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/phenotype_barplots/T21_metabolite_disease_enrichments.pdf", height = 3, width = 6)
+print(assoc_barplot)
+dev.off()
+
+```
+
+## Cluster Sina Plots
+
+``` r
+library(beeswarm)
+
+load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/processed/D21_standardized_cyt_met.RData")
+
+D21.omics.data <-  as.data.frame(t(cbind(D21.mixed$cytokines, D21.mixed$metabolites)))
 
 
 
 
+for(feat in names(omics.clinic)[2:229]) {
+p1 = ggplot(omics.clinic, aes_string(y = sprintf("`%s`", feat), x = 'clustering', fill = 'clustering' ) ) +
+	geom_boxplot(alpha = .7) +
+	geom_beeswarm() +
+    theme_classic() +
+    	scale_fill_manual(values = c("1" = "lightgoldenrod","2" = "salmon", "3" = "darkorchid", "4" = "green4","5" = "royalblue" )) +
+	theme(axis.title = element_text(size = 24), 
+				axis.text.x = element_text(size =22),
+				axis.text.y = element_text(size = 22), 
+				legend.text = element_text(size = 24),
+				legend.title = element_text(size = 0), 
+				plot.title = element_text(hjust = .5,size =26), 
+				legend.position= "none")+
+		ggtitle(feat)+
+		xlab("Integrated Omics \n Cluster")+
+		ylab("Standardized Abundance")  +
+		guides(alpha = "none")
+	pdf(file = sprintf("./results/figures/Cluster_sina_plots/%s.pdf", gsub("/", " ", feat), width = 3))
+	print(p1)
+	dev.off()
+}
+```
 
 ### Umap plots
 
