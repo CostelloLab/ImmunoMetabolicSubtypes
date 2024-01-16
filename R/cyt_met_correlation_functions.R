@@ -1,5 +1,6 @@
 library(tidyverse)
 library(ggpubr)
+library(psych)
 
 LongCorr <- function(psych_object) {
 
