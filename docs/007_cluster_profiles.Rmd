@@ -24,6 +24,8 @@ cluster_associations <- association_test(clinic = T21.mixed$clinic,
                                          clustering = all_clust$clustering,
                                          phenotypes = names(T21.mixed$clinic)[10:21])
 
+differential_expression <- diff_expr_wilcoxon(omics.data,all_clust$clustering)
+
 p1 <- clusterHeatmap(omics.data = omics.data,
                diff_expr = differential_expression,
                clustering = all_clust$clustering,
@@ -149,6 +151,7 @@ ggsave(p2,file = "~/OneDrive - The University of Colorado Denver/Projects/Immuno
 
 ```r
 #### side_by_side barplots
+
 clinic <- rbind(T21.mixed$clinic, D21.mixed$clinic)
 toplot = cluster_associations$ratio
 tokeep = apply(cluster_associations$dir.pvals.confint[, grepl("q.value", colnames(cluster_associations$dir.pvals.confint))],2, function(x) any(x < .2) )
@@ -157,7 +160,7 @@ tokeep = gsub(" q.value","",names(tokeep))
 tokeep = paste(tokeep, collapse = "|")
 toplot = toplot[, grepl(tokeep, colnames(toplot))]
 total_col = which(grepl(tokeep, colnames(T21.mixed$clinic)))
-totals = sapply(total_col, function(x) sum(clinic[clinic$Karyotype == "Control",x] ==1, na.rm = T)/sum(!is.na(clinic[clinic$Karyotype == "Control",x])))
+totals = sapply(total_col, function(x) sum(clinic[,x] ==1, na.rm = T)/sum(!is.na(clinic[,x])))
 column_names = colnames(toplot)
 toplot = sapply(1:ncol(toplot), function(x) toplot[,x] - totals[x]  )
 #toplot = rbind(toplot,totals)
@@ -171,7 +174,7 @@ assoc_barplot = ggplot(toplot, aes(x = as.factor(Var2), y = value, fill = Var1, 
 	theme(legend.position = c(0.6,-0.3),
           legend.direction  = "horizontal",
           legend.key.width = unit(5, "mm"))+
-	xlab("") + ylab("Percent Normalized \n to D21 Indificudals")+
+	xlab("") + ylab("Percent Normalized \n to T21 Average")+
     labs(fill = "") +
     guides(alpha = "none")
 pdf("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/phenotype_barplots/T21_integrated_disease_enrichments.pdf", height = 3, width = 6)
@@ -187,7 +190,7 @@ tokeep = gsub(" q.value","",names(tokeep))
 tokeep = paste(tokeep, collapse = "|")
 toplot = toplot[, grepl(tokeep, colnames(toplot))]
 total_col = which(grepl(tokeep, colnames(T21.mixed$clinic)))
-totals = sapply(total_col, function(x) sum(clinic[clinic$Karyotype == "Control",x] ==1, na.rm = T)/sum(!is.na(clinic[clinic$Karyotype == "Control",x])))
+totals = sapply(total_col, function(x) sum(clinic[,x] ==1, na.rm = T)/sum(!is.na(clinic[,x])))
 column_names = colnames(toplot)
 toplot = sapply(1:ncol(toplot), function(x) toplot[,x] - totals[x]  )
 #toplot = rbind(toplot,totals)
@@ -201,7 +204,7 @@ assoc_barplot = ggplot(toplot, aes(x = as.factor(Var2), y = value, fill = Var1, 
     	theme(legend.position = c(0.6,-0.3),
           legend.direction  = "horizontal",
           legend.key.width = unit(5, "mm"))+
-	xlab("") + ylab("Percent Normalized \n to D21 Indificudals")+
+	xlab("") + ylab("Percent Normalized \n to T21 Average")+
     labs(fill = "") +
     guides(alpha = "none")
 pdf("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/phenotype_barplots/T21_cytokine_disease_enrichments.pdf", height = 3, width = 6)
@@ -217,7 +220,7 @@ tokeep = gsub(" q.value","",names(tokeep))
 tokeep = paste(tokeep, collapse = "|")
 toplot = toplot[, grepl(tokeep, colnames(toplot))]
 total_col = which(grepl(tokeep, colnames(T21.mixed$clinic)))
-totals = sapply(total_col, function(x) sum(clinic[clinic$Karyotype == "Control",x] ==1, na.rm = T)/sum(!is.na(clinic[clinic$Karyotype == "Control",x])))
+totals = sapply(total_col, function(x) sum(clinic[,x] ==1, na.rm = T)/sum(!is.na(clinic[,x])))
 column_names = colnames(toplot)
 toplot = sapply(1:ncol(toplot), function(x) toplot[,x] - totals[x]  )
 #toplot = rbind(toplot,totals)
@@ -231,13 +234,12 @@ assoc_barplot = ggplot(toplot, aes(x = as.factor(Var2), y = value, fill = Var1, 
     theme(legend.position = c(0.6,-0.3),
           legend.direction  = "horizontal",
           legend.key.width = unit(5, "mm"))+
-	xlab("") + ylab("Percent Normalized \n to D21 Indificudals")+
+	xlab("") + ylab("Percent Normalized \n to T21 Average")+
     labs(fill = "") +
     guides(alpha = "none")
 pdf("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/phenotype_barplots/T21_metabolite_disease_enrichments.pdf", height = 3, width = 6)
 print(assoc_barplot)
 dev.off()
-
 ```
 
 ## Cluster Sina Plots
@@ -326,9 +328,51 @@ plot_umap(graph = all_clust$graph,
           plot_var = "clustering",
           output_file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/umaps/all_umaps.pdf")
 
+```
+
+## Metabolite class enrichment by cluster
+
+```r
+source("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/R/enrichment_functions.R")
+
+## Metabolite pathway data
+load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/pathway/metabolite_pathway.RData")
 
 
 
+met_enrichment <- clusterEnrichWrapper(differential_expression$sig,met_path)
+
+```
+
+## Correlations by cluster
+
+``` r
+source("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/R/cyt_met_correlation_functions.R")
+
+T21.omics <- cbind( T21.mixed$cytokines, T21.mixed$metabolites)
+
+T21_correlations <- T21.omics %>%
+    corr.test(method = "spearman", adjust = "fdr")
+
+D21.omics <- cbind( D21.mixed$cytokines,D21.mixed$metabolites)
+
+D21_correlations <- D21.omics %>%
+    corr.test(method = "spearman", adjust = "fdr")
+
+
+
+cluster_correlations <- lapply(1:4, function(x) {
+    tmp <- T21.omics %>%
+        filter(rownames(T21.omics) %in% names(all_clust$clustering)[all_clust$clustering == x])
+    correlations <- tmp %>%
+        corr.test(method = "spearman", adjust = "fdr")
+    long_corr <- LongCorr(correlations)
+    long_corr$long <- long_corr$long %>%
+        filter(A %in% names(T21.mixed$cytokines) & B %in% names(T21.mixed$metabolites))
+    return(long_corr$long)
+})
+    
 
 
 ```
+
