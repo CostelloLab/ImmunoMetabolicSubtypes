@@ -416,17 +416,24 @@ filterCyt_Mets <- function(toplot, formatted_gsea, key_pathway, gene_sets, num_c
 }
 
 
-filterCyt_Mets_unbiased <- function( formatted_gsea, key_pathway, gene_sets, num_cyt_met) {
+filterCyt_Mets_unbiased <- function(sig_list, formatted_gsea, key_pathway, gene_sets, num_cyt_met, key_cluster, all_results) {
 
-    gene_set <- gene_sets[[key_pathway]]
+    cluster_sig <- all_results %>%
+        filter(cluster == key_cluster) %>%
+        filter(cor_cyt_met_p < .05) %>%
+        distinct(cyt_met)
+
+    sig <- intersect(sig_list, cluster_sig$cyt_met)
     tmp_gsea <- formatted_gsea %>%
+        select(contains(sig)) %>%
         t()    %>%
          as.data.frame()    %>%
         arrange(-!!sym(key_pathway))
 
-    cyt_mets <- rownames(tmp_gsea)[1:num_cyt_met]
+    cyt_mets <- rownames(tmp_gsea)[grepl("NES", rownames(tmp_gsea))]
 
     cyt_mets <- gsub(" NES", "", cyt_mets)
+
 
     return(cyt_mets)
 
@@ -480,6 +487,7 @@ clusterGeneRanks <- function(cyt_mets, long_z_list, key_pathway, gene_sets ) {
             select(mean_ranks)
         return(tmp)
     })
+    names(results) <- c("T21", "D21", "1"  , "2"  , "3"  , "4"  , "5")
     return(results)
 
 }
