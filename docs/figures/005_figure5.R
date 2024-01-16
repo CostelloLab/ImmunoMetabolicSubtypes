@@ -5,14 +5,13 @@ source("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicS
 ### Load the data
 ### Differential expression
 load("~/OneDrive - The University of Colorado Denver/Projects/subPhenoDS/results/differential_expression/differential_expression_results_2023-09-08.RData")
+
 ## The first data frame compare D21 to T21, need to get the inverse of logFC
 diff_genes[[1]]$logFC <- diff_genes[[1]]$logFC*-1
 ### partial correlation z scores
-load("~/OneDrive - The University of Colorado Denver/Projects/subPhenoDS/results/partial_correlation_results/full_z_percent_8_31.RData")
+load("~/OneDrive - The University of Colorado Denver/Projects/subPhenoDS/results/partial_correlation_results/full_z_percent_11_27.RData")
 ### Renmame the list list of z scores by karyotype/cluster
-names(full_z_results) <- c("T21", "D21", 1,2,3,4,5)
-### Hallmark pathways
-pathways_all <- gmtPathways("~/OneDrive - The University of Colorado Denver/Projects/subPhenoDS/data/pathway/h.all.v2023.1.Hs.symbols.gmt")
+names(full_z_results) <- c("T21", "D21", 1,2,3,4)
 
 ##### T21 vs D21
 diff_T21_D21 <- diffZ(full_z_results, cluster1 = "T21", cluster2 = "D21")
@@ -82,8 +81,10 @@ GeneSetPlotZandDEG(z_and_DEG_T21_D21,
 
 
 source("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/R/diff_to_Z_functions.R")
+pathways_all <- gmtPathways("~/OneDrive - The University of Colorado Denver/Projects/subPhenoDS/data/pathway/h.all.v2023.1.Hs.symbols.gmt")
+
 ### By cluster
-clusters <- c('1','2','3','4','5')
+clusters <- c('1','2','3','4')
 diff_Z_clusters <- lapply(clusters, function(cluster) diffZCluster(full_z_results, cluster1 = cluster))
 names(diff_Z_clusters) <- clusters
 Z_and_DEG_clusters <- lapply(clusters, function(cluster) ZandDEG(DEG = diff_genes[[cluster]], delta_z = diff_Z_clusters[[cluster]]))
