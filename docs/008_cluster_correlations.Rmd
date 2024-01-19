@@ -1,0 +1,82 @@
+## Load the data
+
+```r
+load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/clusterings/all_clust.RData")
+
+load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/processed/T21_standardized_cyt_met.RData")
+load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/processed/D21_standardized_cyt_met.RData")
+T21_correlations <- read.csv(file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/tables/T21_cyt_met_correlations.csv")
+load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/pathway/metabolite_pathway.RData")
+```
+
+## Libraries
+
+``` r
+library(psych)
+source("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/R/cluster_evaluation.R")
+source("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/R/cyt_met_correlation_functions.R")
+```
+## Cluster Correlations
+
+```r
+T21.omics <- cbind(T21.mixed$cytokines, T21.mixed$metabolites)
+
+clusters <- lapply(1:4, function(x) {
+    names(all_clust$clustering)[all_clust$clustering == x]
+})
+
+cluster_correlations <- lapply(clusters, function(x) {
+    tmp_corr <- T21.omics %>%
+        filter(rownames(T21.omics) %in% x) %>%
+        corr.test(method = "spearman", adjust = "fdr")
+
+})
+
+cluster_correlations_long <- lapply(cluster_correlations, LongCorr)
+
+cluster_correlations_long <- lapply(cluster_correlations_long,function(x) {
+    x$long %>%     filter(A %in% names(T21.mixed$cytokines) & B %in% names(T21.mixed$metabolites))
+})
+
+
+```
+
+## metabolites class correlation erichment in clusters
+
+```r
+met_class_enrichment <- lapply(cluster_correlations_long, function(x) {
+    enrichment <- correlationsEnrichmentWrapper(x,met_path)
+    enrichmentPlotPrep(enrichment)
+})
+
+names(met_class_enrichment) <- 1:4
+
+plots <- lapply(1:4, function(x) {
+    ggplot(met_class_enrichment[[x]], aes(x = cytokine, y = pathway, fill = avg_corr, size = -log10(fdr))) +
+        geom_point(shape = 21) +
+        scale_fill_continuous(type = "viridis") +
+        theme_classic() +
+        theme(legend.position = "bottom",
+              axis.text.x = element_text(angle = 60,hjust = 1, size = 12),
+              axis.text.y = element_text(size = 12),
+              axis.title = element_text(size = 14),
+              plot.title = element_text(hjust = .5)
+              )+
+        ggtitle(paste0("cluster ",x))
+})
+
+p1 <- grid
+
+    pdf(paste0("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/enrichment/cluster_",x,"_enrichment.pdf"))
+    print(p1)
+    dev.off()
+
+```
+
+
+## Chord Plots
+
+```r
+
+
+```
