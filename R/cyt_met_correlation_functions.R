@@ -13,7 +13,7 @@ LongCorr <- function(psych_object) {
         mutate(cyt_met = list(sort(c(A,B)))) %>%
         ungroup() %>%
         distinct(cyt_met, .keep_all = T) %>%
-        select(-cyt_met)
+        dplyr::select(-cyt_met)
 
     psych_object[["p_long"]] <- psych_object$p %>%
         as.data.frame() %>%
@@ -24,7 +24,7 @@ LongCorr <- function(psych_object) {
         mutate(cyt_met = list(sort(c(A,B)))) %>%
         ungroup() %>%
         distinct(cyt_met, .keep_all = T) %>%
-        select(-cyt_met)
+        dplyr::select(-cyt_met)
 
 
 
