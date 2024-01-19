@@ -6,6 +6,7 @@ load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSub
 load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/processed/T21_standardized_cyt_met.RData")
 load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/processed/D21_standardized_cyt_met.RData")
 T21_correlations <- read.csv(file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/tables/T21_cyt_met_correlations.csv")
+D21_correlations <- read.csv(file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/tables/D21_cyt_met_correlations.csv")
 load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/pathway/metabolite_pathway.RData")
 ```
 
@@ -76,7 +77,74 @@ p1 <- grid
 
 ## Chord Plots
 
+
+### data prep
 ```r
 
+met_path <- met_path %>%
+    mutate(Pathway = replace(Pathway, Pathway == "Fatty acids / eicosanoids", "Fatty acids/eicosanoids")) %>%
+    mutate(Pathway = replace(Pathway, Pathway == "Fatty acids / eicosanoid", "Fatty acids/eicosanoids")) %>%
+    mutate(Pathway = replace(Pathway, Pathway =="Arginine and proline metabolism" , "Arg, Pro metabolism"))%>%
+    mutate(Pathway = replace(Pathway, Pathway ==  "Carnitine and fatty acid metabolism", "Carnitine metabolism"))%>%
+    mutate(Pathway = replace(Pathway, Pathway == "Glycerophospholipid biosynthesis", "GPL biosynthesis")) %>%
+    mutate(Pathway = replace(Pathway, Pathway ==    "Indole and Tryptophan", "Indole/Tryptophan"))%>%
+    mutate(Pathway = replace(Pathway, Pathway == "Serine biosynthesis and one-carbon metabolism", "Ser biosynthesis")) %>%
+    mutate(Pathway = replace(Pathway, Pathway == "Panthothenate metabolism", "PTA metabolism")) %>%
+    mutate(Pathway = replace(Pathway, Pathway == "Lysophosphatidic acids", "LPAs")) %>%
+    mutate(Pathway = replace(Pathway, Pathway == "Saturated Fatty acids", "Fatty acids/saturated")) %>%
+     mutate(Pathway = replace(Pathway, Pathway == "Pentose Phosphate Pathway", "Pentose Phosphate"))
 
+all_correlations <- cluster_correlations_long
+names(all_correlations) <- 1:4
+all_correlations$T21 <- T21_correlations
+all_correlations$D21 <- D21_correlations
+all_correlations <- lapply(all_correlations, function(x){
+    x %>%
+    left_join((met_path %>% dplyr::select(name,Pathway)), by = c("B" = "name"))
+})
+all_correlations <- lapply(all_correlations, function(x) {
+    x %>%
+        dplyr::select(A,Pathway,r) %>%
+        group_by(A,Pathway) %>%
+        summarise_at(vars(r),mean) %>%
+        mutate(cyt_path = paste(A, Pathway))
+})
+all_correlations <- lapply(all_correlations, function(x) {
+    x$diff <- x$r - all_correlations$T21$r
+    return(x)
+})
+lapply(all_correlations,head)
+
+
+## correlation_variance <- all_correlations[c(1,2,3,4,"D21")] %>%
+##     reduce(left_join,by = "cyt_path") %>%
+##     dplyr::select(cyt_path, contains("r")) %>%
+##     pivot_longer(-c(cyt_path)) %>%
+##     group_by(cyt_path) %>%
+##     summarise(variance = var(value), .groups = "keep") %>%
+##     arrange(-variance) %>%
+##     filter(variance > .018)
+## all_correlations <- lapply(all_correlations, function(x) {
+##     x %>% filter(cyt_path %in% correlation_variance$cyt_path)
+## })
+
+
+features <- unique(c(all_correlations[[1]]$A,all_correlations[[1]]$Pathway))
+cols <- rand_color(length(features))
+cols[which(features %in% all_correlations[[1]]$A )] <- "grey"
+col_fun = colorRamp2(breaks = c(-.4,0,.4), c("blue","white",  "red"), transparency = .2)
+
+pdf(paste0("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/chord_plots/T21.pdf"), height = 12, width =12)
+    chordPlot(data = all_correlations[["T21"]], cols = cols, col_fun = col_fun, title = "T21", diff_thresh = 0, r_thresh = .15)
+dev.off()
+
+
+lapply(names(all_correlations)[c(1:4,6)], function(x) {
+    pdf(paste0("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/chord_plots/",x,".pdf"), height = 12, width =12)
+    chordPlot(all_correlations[[x]], cols = cols, col_fun = col_fun, title = x, diff_thresh = .2, r_thresh = .15)
+    dev.off()
+})
+
+
+    
 ```
