@@ -1160,11 +1160,11 @@ names(FC) = paste(1:length(unique(clustering)))
 chordPlot <- function(data,cols, col_fun, title, diff_thresh, r_thresh) {
 
     tmp <- data
-    tmp$flag <- ifelse(abs(tmp$diff) >= diff_thresh & abs(tmp$r) >= r_thresh, "yes","no")
-    tmp <- tmp %>%
-        dplyr::select(-diff)
+    ## tmp$flag <- ifelse(abs(tmp$diff) >= diff_thresh & abs(tmp$r) >= r_thresh, "yes","no")
+    ## tmp <- tmp %>%
+    ##     dplyr::select(-diff)
     circos.clear()
-    chordDiagram(tmp,  grid.col = cols,  col = col_fun ,annotationTrack = "grid", preAllocateTracks = 1, scale = F, link.sort = T, link.visible = tmp$flag == "yes")
+    chordDiagram(tmp,  grid.col = cols,  col = col_fun ,annotationTrack = "grid", preAllocateTracks = 1, scale = T, link.sort = T, link.visible = abs(tmp$r) > .2)
     title(title)
     circos.trackPlotRegion(track.index = 1, panel.fun = function(x, y) {
         xlim = get.cell.meta.data("xlim")
@@ -1174,7 +1174,7 @@ chordPlot <- function(data,cols, col_fun, title, diff_thresh, r_thresh) {
         circos.axis(h = "top", labels.cex = 0.2, major.tick.length = 0.2, sector.index = sector.name, track.index = 2)
     }, bg.border = NA)
     
-    lgd <- Legend(at = c(-.4, 0, .4), col_fun = col_fun, title = "r2", direction = "horizontal")
+    lgd <- Legend(at = c(-.6, 0, .6), col_fun = col_fun, title = "r2", direction = "horizontal")
     
     draw( lgd, just = "bottom", x = unit(6, "in"),y = unit(6, "mm"))
 
