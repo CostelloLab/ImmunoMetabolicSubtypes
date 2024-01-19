@@ -52,8 +52,8 @@ met_class_enrichment <- lapply(cluster_correlations_long, function(x) {
 
 names(met_class_enrichment) <- 1:4
 
-plots <- lapply(1:4, function(x) {
-    ggplot(met_class_enrichment[[x]], aes(x = cytokine, y = pathway, fill = avg_corr, size = -log10(fdr))) +
+ lapply(1:4, function(x) {
+    p1 <- ggplot(met_class_enrichment[[x]], aes(x = cytokine, y = pathway, fill = avg_corr, size = -log10(fdr))) +
         geom_point(shape = 21) +
         scale_fill_continuous(type = "viridis") +
         theme_classic() +
@@ -64,13 +64,11 @@ plots <- lapply(1:4, function(x) {
               plot.title = element_text(hjust = .5)
               )+
         ggtitle(paste0("cluster ",x))
-})
-
-p1 <- grid
 
     pdf(paste0("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/enrichment/cluster_",x,"_enrichment.pdf"))
     print(p1)
     dev.off()
+})
 
 ```
 
@@ -80,7 +78,6 @@ p1 <- grid
 
 ### data prep
 ```r
-
 met_path <- met_path %>%
     mutate(Pathway = replace(Pathway, Pathway == "Fatty acids / eicosanoids", "Fatty acids/eicosanoids")) %>%
     mutate(Pathway = replace(Pathway, Pathway == "Fatty acids / eicosanoid", "Fatty acids/eicosanoids")) %>%
@@ -102,19 +99,25 @@ all_correlations <- lapply(all_correlations, function(x){
     x %>%
     left_join((met_path %>% dplyr::select(name,Pathway)), by = c("B" = "name"))
 })
-all_correlations <- lapply(all_correlations, function(x) {
-    x %>%
-        dplyr::select(A,Pathway,r) %>%
-        group_by(A,Pathway) %>%
-        summarise_at(vars(r),mean) %>%
-        mutate(cyt_path = paste(A, Pathway))
-})
-all_correlations <- lapply(all_correlations, function(x) {
-    x$diff <- x$r - all_correlations$T21$r
-    return(x)
-})
-lapply(all_correlations,head)
 
+all_sig_correlations <- lapply(all_correlations, function(x) {
+    x %>%
+        mutate(r = ifelse(fdr < .1, r, NA)) %>%    
+        dplyr::select(A,Pathway,r)    %>%
+        group_by(A,Pathway) %>%
+        summarise(r = mean(r, na.rm = T), .groups = "keep") 
+})
+
+all_sig_correlations <- lapply(all_sig_correlations, function(x) {
+    x %>% mutate(r = ifelse(is.na(r), 1e-6, r))
+})
+names(all_sig_correlations) <- names(all_correlations)
+
+## all_sig_correlations <- lapply(all_correlations, function(x) {
+##     x$diff <- x$r - all_correlations$T21$r
+##     return(x)
+## })
+## lapply(all_correlations,head)
 
 ## correlation_variance <- all_correlations[c(1,2,3,4,"D21")] %>%
 ##     reduce(left_join,by = "cyt_path") %>%
@@ -128,23 +131,27 @@ lapply(all_correlations,head)
 ##     x %>% filter(cyt_path %in% correlation_variance$cyt_path)
 ## })
 
-
-features <- unique(c(all_correlations[[1]]$A,all_correlations[[1]]$Pathway))
+features <- unique(c(all_sig_correlations[[1]]$A,all_correlations[[1]]$Pathway))
 cols <- rand_color(length(features))
-cols[which(features %in% all_correlations[[1]]$A )] <- "grey"
-col_fun = colorRamp2(breaks = c(-.4,0,.4), c("blue","white",  "red"), transparency = .2)
+cols[which(features %in% all_sig_correlations[[1]]$A )] <- "grey"
+col_fun = colorRamp2(breaks = c(-.6,0,.6), c("blue","white",  "red"),transparency = .1 )
 
 pdf(paste0("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/chord_plots/T21.pdf"), height = 12, width =12)
-    chordPlot(data = all_correlations[["T21"]], cols = cols, col_fun = col_fun, title = "T21", diff_thresh = 0, r_thresh = .15)
+    chordPlot(data = all_sig_correlations[["T21"]], cols = cols, col_fun = col_fun, title = "T21", diff_thresh = 0, r_thresh = .15)
 dev.off()
-
-
-lapply(names(all_correlations)[c(1:4,6)], function(x) {
+lapply(names(all_sig_correlations)[c(1:4,6)], function(x) {
     pdf(paste0("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/chord_plots/",x,".pdf"), height = 12, width =12)
-    chordPlot(all_correlations[[x]], cols = cols, col_fun = col_fun, title = x, diff_thresh = .2, r_thresh = .15)
+    chordPlot(all_sig_correlations[[x]], cols = cols, col_fun = col_fun, title = x, diff_thresh = .2, r_thresh = .15)
     dev.off()
 })
 
-
     
+```
+
+
+## Cluster Scatter plots
+
+```r
+
+
 ```
