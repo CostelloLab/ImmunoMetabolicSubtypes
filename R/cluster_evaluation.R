@@ -6,6 +6,12 @@ library(ggbeeswarm)
 library(cluster)
 library(clusterSim)
 library(gridExtra)
+library(circlize)
+library(ComplexHeatmap)
+library(openxlsx)
+library(tidyverse)
+
+
 ### adjustedMutualInformation is a function that uses the aricode function "AMI" to create a table of the mutual information indeces between the lists of clusterings. 
 
 adjustedMutualInformation = function(clustering_list, plot = F){
@@ -1152,4 +1158,7 @@ names(FC) = paste(1:length(unique(clustering)))
 	
 
 
-	}
+}
+
+
+
