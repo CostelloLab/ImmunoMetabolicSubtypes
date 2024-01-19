@@ -55,21 +55,13 @@ omics.list = list(t(T21.mixed$cytokines),t(T21.mixed$metabolites))
 NUMC <- 2:6
 phenotypes =  names(T21.mixed$clinic)[c(2,6,9:21)]
 iterations = 1000
-
-## condition_counts <- T21.mixed$clinic %>%
-##     dplyr::select(phenotypes) %>%
-##     dplyr::select(-c(Sex, Age_at_visit)) %>%
-##     reframe(count = colSums(., na.rm = T)) 
-## num_neighbors <- median(condition_counts$count)
-
-## overlap <- sapply(phenotypes[3:length(phenotypes)], function(x) {
-##     sapply(phenotypes[3:length(phenotypes)], function(y) {
-##         tmp <- table(T21.mixed$clinic[[x]],T21.mixed$clinic[[y]])
-##         return(tmp["1","1"])
-##     })})
-## num_neighbors = floor(mean(overlap[upper.tri(overlap)]))
-
 num_neighbors = 25
+
+```
+
+``` r
+
+```
 
 res <- clusterEval(omics.list = list(t(T21.mixed$cytokines),t(T21.mixed$metabolites)),
                 clinic = T21.mixed$clinic,
