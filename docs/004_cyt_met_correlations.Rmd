@@ -292,6 +292,9 @@ all_correlations <- D21_correlations$long %>%
     mutate(rank = row_number())
 names(all_correlations)[c(3,5)] <- c("D21", "T21_average")
 
+all_correlations %>%
+    summarise(correlation = cor(D21,T21_average, method = "spearman"))
+
 
 all_correlations <- all_correlations %>%
     select(A,B,T21_average,D21,rank) %>%
@@ -304,10 +307,13 @@ p1 <- ggplot(all_correlations, aes(x = rank, y = value, color = karyotype)) +
     xlab("") +
     ylab("correlation coefficient") +
     theme(axis.ticks.x = element_line(linewidth = 0),
-          axis.text.x = element_text(size = 0))
+          axis.text.x = element_text(size = 0))+
+    ylim(c(-.6,.6))
 pdf("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/correlation_diff_karytotype_plots/T21_vs_D21_corr_line_plots.pdf", width = 8, height = 4)
 print(p1)
 dev.off()
+
+
 
 ```
 
