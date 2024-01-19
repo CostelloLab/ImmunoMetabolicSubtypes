@@ -307,7 +307,8 @@ p1 <- ggplot(all_correlations, aes(x = rank, y = value, color = karyotype)) +
     xlab("") +
     ylab("correlation coefficient") +
     theme(axis.ticks.x = element_line(linewidth = 0),
-          axis.text.x = element_text(size = 0))+
+          axis.text.x = element_text(size = 0),
+          legend.position = "bottom")+
     ylim(c(-.6,.6))
 pdf("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/correlation_diff_karytotype_plots/T21_vs_D21_corr_line_plots.pdf", width = 8, height = 4)
 print(p1)
