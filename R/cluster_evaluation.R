@@ -1154,11 +1154,29 @@ names(FC) = paste(1:length(unique(clustering)))
 	}
 
 
-
-	
-
-
 }
 
 
+chordPlot <- function(data,cols, col_fun, title, diff_thresh, r_thresh) {
+
+    tmp <- data
+    tmp$flag <- ifelse(abs(tmp$diff) >= diff_thresh & abs(tmp$r) >= r_thresh, "yes","no")
+    tmp <- tmp %>%
+        dplyr::select(-diff)
+    circos.clear()
+    chordDiagram(tmp,  grid.col = cols,  col = col_fun ,annotationTrack = "grid", preAllocateTracks = 1, scale = F, link.sort = T, link.visible = tmp$flag == "yes")
+    title(title)
+    circos.trackPlotRegion(track.index = 1, panel.fun = function(x, y) {
+        xlim = get.cell.meta.data("xlim")
+        ylim = get.cell.meta.data("ylim")
+        sector.name = get.cell.meta.data("sector.index")
+        circos.text(mean(xlim), ylim[1] + .1, sector.name, facing = "clockwise", niceFacing = TRUE, adj = c(0, 0.5))
+        circos.axis(h = "top", labels.cex = 0.2, major.tick.length = 0.2, sector.index = sector.name, track.index = 2)
+    }, bg.border = NA)
+    
+    lgd <- Legend(at = c(-.4, 0, .4), col_fun = col_fun, title = "r2", direction = "horizontal")
+    
+    draw( lgd, just = "bottom", x = unit(6, "in"),y = unit(6, "mm"))
+
+}
 
