@@ -248,6 +248,56 @@ dev.off()
 ```
 
 
+
+## Case Imbalance
+To test whether the case imbalance between the D21 and T21 data is enough to affect the correlations, I will subsample the T21 data to 46 (the same size at the D21 cohort) and recalculate the correlations. 
+
+```r
+library(parallel)
+
+sub_corr <- mclapply(1:1000, function(x) {
+    print(x)
+    to_keep <- sample(1:nrow(T21.omics), 46)
+    tmp.omics <- T21.omics[to_keep,]
+    tmp_correlations <- tmp.omics %>%
+        corr.test(method = "spearman", adjust = "fdr")
+    tmp_correlations <- LongCorr(tmp_correlations)
+    tmp_correlations$long <- tmp_correlations$long %>%
+        filter(A %in% names(T21.mixed$cytokines) & B %in% names(T21.mixed$metabolites))
+    return(tmp_correlations$long)
+}, mc.cores = 6)
+
+save(sub_corr, file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/sub_corr.RData")
+
+T21_correlations$long$cohort <- "all T21"
+T21_sig_correlations <- T21_correlations$long %>%
+    filter(fdr < .1)
+T21_sig_correlations <- T21_sig_correlations %>%
+    mutate(cyt_met = paste0(A,"-", B))
+
+
+for(x in 1:10){
+    sub_corr[[x]]$cohort <- paste0("random sample ",x)
+    sub_corr[[x]] <- sub_corr[[x]] %>%
+        mutate(cyt_met = paste0(A,"-", B)) %>%
+        filter(cyt_met %in% T21_sig_correlations$cyt_met)
+}
+
+all_correlations <- bind_rows(sub_corr,T21_sig_correlations,)
+
+p1 <- ggplot(all_correlations, aes(x = r, fill = cohort)) +
+    geom_density(alpha = .3) +
+    theme_classic() +
+    ylab("Count") +
+    xlab("Correlation Coefficient")
+
+pdf("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/correlation_density_plots/sub_sampling_density_plots.pdf", width = 8, height = 6)
+print(p1)
+dev.off()
+
+```
+
+
 ### Metabolite Pathway enrichment
 
 ```r
