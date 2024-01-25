@@ -10,7 +10,7 @@ library(circlize)
 library(ComplexHeatmap)
 library(openxlsx)
 library(tidyverse)
-
+library(randomcoloR)
 
 ### adjustedMutualInformation is a function that uses the aricode function "AMI" to create a table of the mutual information indeces between the lists of clusterings. 
 
@@ -1179,4 +1179,35 @@ chordPlot <- function(data,cols, col_fun, title, diff_thresh, r_thresh) {
     draw( lgd, just = "bottom", x = unit(6, "in"),y = unit(6, "mm"))
 
 }
+
+
+plotCorr_1plot <- function(tmp.data, x_var, y_var,   met_path) {
+
+    path <- met_path %>%
+        filter(name == y_var) %>%
+        .$Pathway
+
+    
+    p1 =  ggplot(tmp.data, aes_string(tmp.data[,x_var], y = tmp.data[,y_var], color = "cluster")) +
+        geom_point(size = 2)    +
+        geom_smooth(method = "lm",  se = F) +
+        scale_color_manual(values = c("red", "grey", "lightblue")) +       
+        stat_cor(method = "spearman", label.x.npc = .8, label.y.npc = .2, size = 4 ) + 
+        ggpubr::theme_pubr() +
+        ggtitle(paste( x_var, "-", paste0(y_var, " (",path,")")))+
+        theme(plot.title = element_text(hjust = .5))+
+        xlim(c(min(tmp.data[,x_var]),max(tmp.data[,x_var]))) + 
+        ylim(c(min(tmp.data[,y_var]),max(tmp.data[,y_var])))+
+        xlab(x_var)+ ylab(y_var)
+
+    return(p1)
+    
+}
+
+
+
+
+
+
+
 
