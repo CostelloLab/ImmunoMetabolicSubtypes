@@ -153,5 +153,59 @@ lapply(names(all_sig_correlations)[c(1:4,6)], function(x) {
 
 ```r
 
+for(i in names(all_correlations)) {
+    all_correlations[[i]]$cluster <- i
+}
+corr_long <- all_correlations %>%
+    bind_rows()
+
+omics.data <- rbind(T21.omics,D21.omics)
+omics.data <- merge(omics.data, all_clust$clustering, by = 0, all = T)
+names(omics.data)[ncol(omics.data)] <- "clustering"
+omics.data$karyotype <- ifelse(is.na(omics.data$clustering), "D21", "T21")
+omics.data$clustering <- ifelse(is.na(omics.data$clustering), "D21", omics.data$clustering)
+
+T21_sig <- all_correlations[["T21"]] %>%
+    filter(fdr < .1)
+
+sapply(1:nrow(T21_sig),function(i) { 
+    x_var <- T21_sig[i,"A"]
+    y_var <- T21_sig[i,"B"]
+    sapply(1:4, function(j) {
+        tmp.data <- omics.data
+        tmp.data$cluster <- ifelse(tmp.data$clustering == j, j,
+                            ifelse(is.na(tmp.data$clustering)|tmp.data$clustering == "D21", "D21","T21"))
+    p1 <- plotCorr_1plot(tmp.data, x_var = x_var, y_var = y_var,met_path)
+    suppressMessages(ggsave(file = paste0("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/correlation_scatter_plots_by_cluster/cluster_",j,"/",make.names(x_var), " - ", make.names(y_var), ".pdf"),plot = p1))
+    })
+    print(paste(i/nrow(T21_sig), "complete"))
+})
+
+
+
+```
+
+
+## Finding the clusters with the most different correlation coefficients
+
+```r
+all_correlations[["T21"]] <- all_correlations[["T21"]] %>%
+    arrange(A,B)
+
+all_correlations <- lapply(all_correlations, function(x) {
+    x <- x %>%
+        arrange(A,B)
+    x$T21_r <- all_correlations[["T21"]]$r
+    x$T21_fdr <- all_correlations[["T21"]]$fdr
+    x$diff <- abs(x$r - all_correlations[["T21"]]$r)
+    x <- x %>%
+        filter(T21_fdr < .1) %>%
+        arrange(-diff)
+    return(x)
+})
+
+
+lapply(all_correlations, function(x) x%>% filter(A == "IL-12p70"))
+
 
 ```
