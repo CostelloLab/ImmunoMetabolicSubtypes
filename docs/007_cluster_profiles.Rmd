@@ -70,9 +70,7 @@ draw(p1$h, heatmap_legend_side = "bottom")
 dev.off()
 
 
-
 met_differential_expression <- diff_expr_wilcoxon(t(T21.mixed$metabolites),met_clust$clustering)
-
 met_cluster_associations <- association_test(clinic = T21.mixed$clinic,
                                          clustering = met_clust$clustering,
                                          phenotypes = names(T21.mixed$clinic)[10:21])
@@ -111,10 +109,7 @@ cyt_met_all_clusterings <- cyt_met_all_clusterings %>%
 
 cyt_met_all_clusterings[1:3] <- apply(cyt_met_all_clusterings[1:3],2,as.factor)
 
-set.seed(1234)
-cols <-  distinctColorPalette(k = length(unique(omics.data$clustering)))
-cols[length(cols)] <- "grey"
-cols[1] <- "blue4"
+cols <- c("blue4", "orange4", "springgreen4", "brown3", "grey")
 names(cols) <- c(1,2,3,4,"D21")
 
 p1 <- ggplot(as.data.frame(cyt_met_all_clusterings),
@@ -158,12 +153,8 @@ ggsave(p2,file = "~/OneDrive - The University of Colorado Denver/Projects/Immuno
 ```r
 #### side_by_side barplots
 
-set.seed(1234)
-cols <-  distinctColorPalette(k = length(unique(omics.data$clustering)))
-cols[length(cols)] <- "grey"
-cols[1] <- "blue4"
-names(cols) <- c(1,2,3,4,"D21")
 
+names(cols) <- c(paste("cluster", c(1,2,3,4)), "D21")
 
 clinic <- rbind(T21.mixed$clinic, D21.mixed$clinic)
 toplot = cluster_associations$ratio
@@ -180,6 +171,7 @@ toplot = sapply(1:ncol(toplot), function(x) toplot[,x] - totals[x]  )
 colnames(toplot) = gsub(" ", "\n",column_names)
 #toplot = toplot[,4]
 toplot = melt(toplot)
+
 assoc_barplot = ggplot(toplot, aes(x = as.factor(Var2), y = value, fill = Var1, width = .7, alpha = .8)) +
 	geom_bar(stat = "identity", position = "dodge") + 
 	theme_classic() +
@@ -190,6 +182,7 @@ assoc_barplot = ggplot(toplot, aes(x = as.factor(Var2), y = value, fill = Var1, 
 	xlab("") + ylab("Percent Normalized \n to T21 Average")+
     labs(fill = "") +
     guides(alpha = "none")
+
 pdf("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/phenotype_barplots/T21_integrated_disease_enrichments.pdf", height = 3, width = 6)
 print(assoc_barplot)
 dev.off()
@@ -261,13 +254,7 @@ dev.off()
 library(beeswarm)
 load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/processed/D21_standardized_cyt_met.RData")
 
-
-set.seed(1234)
-cols <-  distinctColorPalette(k = length(unique(omics.data$clustering)))
-cols[length(cols)] <- "grey"
-cols[1] <- "blue4"
 names(cols) <- c(1,2,3,4,"D21")
-
 
 D21.omics.data <-  as.data.frame(t(cbind(D21.mixed$cytokines, D21.mixed$metabolites)))
 
