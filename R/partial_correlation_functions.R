@@ -200,8 +200,8 @@ multiHeatmap <- function(toplot1, toplot2, key_pathways,pathways_all, met_path, 
     metabolites <-  full_results %>%
         filter(cyt_met %in% rownames(toplot1)) %>%
         distinct(cyt_met, .keep_all = TRUE) %>%
-        left_join(met_path, by = 'metabolite')    %>%
-        arrange(pathway)
+        left_join(met_path, by = c('metabolite' = 'name'))    %>%
+        arrange(Pathway)
 
     toplot1 <- toplot1[match( metabolites$cyt_met, rownames(toplot1)),]
 
@@ -234,7 +234,7 @@ multiHeatmap <- function(toplot1, toplot2, key_pathways,pathways_all, met_path, 
     
     ## ha <- HeatmapAnnotation(df = col_anno, col = column_col, show_legend = rep(FALSE,length(key_pathways)))
     
-    hr <- rowAnnotation(Class = metabolites$pathway)
+    hr <- rowAnnotation(Class = metabolites$Pathway)
 
     col_fun <- colorRamp2(c(min(toplot1), median(apply(toplot1,2, median)), max(toplot1) ), c("blue", "white", "gray"))
 
@@ -297,10 +297,13 @@ multiHeatmapOrderedGSEA <- function(toplot1, toplot2, key_pathways,pathways_all,
         as.data.frame() %>%
         filter(rownames(toplot1) %in% names(toplot2))
     
-    metabolites <-  full_results %>%
+   
+      metabolites <-  full_results %>%
         filter(cyt_met %in% rownames(toplot1)) %>%
         distinct(cyt_met, .keep_all = TRUE) %>%
-        left_join(met_path, by = 'metabolite') 
+        left_join(met_path, by = c('metabolite' = 'name'))    %>%
+        arrange(Pathway)
+
 
     toplot2 <- toplot2 %>%
         dplyr::filter(rownames(toplot2) %in% key_pathways) %>%
@@ -318,9 +321,8 @@ multiHeatmapOrderedGSEA <- function(toplot1, toplot2, key_pathways,pathways_all,
     names(toplot2) <- gsub("HALLMARK_","", names(toplot2))
     names(toplot2) <- gsub("_"," ", names(toplot2))
 
-    metabolites$pathway[is.na(metabolites$pathway)] <- "unknown"
     
-    hr <- rowAnnotation(Class = metabolites$pathway,
+    hr <- rowAnnotation(Class = metabolites$Pathway,
                         col = list(Class = col_vector),
                         show_annotation_name = FALSE,
                         annotation_legend_param = list(
