@@ -402,7 +402,7 @@ filterCyt_Mets <- function(toplot, formatted_gsea, key_pathway, gene_sets, num_c
 
     gene_set <- gene_sets[[key_pathway]]
     tmp_gsea <- formatted_gsea %>%
-        select(contains(rownames(toplot1))) %>%
+        dplyr::select(contains(rownames(toplot1))) %>%
         t() %>%
         as.data.frame() %>%
         arrange(-!!sym(key_pathway))
@@ -442,7 +442,7 @@ filterCyt_Mets_unbiased <- function(sig_list, formatted_gsea, key_pathway, gene_
 
 clusterGeneRanks <- function(cyt_mets, long_z_list, key_pathway, gene_sets ) {
 
-    clusters <- as.character(c("T21","D21",1,2,3,4,5))
+    clusters <- names(long_z_list)
 
     gene_set <- gene_sets[[key_pathway]]
     
@@ -487,17 +487,31 @@ clusterGeneRanks <- function(cyt_mets, long_z_list, key_pathway, gene_sets ) {
             select(mean_ranks)
         return(tmp)
     })
-    names(results) <- c("T21", "D21", "1"  , "2"  , "3"  , "4"  , "5")
+    names(results) <- names(long_z_list)
     return(results)
 
 }
 
 
 
-clusterHeatmap <- function(cluster_rank, name) {
+clusterHeatmap <- function(cluster_rank, name, cluster_correlations) {
 
-    
-    col_fun <- colorRamp2(c(1, 4000, 12624 ), c("darkblue", "white", "gray"))
+
+
+    correlation_data <- cluster_correlations %>%
+        filter(cyt_met %in% rownames(cluster_rank)) %>%
+        arrange(match(cyt_met, rownames(cluster_rank)))
+
+    row_col_fun <- colorRamp2(c(-.6,0,.6), c("blue", "white", "red"))
+    ha <- rowAnnotation(cor = correlation_data$r,
+                        col = list(cor = row_col_fun),
+                        show_legend = F,
+                        show_annotation_name = F
+                        )
+
+
+        
+    col_fun <- colorRamp2(c(1, 2000, 12624 ), c("darkblue", "white", "gray"))
     p1 <- Heatmap(as.matrix(cluster_rank),
                   name = name,
             row_order = rownames(cluster_rank),
@@ -511,25 +525,36 @@ clusterHeatmap <- function(cluster_rank, name) {
             col = col_fun,
             row_names_gp = gpar(fontsize =4),
             show_heatmap_legend = FALSE,
-            row_title = name
+            row_title = name,
+            left_annotation = ha
             )
+
     return(p1)
 
 }
 
 
-clusterHeatmapWrapper <- function(cluster_ranks, name, output_file) {
+clusterHeatmapWrapper <- function(cluster_ranks, name,cluster_correlations, output_file) {
 
-    clusters <- c("T21", "D21", "1"  , "2"  , "3"  , "4"  , "5")
+    clusters <- c("T21", "D21", "1"  , "2"  , "3"  , "4"  )
     heatmaps <- lapply(clusters , function(cluster) {
-        clusterHeatmap(cluster_ranks[[cluster]], cluster)
+        clusterHeatmap(cluster_ranks[[cluster]], cluster, cluster_correlations[[cluster]])
     })
-    all_heatmaps <- heatmaps[[1]]%v%heatmaps[[2]]%v%heatmaps[[3]]%v%heatmaps[[4]]%v%heatmaps[[5]]%v%heatmaps[[6]]%v%heatmaps[[7]]
+    all_heatmaps <- heatmaps[[1]]%v%heatmaps[[2]]%v%heatmaps[[3]]%v%heatmaps[[4]]%v%heatmaps[[5]]%v%heatmaps[[6]]
     
     pdf(output_file)
     draw(all_heatmaps, column_title = name)
     dev.off()
 }
+
+
+### Cluster Diff Plot
+
+
+
+
+
+
 
 
 #### fullHeatmap is a function for creating a heatmap of the GSEA results of the partial correlation analysis over all the cyt-met relationships
