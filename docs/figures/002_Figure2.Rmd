@@ -116,7 +116,6 @@ dev.off()
 ### data prep
 ```{r  data}
 library(tidyverse)
-load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/partial_correlation_results/partial_corrlation_gsea_results_formatted_.RData")
 toplot_clusters <- lapply(gsea_results_formatted, function(x) {
   x[,colSums(is.na(gsea_results_formatted[[1]])) <1]
 })
@@ -124,10 +123,10 @@ toplot_clusters <- lapply(toplot_clusters, function(x) {
   x %>%
     dplyr::select(contains("NES"))
 }) 
-for(x in 2:7) {
+for(x in 2:6) {
   names(toplot_clusters[[x]]) <- names(toplot_clusters[[1]])
 }
-names(toplot_clusters) <-c("T21", "D21", 1,2,3,4,5)
+names(toplot_clusters) <-c("T21", "D21", 1,2,3,4)
 
 ```
 
@@ -136,7 +135,6 @@ names(toplot_clusters) <-c("T21", "D21", 1,2,3,4,5)
 ## Heatmaps filtered by genes in geneset and ordered by gene set enrichment
 
 ```{r ordered global heatmap }
-load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/partial_correlation_results/full_partial_correlation_results_11_27.RData")
 
 T21_cyt_met <- full_results %>%
     filter(cluster == "T21") %>%
@@ -149,11 +147,13 @@ T21_filtered_full_results <- full_results %>%
 
 ```
 
-```{r}
+```r
 source("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/R/partial_correlation_functions.R")
 pathways_all <- gmtPathways("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/pathway/h.all.v2023.1.Hs.symbols.gmt")
 met_path <- get(load("/Users/lucas/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/pathway/metabolite_pathway.RData"))
 
+T21_filtered_full <- T21_filtered %>%
+    filter(cor_cyt_met_p < .05)
 
 DS_pathways <- c("HALLMARK_INTERFERON_GAMMA_RESPONSE", 
                  "HALLMARK_INTERFERON_ALPHA_RESPONSE",
@@ -173,7 +173,6 @@ col_vector <- col_vector[1:n]
 names(col_vector) <- unique_pathways
 col_vector <- c(col_vector, "unknown" = "black")
 
-
 toplot1 <- geneSetUnion(key_pathways = DS_pathways,
              pathways_all = pathways_all,
              met_path = met_path,
@@ -189,8 +188,8 @@ multiHeatmapOrderedGSEA(toplot1 = toplot1,
                         pathways_all = pathways_all,
                         met_path = met_path,
                         formatted_gsea = gsea_results_formatted[[1]] ,
-                        full_results = T21_filtered_full_results,
-                        output_file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/partial_correlation_results/figures/2D_filtered_ordered-IFN-gamma.pdf",
+                        full_results = T21_filtered_full,
+                        output_file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/mediation_heatmaps/T21_heatmaps/2D_filtered_ordered-IFN-gamma.pdf",
                         order_pathway = "HALLMARK_INTERFERON_GAMMA_RESPONSE",
                         col_vector = col_vector)
 
@@ -200,8 +199,8 @@ multiHeatmapOrderedGSEA(toplot1 = toplot1,
                         pathways_all = pathways_all,
                         met_path = met_path,
                         formatted_gsea = gsea_results_formatted[[1]] ,
-                        full_results = T21_filtered_full_results,
-                        output_file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/partial_correlation_results/figures/2D_filtered_ordered-HEME-METABOLISM.pdf",
+                        full_results = T21_filtered_full,
+                        output_file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/mediation_heatmaps/T21_heatmaps/2D_filtered_ordered-HEME-METABOLISM.pdf",
                         order_pathway = "HALLMARK_HEME_METABOLISM",
                         col_vector = col_vector)
 multiHeatmapOrderedGSEA(toplot1 = toplot1,
@@ -210,8 +209,8 @@ multiHeatmapOrderedGSEA(toplot1 = toplot1,
                         pathways_all = pathways_all,
                         met_path = met_path,
                         formatted_gsea = gsea_results_formatted[[1]] ,
-                        full_results = T21_filtered_full_results,
-                        output_file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/partial_correlation_results/figures/2D_filtered_ordered-OXIDATIVE-PHOSPHORYLATION.pdf",
+                        full_results = T21_filtered_full,
+                        output_file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/mediation_heatmaps/T21_heatmaps/2D_filtered_ordered-OXIDATIVE-PHOSPHORYLATION.pdf",
                         order_pathway = "HALLMARK_OXIDATIVE_PHOSPHORYLATION",
                         col_vector = col_vector)
 
@@ -222,7 +221,7 @@ multiHeatmapOrderedGSEA(toplot1 = toplot1,
 
 
 ### Heatmaps by cluster
-```{r}
+```r
 source("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/R/partial_correlation_functions.R")
 names(long_z) <-as.character(c("T21","D21",1,2,3,4))
 
