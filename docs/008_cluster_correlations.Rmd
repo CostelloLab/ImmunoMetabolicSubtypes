@@ -101,6 +101,8 @@ all_correlations <- lapply(all_correlations, function(x){
     left_join((met_path %>% dplyr::select(name,Pathway)), by = c("B" = "name"))
 })
 
+save(all_correlations, file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/partial_correlation_results/cluster_correlations.RData")
+
 all_sig_correlations <- lapply(all_correlations, function(x) {
     x %>%
         mutate(r = ifelse(fdr < .1, r, NA)) %>%    
@@ -205,12 +207,22 @@ corr_diff <- lapply(all_correlations, function(x) {
     x$diff <- abs(x$r - all_correlations[["T21"]]$r)
     x <- x %>%
         filter(T21_fdr < .1) %>%
-        filter(fdr < .1) %>%
+        filter(fdr < .2) %>%
         arrange(-diff)
     return(x)
 })
 
 corr_diff <- lapply(corr_diff, as.data.frame)
 
+save(corr_diff, file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/partial_correlation_results/difference_in_clusters.RData")
+
 lapply(corr_diff, head)
+
 ```
+
+## Correlation Density Plots
+
+```r
+all_correlations
+```
+
