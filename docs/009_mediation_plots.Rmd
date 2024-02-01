@@ -8,6 +8,30 @@ load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSub
 load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/partial_correlation_results/full_z_percent_1_15_24.RData")
 load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/partial_correlation_results/long_z_1_15_24.RData") 
 load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/partial_correlation_results/partial_corrlation_gsea_results_formatted_1_15_24.RData") 
+load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/partial_correlation_results/difference_in_clusters.RData")
+names(long_z) <-as.character(c("T21","D21",1,2,3,4))
+load(file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/partial_correlation_results/cluster_correlations.RData")
+source("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/R/partial_correlation_functions.R")
+pathways_all <- gmtPathways("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/pathway/h.all.v2023.1.Hs.symbols.gmt")
+met_path <- get(load("/Users/lucas/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/pathway/metabolite_pathway.RData"))
+
+```
+
+## data prep
+```{r  data}
+library(tidyverse)
+toplot_clusters <- lapply(gsea_results_formatted, function(x) {
+  x[,colSums(is.na(gsea_results_formatted[[1]])) <1]
+})
+toplot_clusters <- lapply(toplot_clusters, function(x) {
+  x %>%
+    dplyr::select(contains("NES"))
+}) 
+for(x in 2:6) {
+  names(toplot_clusters[[x]]) <- names(toplot_clusters[[1]])
+}
+names(toplot_clusters) <-c("T21", "D21", 1,2,3,4)
+
 ```
 
 #### Figure 2A
@@ -102,31 +126,9 @@ dev.off()
 
 ## Figure 2D
 
-### data prep
-```{r  data}
-library(tidyverse)
-toplot_clusters <- lapply(gsea_results_formatted, function(x) {
-  x[,colSums(is.na(gsea_results_formatted[[1]])) <1]
-})
-toplot_clusters <- lapply(toplot_clusters, function(x) {
-  x %>%
-    dplyr::select(contains("NES"))
-}) 
-for(x in 2:6) {
-  names(toplot_clusters[[x]]) <- names(toplot_clusters[[1]])
-}
-names(toplot_clusters) <-c("T21", "D21", 1,2,3,4)
-
-```
-
-
-
 ## Heatmaps filtered by genes in geneset and ordered by gene set enrichment
 
 ```r
-source("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/R/partial_correlation_functions.R")
-pathways_all <- gmtPathways("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/pathway/h.all.v2023.1.Hs.symbols.gmt")
-met_path <- get(load("/Users/lucas/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/pathway/metabolite_pathway.RData"))
 
 T21_filtered_full <- T21_filtered %>%
     filter(cor_cyt_met_p < .05)
@@ -242,6 +244,7 @@ cluster_ranks <- clusterGeneRanks(cyt_mets = cyt_mets,
                                   long_z_list = long_z,
                                   key_pathway = "HALLMARK_OXIDATIVE_PHOSPHORYLATION",
                                   gene_sets = pathways_all)
+
 names(cluster_ranks) <- names(long_z)
 cluster_heatmaps <- clusterHeatmapWrapper(cluster_ranks, name = "Oxidative Phosphorylation",all_correlations, output_file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/mediation_heatmaps/cluster_heatmaps/ox-phos.pdf")
 ```
@@ -252,9 +255,7 @@ cluster_heatmaps <- clusterHeatmapWrapper(cluster_ranks, name = "Oxidative Phosp
 
 ``` r
 source("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/R/partial_correlation_functions.R")
-load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/partial_correlation_results/difference_in_clusters.RData")
-names(long_z) <-as.character(c("T21","D21",1,2,3,4))
-load(file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/partial_correlation_results/cluster_correlations.RData")
+
 all_correlations <- lapply(all_correlations, function(x) {
     x %>% mutate(cyt_met = paste0(A, "-", B))
 })
@@ -294,6 +295,36 @@ names(cluster_ranks) <- names(long_z)
 cluster_heatmaps <- clusterHeatmapWrapper(cluster_ranks, name = "Interferon Gamma Response",all_correlations, output_file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/mediation_heatmaps/cluster_heatmaps/IFN-gamma_diff_filtered.pdf")
 ```
 
+
+### Global cluster enrichment by pathways
+Combine Z scores over pathway within cluster
 ```r
+cluster_z_scores <- lapply(names(pathways_all), function(x) clusterPathwayZscores(x,gsea_results))
+names(cluster_z_scores) <- names(pathways_all)
+
+cluster_z_scores <- lapply(cluster_z_scores, unlist)
+cluster_z_scores <- lapply(cluster_z_scores, as.data.frame)
+cluster_z_scores <- lapply(cluster_z_scores, setNames, c("T21", "D21", 1,2,3,4))
+cluster_z_scores <- cluster_z_scores %>% bind_rows()
+rownames(cluster_z_scores) <- names(pathways_all)
+cluster_z_scores <- cluster_z_scores[-nrow(cluster_z_scores),]
+rownames(cluster_z_scores) <- gsub("HALLMARK", "", rownames(cluster_z_scores))
+rownames(cluster_z_scores) <- gsub("_", " ", rownames(cluster_z_scores))
+
+col_fun <- colorRamp2(c(1.5,2), c("grey", "red"))
+p1 <- Heatmap(as.matrix(cluster_z_scores),
+              name = "NES",
+              column_order= names(cluster_z_scores),
+              show_row_dend = F,
+              col = col_fun,
+              row_names_side = "left",
+              row_names_gp = gpar(fontsize = 8)
+              )
+
+pdf("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/mediation_heatmaps/global_pathway_heatmaps/global_pathway_heatmap.pdf")
+print(p1)
+dev.off()
+
+
 
 ```
