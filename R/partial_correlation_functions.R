@@ -609,4 +609,20 @@ mediationSignatures <- function(key_pathway, tmp_gsea_formatted, tmp_toplot_clus
 } 
 
 
+clusterPathwayZscores <- function(key_pathway, gsea_results) {
+  
+    output <-  lapply(gsea_results, function(x) {
+        path_scores <- lapply(x, function(y) {
+            y %>%
+                filter(pathway == key_pathway & padj < .1 & NES > 0 ) 
+        })
+        summary_score <- path_scores %>%
+            bind_rows() %>%
+            summarise(summary_score = mean(NES,na.rm = T)) %>%
+            .$summary_score
+        
+    })
+    return(output)  
+} 
+
 
