@@ -117,7 +117,7 @@ heatmapDataPrep <- function(key_pathways,pathways_all, met_path, formatted_gsea,
 ## Outputs: pdf file of figure
 
 
-geneSetUnion <- function(key_pathways,pathways_all, met_path, formatted_gsea, threshold = 200, frequency = 5, z_scores, num_cyt_met = 100 ) {
+geneSetUnion <- function(key_pathways,pathways_all, met_path, formatted_gsea, threshold = 200, frequency = 5, z_scores, num_cyt_met = 100, padj_threshold = .05 ) {
     
     
     cyt_met_examples <- formatted_gsea %>%                                                  
@@ -128,7 +128,7 @@ geneSetUnion <- function(key_pathways,pathways_all, met_path, formatted_gsea, th
         filter(gsub(" NES", "", cyt_met_NES) == gsub(" padj", "", cyt_met_padj)) %>%
         mutate(cyt_met = gsub(" NES", "", cyt_met_NES)) %>%
         select(pathway, cyt_met, NES, padj) %>%
-        filter(padj < .05 & NES > 0) %>%
+        filter(padj < padj_threshold & NES > 0) %>%
         arrange(padj) %>%
         top_n(n = -num_cyt_met) %>%
         distinct(cyt_met) %>%
@@ -609,7 +609,7 @@ mediationSignatures <- function(key_pathway, tmp_gsea_formatted, tmp_toplot_clus
 } 
 
 
-clusterPathwayZscores <- function(key_pathway, gsea_results) {
+clusterPathwayEnrichment <- function(key_pathway, gsea_results) {
   
     output <-  lapply(gsea_results, function(x) {
         path_scores <- lapply(x, function(y) {
@@ -626,5 +626,28 @@ clusterPathwayZscores <- function(key_pathway, gsea_results) {
 } 
 
 
+clusterCytMetNES <- function(key_pathway,cluster,gsea_results, num_cyt_mets = 20) {
+    tmp_gsea <- gsea_results[c("T21","D21", cluster)]
+    pathway_filtered_gsea <- lapply(tmp_gsea, function(x) {
+        path_scores <- lapply(x, function(y) {
+            y %>%
+                filter(pathway == key_pathway ) 
+        })
+        path_scores <- path_scores %>%
+            bind_rows() %>%
+            mutate(cyt_met = names(tmp_gsea[[1]])) %>%
+            select(padj,NES,cyt_met)
+    })
 
+    all_pathway_gsea <- pathway_filtered_gsea %>% reduce(left_join, by = "cyt_met")
+    names(all_pathway_gsea) <- c("T21.padj", "T21.NES", "cyt_met", "D21.padj", "D21.NES", "cluster.padj", "cluster.NES")
+    all_pathway_gsea <- all_pathway_gsea %>%
+        filter(!if_any(everything(), is.na)) %>%
+        mutate(diff = cluster.NES - T21.NES) %>%
+        filter(T21.NES >0 & cluster.NES > 0) %>%
+        top_n(num_cyt_mets,diff)
+    return(all_pathway_gsea)
+    
+}
+    
 
