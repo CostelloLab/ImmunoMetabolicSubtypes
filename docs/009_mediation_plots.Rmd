@@ -297,28 +297,27 @@ cluster_heatmaps <- clusterHeatmapWrapper(cluster_ranks, name = "Interferon Gamm
 
 
 ### Global cluster enrichment by pathways
-Combine Z scores over pathway within cluster
+Enrichment over pathway between clusters
 ```r
-cluster_z_scores <- lapply(names(pathways_all), function(x) clusterPathwayZscores(x,gsea_results))
-names(cluster_z_scores) <- names(pathways_all)
-
-cluster_z_scores <- lapply(cluster_z_scores, unlist)
-cluster_z_scores <- lapply(cluster_z_scores, as.data.frame)
-cluster_z_scores <- lapply(cluster_z_scores, setNames, c("T21", "D21", 1,2,3,4))
-cluster_z_scores <- cluster_z_scores %>% bind_rows()
-rownames(cluster_z_scores) <- names(pathways_all)
-cluster_z_scores <- cluster_z_scores[-nrow(cluster_z_scores),]
-rownames(cluster_z_scores) <- gsub("HALLMARK", "", rownames(cluster_z_scores))
-rownames(cluster_z_scores) <- gsub("_", " ", rownames(cluster_z_scores))
+cluster_enrichment <- lapply(names(pathways_all), function(x) clusterPathwayEnrichment(x,gsea_results))
+names(cluster_enrichment) <- names(pathways_all)
+cluster_enrichment <- lapply(cluster_enrichment, unlist)
+cluster_enrichment <- cluster_enrichment %>% bind_rows()
+cluster_enrichment <- as.data.frame(cluster_enrichment)
+rownames(cluster_enrichment) <- names(pathways_all)
+cluster_enrichment <- cluster_enrichment[-nrow(cluster_enrichment),]
+rownames(cluster_enrichment) <- gsub("HALLMARK", "", rownames(cluster_enrichment))
+rownames(cluster_enrichment) <- gsub("_", " ", rownames(cluster_enrichment))
 
 col_fun <- colorRamp2(c(1.5,2), c("grey", "red"))
-p1 <- Heatmap(as.matrix(cluster_z_scores),
+p1 <- Heatmap(as.matrix(cluster_enrichment),
               name = "NES",
-              column_order= names(cluster_z_scores),
+              column_order= names(cluster_enrichment),
               show_row_dend = F,
               col = col_fun,
               row_names_side = "left",
-              row_names_gp = gpar(fontsize = 8)
+              row_names_gp = gpar(fontsize = 8),
+              column_names_side = "top"
               )
 
 pdf("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/mediation_heatmaps/global_pathway_heatmaps/global_pathway_heatmap.pdf")
@@ -328,3 +327,64 @@ dev.off()
 
 
 ```
+
+### VennDiagram of cyt-mets correlated and mediated by cluster
+
+### Difference of enrichment of cytokine-metabolites in cluster vs T21
+This plot shows the difference in enrichment scores for a pathway between the cluster and individuals with T21
+```r
+
+names(gsea_results) <- c("T21", "D21", 1,2,3,4)
+cluster_gsea <- clusterCytMetNES(key_pathway = "HALLMARK_INTERFERON_GAMMA_RESPONSE",
+                 cluster = 3,
+                 gsea_results = gsea_results,
+                 num_cyt_met = 20)
+
+p1<- ggplot(data = cluster_gsea, aes(x = cyt_met, y = NES, color = cluster )) +
+    geom_point() +
+    geom_linerange(inherit.aes = F,
+                   data = spread(cluster_gsea, cluster, NES),
+                   aes(x = cyt_met, ymin = T21, ymax = cluster3), linetype = "dashed", color = "grey")+
+    theme_classic()+
+    theme(axis.text.x = element_text(angle = 70, hjust = 1),
+          plot.title = element_text(hjust = .5),
+          legend.title = element_blank(),
+          legend.position = c(.9,.8)
+          ) +
+    ylab("NES") +
+    xlab("") +
+    ggtitle("Cluster 3          Interferon Gamma Response") 
+    
+
+pdf("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/cluster_NES_diff/IFN_gamma.pdf",
+    height= 6,
+    width = 12)
+print(p1)
+dev.off()
+
+
+cluster_gsea <- clusterCytMetNES(key_pathway = "HALLMARK_HEME_METABOLISM",
+                 cluster = 3,
+                 gsea_results = gsea_results,
+                 num_cyt_met = 20)
+p1<- ggplot(data = cluster_gsea, aes(x = cyt_met, y = NES, color = cluster )) +
+    geom_point() +
+    geom_linerange(inherit.aes = F,
+                   data = spread(cluster_gsea, cluster, NES),
+                   aes(x = cyt_met, ymin = T21, ymax = cluster3), linetype = "dashed", color = "grey")+
+    theme_classic()+
+    theme(axis.text.x = element_text(angle = 70, hjust = 1),
+          plot.title = element_text(hjust = .5),
+          legend.title = element_blank(),
+          legend.position = c(.9,.8)
+          ) +
+    ylab("NES") +
+    xlab("") +
+    ggtitle("Cluster 3          Heme Metabolism") 
+pdf("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/cluster_NES_diff/Heme.pdf",
+    height= 6,
+    width = 12)
+print(p1)
+dev.off()
+```
+
