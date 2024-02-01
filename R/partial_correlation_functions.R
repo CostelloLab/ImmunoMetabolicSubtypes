@@ -656,4 +656,14 @@ clusterCytMetNES <- function(key_pathway,cluster,gsea_results, num_cyt_mets = 20
     
 }
     
+clusterGeneZscores <- function(key_gene, long_z_list, cyt_mets) {
+    gene_z <- lapply(long_z, function(x) {
+        x %>% filter(gene == key_gene & cyt_met %in% cyt_mets) %>%
+            select(cyt_met,combined_Z)
+            
+    })
+    gene_z <- gene_z %>% reduce(left_join,by = "cyt_met") %>% column_to_rownames("cyt_met")
+    names(gene_z) <- names(long_z_list)
 
+    return(gene_z)
+}
