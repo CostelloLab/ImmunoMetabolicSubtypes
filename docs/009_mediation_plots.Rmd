@@ -328,8 +328,6 @@ dev.off()
 
 ```
 
-### VennDiagram of cyt-mets correlated and mediated by cluster
-
 ### Difference of enrichment of cytokine-metabolites in cluster vs T21
 This plot shows the difference in enrichment scores for a pathway between the cluster and individuals with T21
 ```r
@@ -388,3 +386,81 @@ print(p1)
 dev.off()
 ```
 
+### Gene centric differences in Z score by cluster
+
+```r
+
+
+cluster_gsea <- clusterCytMetNES(key_pathway = "HALLMARK_INTERFERON_GAMMA_RESPONSE",
+                 cluster = 3,
+                 gsea_results = gsea_results,
+                 num_cyt_met = 20)
+
+toplot1 <- geneSetUnion(key_pathways = c("HALLMARK_INTERFERON_GAMMA_RESPONSE", "HEME_METABOLISM"),
+             pathways_all = pathways_all,
+             met_path = met_path,
+             formatted_gsea = gsea_results_formatted[[1]],
+             z_scores = long_z[[1]],
+             num_cyt_met = 400
+             )
+
+cyt_mets <- filterCyt_Mets(toplot = toplot1,
+               formatted_gsea = gsea_results_formatted[[1]],
+               key_pathway = "HALLMARK_INTERFERON_GAMMA_RESPONSE",
+               gene_sets = pathways_all,
+               num_cyt_met = 20)
+
+
+scores <- clusterGeneZscores(key_gene= "STAT1",
+                             long_z_list = long_z,
+                             cyt_mets = cyt_mets)
+
+
+p1 <- Heatmap(t(scores),
+        name = "Z score",
+        column_order= rownames(scores),
+        row_order = colnames(scores),
+        show_row_dend = F,
+        row_names_side = "left",
+        column_names_gp = gpar(fontsize = 8),
+        column_names_rot = 70,
+        column_names_side = "bottom"
+        )
+
+pdf("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/mediation_heatmaps/Z_score_heatmaps/STAT1.pdf",
+    height = 6,
+    width = 10)
+p1
+dev.off()
+
+```
+
+
+
+
+
+#### Venn Diagram of mediation signatures 
+```{r}
+DS_pathways <- c("HALLMARK_INTERFERON_GAMMA_RESPONSE", 
+                 "HALLMARK_HEME_METABOLISM", 
+                 "HALLMARK_OXIDATIVE_PHOSPHORYLATION"
+                 )
+
+## if (!require(devtools)) install.packages("devtools")
+## devtools::install_github("yanlinlin82/ggvenn")
+
+library(ggvenn)
+
+x <- mediation_signatures[DS_pathways]
+names(x) <- gsub("HALLMARK_", "", names(x))
+
+venn <- ggvenn(
+  x, 
+  fill_color = c("#0073C2FF", "#EFC000FF", "#868686FF", "#CD534CFF"),
+  stroke_size = 0.5, set_name_size = 3
+  )
+
+
+ggsave(filename = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/partial_correlation_results/figures/mediation_signatures_venn.pdf", width = 10, height =5, units ="in")
+
+```
