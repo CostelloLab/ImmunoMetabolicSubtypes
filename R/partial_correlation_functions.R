@@ -620,7 +620,10 @@ clusterPathwayEnrichment <- function(key_pathway, gsea_results) {
             bind_rows() %>%
             summarise(summary_score = mean(NES,na.rm = T)) %>%
             .$summary_score
-        
+
+        ## summary_score <- path_scores %>%
+        ##     bind_rows()
+        ## return(nrow(summary_score) /length(x))
     })
     return(output)  
 } 
@@ -658,12 +661,74 @@ clusterCytMetNES <- function(key_pathway,cluster,gsea_results, num_cyt_mets = 20
     
 clusterGeneZscores <- function(key_gene, long_z_list, cyt_mets) {
     gene_z <- lapply(long_z, function(x) {
-        x %>% filter(gene == key_gene & cyt_met %in% cyt_mets) %>%
-            select(cyt_met,combined_Z)
+        x %>% filter(gene %in% key_gene & cyt_met %in% cyt_mets) %>%
+            select(cyt_met,combined_Z) %>%
+            arrange(-combined_Z)
             
     })
     gene_z <- gene_z %>% reduce(left_join,by = "cyt_met") %>% column_to_rownames("cyt_met")
     names(gene_z) <- names(long_z_list)
 
     return(gene_z)
+}
+
+
+
+clusterDiffPlot <- function(pathway, key_cluster = 1, gsea_results. = gsea_results,num_cyt_met) {
+
+    cluster_gsea <- clusterCytMetNES(key_pathway = pathway,
+                                     cluster = key_cluster,
+                                     gsea_results = gsea_results.,
+                                     num_cyt_met = num_cyt_met)
+
+    p1<- ggplot(data = cluster_gsea, aes(x = cyt_met, y = NES, color = cluster )) +
+        geom_point() +
+        geom_linerange(inherit.aes = F,
+                       data = spread(cluster_gsea, cluster, NES),
+                       aes_string(x = "cyt_met", ymin = "T21", ymax =paste0("cluster",key_cluster) ), linetype = "dashed", color = "grey")+
+        theme_classic()+
+        theme(axis.text.x = element_text(angle = 80, hjust = 1),
+              plot.title = element_text(hjust = .5),
+              legend.title = element_blank(),
+              legend.position = c(.9,.8)
+              ) +
+        ylab("NES") +
+        xlab("") +
+        ggtitle(paste0("Cluster ",key_cluster,"     ", pathway))
+    
+
+    pdf(paste0("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/cluster_NES_diff/",key_cluster,"_",pathway,".pdf"),
+        height= 6,
+        width = 12)
+    print(p1)
+    dev.off()
+}
+
+
+topMediatorsCluster <- function(long_z_list, cyt_mets, cluster) {
+
+    genes <- sapply(cyt_mets, function(x) {
+        long_z_list[[as.character(cluster)]] %>%
+            filter(cyt_met == x) %>%
+            top_n(1,combined_Z) %>%
+            .$gene
+    })
+        
+    gene_z <- lapply(long_z_list, function(x) {
+        tmp <- sapply(1:length(cyt_mets), function(y) {
+            x %>% filter(gene== genes[y] & cyt_met ==cyt_mets[y]) %>%
+                select(gene,cyt_met,combined_Z) 
+        })
+        tmp %>% t() %>% as.data.frame()
+    })
+
+    gene_z <- gene_z %>% reduce(left_join,by = c("gene","cyt_met")) %>% column_to_rownames("cyt_met")
+    names(gene_z)[2:7] <- names(long_z_list)
+
+    return(gene_z)
+
+    
+
+    
+
 }
