@@ -308,82 +308,52 @@ rownames(cluster_enrichment) <- names(pathways_all)
 cluster_enrichment <- cluster_enrichment[-nrow(cluster_enrichment),]
 rownames(cluster_enrichment) <- gsub("HALLMARK", "", rownames(cluster_enrichment))
 rownames(cluster_enrichment) <- gsub("_", " ", rownames(cluster_enrichment))
+normalized_enrichment <- cluster_enrichment[,3:6]/cluster_enrichment[,1]
 
-col_fun <- colorRamp2(c(1.5,2), c("grey", "red"))
-p1 <- Heatmap(as.matrix(cluster_enrichment),
-              name = "NES",
-              column_order= names(cluster_enrichment),
+col_fun <- colorRamp2(c(0.7,1,1.3), c("blue","white", "red"))
+p1 <- Heatmap(as.matrix(normalized_enrichment),
+              name = "T21-normalized\nNES",
+              column_order= names(normalized_enrichment),
               show_row_dend = F,
               col = col_fun,
               row_names_side = "left",
               row_names_gp = gpar(fontsize = 8),
               column_names_side = "top"
               )
-
-pdf("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/mediation_heatmaps/global_pathway_heatmaps/global_pathway_heatmap.pdf")
+pdf("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/mediation_heatmaps/global_pathway_heatmaps/T21_normalized_NES_global_pathway_heatmap.pdf")
 print(p1)
 dev.off()
 
 
-
+normalized_enrichment <- cluster_enrichment[,c(1,3:6)]/cluster_enrichment[,2]
+col_fun <- colorRamp2(c(0.7,1,1.3), c("blue","white", "red"))
+p1 <- Heatmap(as.matrix(normalized_enrichment),
+              name = "D21-normalized\nNES",
+              column_order= names(normalized_enrichment),
+              show_row_dend = F,
+              col = col_fun,
+              row_names_side = "left",
+              row_names_gp = gpar(fontsize = 8),
+              column_names_side = "top"
+              )
+pdf("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/mediation_heatmaps/global_pathway_heatmaps/D21_normalized_NES_global_pathway_heatmap.pdf")
+print(p1)
+dev.off()
 ```
 
 ### Difference of enrichment of cytokine-metabolites in cluster vs T21
 This plot shows the difference in enrichment scores for a pathway between the cluster and individuals with T21
 ```r
 
+
 names(gsea_results) <- c("T21", "D21", 1,2,3,4)
-cluster_gsea <- clusterCytMetNES(key_pathway = "HALLMARK_INTERFERON_GAMMA_RESPONSE",
-                 cluster = 3,
-                 gsea_results = gsea_results,
-                 num_cyt_met = 20)
 
-p1<- ggplot(data = cluster_gsea, aes(x = cyt_met, y = NES, color = cluster )) +
-    geom_point() +
-    geom_linerange(inherit.aes = F,
-                   data = spread(cluster_gsea, cluster, NES),
-                   aes(x = cyt_met, ymin = T21, ymax = cluster3), linetype = "dashed", color = "grey")+
-    theme_classic()+
-    theme(axis.text.x = element_text(angle = 70, hjust = 1),
-          plot.title = element_text(hjust = .5),
-          legend.title = element_blank(),
-          legend.position = c(.9,.8)
-          ) +
-    ylab("NES") +
-    xlab("") +
-    ggtitle("Cluster 3          Interferon Gamma Response") 
-    
-
-pdf("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/cluster_NES_diff/IFN_gamma.pdf",
-    height= 6,
-    width = 12)
-print(p1)
-dev.off()
+clusterDiffPlot(pathway = "HALLMARK_INTERFERON_GAMMA_RESPONSE",
+                key_cluster = 3,
+                num_cyt_met = 20)
 
 
-cluster_gsea <- clusterCytMetNES(key_pathway = "HALLMARK_HEME_METABOLISM",
-                 cluster = 3,
-                 gsea_results = gsea_results,
-                 num_cyt_met = 20)
-p1<- ggplot(data = cluster_gsea, aes(x = cyt_met, y = NES, color = cluster )) +
-    geom_point() +
-    geom_linerange(inherit.aes = F,
-                   data = spread(cluster_gsea, cluster, NES),
-                   aes(x = cyt_met, ymin = T21, ymax = cluster3), linetype = "dashed", color = "grey")+
-    theme_classic()+
-    theme(axis.text.x = element_text(angle = 70, hjust = 1),
-          plot.title = element_text(hjust = .5),
-          legend.title = element_blank(),
-          legend.position = c(.9,.8)
-          ) +
-    ylab("NES") +
-    xlab("") +
-    ggtitle("Cluster 3          Heme Metabolism") 
-pdf("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/cluster_NES_diff/Heme.pdf",
-    height= 6,
-    width = 12)
-print(p1)
-dev.off()
+
 ```
 
 ### Gene centric differences in Z score by cluster
@@ -396,37 +366,24 @@ cluster_gsea <- clusterCytMetNES(key_pathway = "HALLMARK_INTERFERON_GAMMA_RESPON
                  gsea_results = gsea_results,
                  num_cyt_met = 20)
 
-toplot1 <- geneSetUnion(key_pathways = c("HALLMARK_INTERFERON_GAMMA_RESPONSE", "HEME_METABOLISM"),
-             pathways_all = pathways_all,
-             met_path = met_path,
-             formatted_gsea = gsea_results_formatted[[1]],
-             z_scores = long_z[[1]],
-             num_cyt_met = 400
-             )
-
-cyt_mets <- filterCyt_Mets(toplot = toplot1,
-               formatted_gsea = gsea_results_formatted[[1]],
-               key_pathway = "HALLMARK_INTERFERON_GAMMA_RESPONSE",
-               gene_sets = pathways_all,
-               num_cyt_met = 20)
-
 
 scores <- clusterGeneZscores(key_gene= "STAT1",
                              long_z_list = long_z,
-                             cyt_mets = cyt_mets)
+                             cyt_mets = unique(cluster_gsea$cyt_met))
 
-
+col_fun <- colorRamp2(c(-15,0,15), c("blue","white", "red"))
 p1 <- Heatmap(t(scores),
         name = "Z score",
-        column_order= rownames(scores),
+        column_order= as.character(unique(cluster_gsea$cyt_met)),
         row_order = colnames(scores),
         show_row_dend = F,
         row_names_side = "left",
         column_names_gp = gpar(fontsize = 8),
-        column_names_rot = 70,
-        column_names_side = "bottom"
+        column_names_rot = 80,
+        column_names_side = "bottom",
+        column_title = "STAT1",
+        col = col_fun
         )
-
 pdf("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/mediation_heatmaps/Z_score_heatmaps/STAT1.pdf",
     height = 6,
     width = 10)
@@ -435,6 +392,55 @@ dev.off()
 
 ```
 
+### Enrichment of metabolic classes mediated
+
+``` r
+
+
+```
+
+
+
+
+
+### Heatmap of top mediators across cyt-met relationships
+
+```r
+cluster_gsea <- clusterCytMetNES(key_pathway = "HALLMARK_INTERFERON_GAMMA_RESPONSE",
+                 cluster = 3,
+                 gsea_results = gsea_results,
+                 num_cyt_met = 20)
+scores <- topMediatorsCluster(long_z_list = long_z,
+                              cyt_mets = unique(cyt_mets),
+                              cluster = '3')
+
+ha = HeatmapAnnotation(gene = anno_text(scores$gene, gp = gpar(fontsize = 8)))
+
+toplot <- t(scores[,2:7])
+toplot <- apply(toplot,2,as.numeric)
+
+col_fun <- colorRamp2(c(-15,0,15), c("blue","white", "red"))
+p1 <- Heatmap(toplot,
+        name = "Z score",
+        column_order= colnames(toplot),
+        row_order = rownames(toplot),
+        show_row_dend = F,
+        row_names_side = "left",
+        column_names_gp = gpar(fontsize = 8),
+        column_names_rot = 80,
+        column_names_side = "bottom",
+        top_annotation = ha,
+        col = col_fun,
+        heatmap_legend_param = list(legend_direction = "horizontal")
+        )
+
+pdf("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/mediation_heatmaps/Z_score_heatmaps/IFN-gamma-cyt-mets.pdf",
+    height = 6,
+    width = 10)
+draw(p1, heatmap_legend_side = "bottom")
+dev.off()
+
+```
 
 
 
