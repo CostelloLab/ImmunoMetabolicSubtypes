@@ -356,15 +356,37 @@ clusterDiffPlot(pathway = "HALLMARK_INTERFERON_GAMMA_RESPONSE",
 
 ```
 
-### Gene centric differences in Z score by cluster
 
-```r
+### Enrichment of metabolic classes mediated
 
+``` r
 
 cluster_gsea <- clusterCytMetNES(key_pathway = "HALLMARK_INTERFERON_GAMMA_RESPONSE",
                  cluster = 3,
                  gsea_results = gsea_results,
-                 num_cyt_met = 20)
+                 num_cyt_met = 100)
+
+load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/processed/T21_standardized_cyt_met.RData")
+
+cytokines <- names(T21.mixed$cytokines)
+sig_mets <- as.character(unique(cluster_gsea$cyt_met))
+
+sig_mets <- unique(unlist(sapply(cytokines, function(x) {
+    tmp <- gsub(paste0(x,"-"), "",sig_mets[grepl(x, sig_mets)])
+    return(tmp)
+})))
+
+source("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/r/enrichment_functions.R")
+metEnrich(sig_mets, met_path)
+
+```
+
+
+
+
+### Gene centric differences in Z score by cluster
+
+```r
 
 
 scores <- clusterGeneZscores(key_gene= "STAT1",
@@ -392,12 +414,6 @@ dev.off()
 
 ```
 
-### Enrichment of metabolic classes mediated
-
-``` r
-
-
-```
 
 
 
