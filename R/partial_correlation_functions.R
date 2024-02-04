@@ -647,7 +647,7 @@ clusterCytMetNES <- function(key_pathway,cluster,gsea_results, num_cyt_mets = 20
     all_pathway_gsea <- all_pathway_gsea %>%
         filter(!if_any(everything(), is.na)) %>%
         mutate(diff = cluster.NES - T21.NES) %>%
-        filter(T21.NES >0 & cluster.NES > 0) %>%
+        filter(T21.NES >0 & cluster.NES > 0 & cluster.padj < .1) %>%
         top_n(num_cyt_mets,diff) %>%
         arrange(-cluster.NES) %>%
         select(cyt_met, T21.NES,  cluster.NES)
