@@ -434,6 +434,7 @@ ha = HeatmapAnnotation(gene = anno_text(scores$gene, gp = gpar(fontsize = 8)))
 
 toplot <- t(scores[,2:7])
 toplot <- apply(toplot,2,as.numeric)
+rownames(toplot) <- names(scores)[2:7]
 
 col_fun <- colorRamp2(c(-15,0,15), c("blue","white", "red"))
 p1 <- Heatmap(toplot,
@@ -452,7 +453,7 @@ p1 <- Heatmap(toplot,
 
 pdf("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/mediation_heatmaps/Z_score_heatmaps/IFN-gamma-cyt-mets.pdf",
     height = 6,
-    width = 10)
+    width = 12)
 draw(p1, heatmap_legend_side = "bottom")
 dev.off()
 
