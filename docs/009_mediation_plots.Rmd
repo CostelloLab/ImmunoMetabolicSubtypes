@@ -32,6 +32,13 @@ for(x in 2:6) {
 }
 names(toplot_clusters) <-c("T21", "D21", 1,2,3,4)
 
+
+### Need to name the gsea result data frames
+for(i in 2:6) {
+    names(gsea_results_formatted[[i]]) <- names(gsea_results_formatted[[1]])
+}
+
+names(gsea_results_formatted) <- c("T21", "D21", 1,2,3,4)
 ```
 
 #### Figure 2A
@@ -128,8 +135,7 @@ dev.off()
 
 ## Heatmaps filtered by genes in geneset and ordered by gene set enrichment
 
-```r
-
+``` r
 T21_filtered_full <- T21_filtered %>%
     filter(cor_cyt_met_p < .05)
 
@@ -161,9 +167,24 @@ toplot1 <- geneSetUnion(key_pathways = DS_pathways,
 
 ```
 
+
+## Exploring top ranked cytokine-metabolite relationships and genes in a particular pathway
 ``` r
 
 
+cyt_mets <- OrderedGSEA(
+               formatted_gsea = gsea_results_formatted[['4']],
+    key_pathway = "HALLMARK_INTERFERON_GAMMA_RESPONSE",
+    p_thresh = .05)
+
+dim(cyt_mets)
+head(cyt_mets)
+
+```
+
+
+
+``` r
 
 source("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/R/partial_correlation_functions.R")
 multiHeatmapOrderedGSEA(toplot1 = toplot1, 
@@ -176,6 +197,8 @@ multiHeatmapOrderedGSEA(toplot1 = toplot1,
                         output_file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/mediation_heatmaps/T21_heatmaps/2D_filtered_ordered-IFN-gamma.pdf",
                         order_pathway = "HALLMARK_INTERFERON_GAMMA_RESPONSE",
                         col_vector = col_vector)
+
+
 
 multiHeatmapOrderedGSEA(toplot1 = toplot1,
                         toplot2 = toplot_clusters[[1]],
