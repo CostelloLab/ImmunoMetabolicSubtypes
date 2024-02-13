@@ -271,7 +271,9 @@ multiHeatmap <- function(toplot1, toplot2, key_pathways,pathways_all, met_path, 
    
   pdf(output_file, width = 12, height = 12)
   draw(heatmaps, heatmap_legend_side = "bottom")
-  dev.off()
+    dev.off()
+
+    return(toplot1)
   
 }
 
@@ -396,8 +398,64 @@ multiHeatmapOrderedGSEA <- function(toplot1, toplot2, key_pathways,pathways_all,
   pdf(output_file, width = 12, height = 12)
   draw(heatmaps, heatmap_legend_side = "bottom")
   dev.off()
+
   
 }
+
+
+## OrderedGSEA is a function for returning the top ranking genes and cytokine-metabolite relationships given a key pathway.
+## Inputs:
+## toplot1      dataframe of gene mediation rankings across cyt-met relationships
+## toplot2      GSEA NES scores across pathways and cyt-met relationships within a cluster
+## 
+
+OrderedGSEA <- function(formatted_gsea, key_pathway, p_thresh ) {
+
+    cyt_met_examples <- formatted_gsea %>%                                                  
+        rownames_to_column("pathway") %>%
+        filter(pathway %in% key_pathway) %>%
+        pivot_longer(cols = contains("NES"), values_to = "NES", names_to = "cyt_met_NES") %>%
+        pivot_longer(cols = contains("padj"), values_to = "padj", names_to = "cyt_met_padj") %>%
+        filter(gsub(" NES", "", cyt_met_NES) == gsub(" padj", "", cyt_met_padj)) %>%
+        mutate(cyt_met = gsub(" NES", "", cyt_met_NES)) %>%
+        select(pathway, cyt_met, NES, padj) %>%
+        filter(padj < p_thresh & NES > 0)    %>%
+        arrange(padj)
+
+
+
+    return(cyt_met_examples)
+    
+    ## names(toplot2) <- gsub(" NES", "", names(toplot2))
+
+    ## toplot1 <- toplot1 %>%
+    ##     as.data.frame() %>%
+    ##     filter(rownames(toplot1) %in% names(toplot2))
+    
+   
+    ## toplot2 <- toplot2 %>%
+    ##     filter(rownames(toplot2) == order_pathway) %>%
+    ##     select(rownames(toplot1)) %>%
+    ##     t() %>%
+    ##     as.data.frame() %>%
+    ##     arrange(-!!sym(order_pathway), .keep_all = TRUE)
+
+  
+    ## toplot1 <- toplot1[match(rownames(toplot2), rownames(toplot1)),]
+
+       
+    ## names(toplot2) <- gsub("HALLMARK_","", names(toplot2))
+    ## names(toplot2) <- gsub("_"," ", names(toplot2))
+
+    ## return(toplot2)
+    
+
+}
+
+
+
+
+
 
 
 filterCyt_Mets <- function(toplot, formatted_gsea, key_pathway, gene_sets, num_cyt_met) {
