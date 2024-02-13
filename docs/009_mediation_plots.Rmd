@@ -171,6 +171,7 @@ toplot1 <- geneSetUnion(key_pathways = DS_pathways,
 ## Exploring top ranked cytokine-metabolite relationships and genes in a particular pathway
 ``` r
 ## IFN_gamma
+
 IFN_IFN_cyt_mets <- OrderedGSEA(
                formatted_gsea = gsea_results_formatted[['T21']],
     key_pathway = "HALLMARK_INTERFERON_GAMMA_RESPONSE",
@@ -270,7 +271,6 @@ write.csv(as.data.frame(IFN_op), file = "~/OneDrive - The University of Colorado
 
 heme_op <- intersect(x[[2]],x[[3]])
 write.csv(as.data.frame(heme_op), file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/tables/heme_op_overlap.csv", row.names = F, quote = F)
-
 ```
 
 
@@ -471,6 +471,9 @@ clusterDiffPlot(pathway = "HALLMARK_INTERFERON_GAMMA_RESPONSE",
                 key_cluster = 3,
                 num_cyt_met = 20)
 
+clusterDiffPlot(pathway = "HALLMARK_INTERFERON_GAMMA_RESPONSE",
+                key_cluster = 1,
+                num_cyt_met = 20)
 
 
 ```
@@ -479,15 +482,30 @@ clusterDiffPlot(pathway = "HALLMARK_INTERFERON_GAMMA_RESPONSE",
 ### Enrichment of metabolic classes mediated
 
 ``` r
+names(gsea_results) <- c("T21", "D21", 1,2,3,4)
+
+cluster_gsea <- clusterCytMetNES(key_pathway = "HALLMARK_INTERFERON_GAMMA_RESPONSE",
+                 cluster = 1,
+                 gsea_results = gsea_results,
+                 num_cyt_met = 634)
+
+cytokines <- unique(T21_filtered_full$cytokine)
+sig_mets <- as.character(unique(cluster_gsea$cyt_met))
+
+sig_mets <- unique(unlist(sapply(cytokines, function(x) {
+    tmp <- gsub(paste0(x,"-"), "",sig_mets[grepl(x, sig_mets)])
+    return(tmp)
+})))
+
+source("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/r/enrichment_functions.R")
+metEnrich(sig_mets, met_path)
 
 cluster_gsea <- clusterCytMetNES(key_pathway = "HALLMARK_INTERFERON_GAMMA_RESPONSE",
                  cluster = 3,
                  gsea_results = gsea_results,
-                 num_cyt_met = 100)
+                 num_cyt_met = 634)
 
-load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/processed/T21_standardized_cyt_met.RData")
-
-cytokines <- names(T21.mixed$cytokines)
+cytokines <- unique(T21_filtered_full$cytokine)
 sig_mets <- as.character(unique(cluster_gsea$cyt_met))
 
 sig_mets <- unique(unlist(sapply(cytokines, function(x) {
