@@ -170,18 +170,108 @@ toplot1 <- geneSetUnion(key_pathways = DS_pathways,
 
 ## Exploring top ranked cytokine-metabolite relationships and genes in a particular pathway
 ``` r
-
-
-cyt_mets <- OrderedGSEA(
-               formatted_gsea = gsea_results_formatted[['4']],
+## IFN_gamma
+IFN_IFN_cyt_mets <- OrderedGSEA(
+               formatted_gsea = gsea_results_formatted[['T21']],
     key_pathway = "HALLMARK_INTERFERON_GAMMA_RESPONSE",
     p_thresh = .05)
 
-dim(cyt_mets)
-head(cyt_mets)
+dim(IFN_cyt_mets)
+head(IFN_cyt_mets$cyt_met,20)
+
+cytokines <- unique(T21_filtered_full$cytokine)
+sig_mets <- as.character(IFN_cyt_mets$cyt_met)
+
+sig_mets <- unique(unlist(sapply(cytokines, function(x) {
+    tmp <- gsub(paste0(x,"-"), "",sig_mets[grepl(x, sig_mets)])
+    return(tmp)
+})))
+
+source("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/r/enrichment_functions.R")
+metEnrich(sig_mets, met_path)
+
+met_path %>% filter(Pathway %in% c("Other sugars", "Saturated Fatty acids")) %>% select(compound)
+
+
+
+
+## Heme Metabolism
+heme_heme_cyt_mets <- OrderedGSEA(
+               formatted_gsea = gsea_results_formatted[['T21']],
+    key_pathway = "HALLMARK_HEME_METABOLISM",
+    p_thresh = .05)
+
+dim(heme_heme_cyt_mets)
+head(heme_heme_cyt_mets,20)
+
+met_path %>% select(name, Pathway)
+sig_mets <- as.character(heme_cyt_mets$cyt_met)
+sig_mets <- unique(unlist(sapply(cytokines, function(x) {
+    tmp <- gsub(paste0(x,"-"), "",sig_mets[grepl(x, sig_mets)])
+    return(tmp)
+})))
+metEnrich(sig_mets, met_path)
+
+
+
+
+## Oxidative Phosphorylation
+op_op_cyt_mets <- OrderedGSEA(
+               formatted_gsea = gsea_results_formatted[['T21']],
+    key_pathway = "HALLMARK_OXIDATIVE_PHOSPHORYLATION",
+    p_thresh = .05)
+
+dim(op_cyt_mets)
+head(op_cyt_mets,20)
+
+sig_mets <- as.character(op_cyt_mets$cyt_met)
+sig_mets <- unique(unlist(sapply(cytokines, function(x) {
+    tmp <- gsub(paste0(x,"-"), "",sig_mets[grepl(x, sig_mets)])
+    return(tmp)
+})))
+metEnrich(sig_mets, met_path)
+
+
+
 
 ```
 
+
+#### Venn Diagram of mediation signatures 
+```{r}
+DS_pathways <- c("HALLMARK_INTERFERON_GAMMA_RESPONSE", 
+                 "HALLMARK_HEME_METABOLISM", 
+                 "HALLMARK_OXIDATIVE_PHOSPHORYLATION"
+                 )
+
+## if (!require(devtools)) install.packages("devtools")
+## devtools::install_github("yanlinlin82/ggvenn")
+
+library(ggvenn)
+
+x <- list(IFN_cyt_mets$cyt_met, heme_cyt_mets$cyt_met, op_cyt_mets$cyt_met)
+names(x) <- gsub("HALLMARK_", "", DS_pathways)
+
+venn <- ggvenn(
+  x, 
+  fill_color = c("#0073C2FF", "#EFC000FF", "#868686FF", "#CD534CFF"),
+  stroke_size = 0.5, set_name_size = 3
+  )
+
+
+ggsave(filename = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/venn_diagrams/mediation_signatures_venn.pdf", width = 10, height =5, units ="in")
+
+
+IFN_heme <- intersect(x[[1]],x[[2]])
+write.csv(as.data.frame(IFN_heme), file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/tables/IFN_heme_overlap.csv", row.names = F, quote = F)
+
+IFN_op <- intersect(x[[1]],x[[3]])
+write.csv(as.data.frame(IFN_op), file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/tables/IFN_op_overlap.csv", row.names = F, quote = F)
+
+heme_op <- intersect(x[[2]],x[[3]])
+write.csv(as.data.frame(heme_op), file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/tables/heme_op_overlap.csv", row.names = F, quote = F)
+
+```
 
 
 ``` r
@@ -490,29 +580,3 @@ dev.off()
 
 
 
-
-#### Venn Diagram of mediation signatures 
-```{r}
-DS_pathways <- c("HALLMARK_INTERFERON_GAMMA_RESPONSE", 
-                 "HALLMARK_HEME_METABOLISM", 
-                 "HALLMARK_OXIDATIVE_PHOSPHORYLATION"
-                 )
-
-## if (!require(devtools)) install.packages("devtools")
-## devtools::install_github("yanlinlin82/ggvenn")
-
-library(ggvenn)
-
-x <- mediation_signatures[DS_pathways]
-names(x) <- gsub("HALLMARK_", "", names(x))
-
-venn <- ggvenn(
-  x, 
-  fill_color = c("#0073C2FF", "#EFC000FF", "#868686FF", "#CD534CFF"),
-  stroke_size = 0.5, set_name_size = 3
-  )
-
-
-ggsave(filename = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/partial_correlation_results/figures/mediation_signatures_venn.pdf", width = 10, height =5, units ="in")
-
-```
