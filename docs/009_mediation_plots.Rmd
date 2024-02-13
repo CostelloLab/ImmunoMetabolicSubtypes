@@ -159,6 +159,12 @@ toplot1 <- geneSetUnion(key_pathways = DS_pathways,
              num_cyt_met = 400
              )
 
+```
+
+``` r
+
+
+
 source("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/R/partial_correlation_functions.R")
 multiHeatmapOrderedGSEA(toplot1 = toplot1, 
                         toplot2 = toplot_clusters[[1]],
