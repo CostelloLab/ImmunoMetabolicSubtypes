@@ -70,13 +70,13 @@ D21_metabolite_correlations <- D21.mixed$metabolites %>%
 ``` r
 cyt_heatmap = Heatmap(T21_cytokine_correlations$
 	r, 
-	name = "conrrelation coefficient",
+	name = "rho",
 	row_dend_reorder = TRUE, 
 	column_dend_reorder = TRUE, 
 	show_row_dend = FALSE, 
 	show_column_dend = TRUE, 
 	column_names_gp = gpar(fontsize = 7),
-	row_names_gp = gpar(fontsize = 7), 
+	row_names_gp = gpar(fontsize =6 ), 
 	show_row_names = TRUE, 
 	show_column_names = FALSE,
 	column_split = 4,
@@ -84,11 +84,12 @@ cyt_heatmap = Heatmap(T21_cytokine_correlations$
 	row_title = NULL,
 	column_title = NULL,
 	col=colorRamp2(c(-.5, 0, .5), c("blue", "white", "red")),
-	heatmap_legend_param = list(direction = "horizontal")
+	heatmap_legend_param = list(direction = "horizontal",labels_gp = gpar(fontsize = 6), legend_title_gp = gpar(fontsize = 7)),
+    height = nrow(T21_cytokine_correlations$r) *unit(2,"mm"),
+    column_dend_height = unit(4,"mm")
     )
-
-pdf("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/correlation_heatmaps/T21_Cytokines_Correlation_Heatmap.pdf")
-draw(cyt_heatmap, heatmap_legend_side = "bottom")
+pdf("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/correlation_heatmaps/T21_Cytokines_Correlation_Heatmap.pdf", height = 5, width =3)
+draw(cyt_heatmap)
 dev.off()
 
 ```
