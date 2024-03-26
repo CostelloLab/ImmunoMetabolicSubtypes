@@ -103,7 +103,7 @@ met_heatmap = Heatmap(T21_metabolite_correlations$r,
 	show_row_dend = FALSE, 
 	show_column_dend = FALSE, 
 	column_names_gp = gpar(fontsize = 3),
-	row_names_gp = gpar(fontsize = 6), 
+	row_names_gp = gpar(fontsize = 4), 
 	show_row_names = FALSE, 
 	show_column_names =FALSE,
 	column_split = 4,
@@ -112,11 +112,13 @@ met_heatmap = Heatmap(T21_metabolite_correlations$r,
 	column_title = NULL,
 	col=colorRamp2(c(-.5, 0, .5), c("blue", "white", "red")),
     heatmap_legend_param = list(direction = "horizontal",labels_gp = gpar(fontsize = 6), legend_title_gp = gpar(fontsize = 7)),
-    ## height = nrow(T21_cytokine_correlations$r) *unit(5,"mm"),
-    column_dend_height = unit(4,"mm")
+    ## height = nrow(T21_metabolite_correlations$r) *unit(1.1,"mm"),
+    ## width = ncol(T21_metabolite_correlations$r) * unit(.25,'mm'),
+    column_dend_height = unit(4,"mm"),
+    show_heatmap_legend = TRUE
     )
-pdf("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/correlation_heatmaps/T21_Metabolites_Correlation_Heatmap.pdf",height = 3, width = 3)
-draw(met_heatmap, heatmap_legend_side = "bottom")
+pdf("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/correlation_heatmaps/T21_Metabolites_Correlation_Heatmap.pdf",height = 3, width = 3) 
+draw(met_heatmap,heatmap_legend_side = "bottom")
 dev.off()
 ```
 
@@ -217,7 +219,6 @@ write.csv(D21_correlations$long, file = "~/OneDrive - The University of Colorado
 
 ```r
 
-
 all_correlations <- T21_correlations$long %>%
     full_join(D21_correlations$long, by = c("A","B"))
 
@@ -229,11 +230,11 @@ all_correlations$significance <- ifelse(all_correlations$T21_fdr < .1 & all_corr
 
 all_correlations$diff <- abs(all_correlations$T21_r - all_correlations$D21_r)
 
-all_correlations$label <- ifelse(abs(all_correlations$T21_r) > .25 & abs(all_correlations$D21_r) < .15, paste(all_correlations$cytokine, "-",all_correlations$metabolite),
-                               ifelse(abs(all_correlations$T21_r) < .1 & abs(all_correlations$D21_r) > .5, paste(all_correlations$cytokine, "-",all_correlations$metabolite) ,""))
+all_correlations$label <- ifelse(abs(all_correlations$T21_r) > .285 & abs(all_correlations$D21_r) < .22, paste(all_correlations$cytokine, "-",all_correlations$metabolite),
+                               ifelse(abs(all_correlations$T21_r) < .1 & abs(all_correlations$D21_r) > .53, paste(all_correlations$cytokine, "-",all_correlations$metabolite) ,""))
 p1 <- ggplot(all_correlations, aes(x = T21_r, y = D21_r, color = significance,label = label, alpha = significance ))+
-    geom_point(size = 2) +
-    geom_label_repel(max.overlaps = 1e6, size = 2)+
+    geom_point(size = 1) +
+    geom_label_repel(max.overlaps = 1e6, size = 4)+
     theme_classic() +
     theme(legend.position = "bottom") +
     xlim(-.6,.6) + ylim(-.6,.6) +
@@ -243,7 +244,7 @@ p1 <- ggplot(all_correlations, aes(x = T21_r, y = D21_r, color = significance,la
     scale_alpha_manual(values = c(1,1,.2,1))  +
     xlab("T21 correlation coefficient") +
     ylab("D21 correlation coefficient")
-pdf("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/correlation_scatter_plots/karyotype/T21_D21_correlation_scatter.pdf")
+pdf("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/correlation_scatter_plots/karyotype/T21_D21_correlation_scatter.pdf",height = 5,width = 5)
 print(p1)
 dev.off()
 
@@ -346,13 +347,13 @@ p1 <- ggplot(enrich_plot_data, aes(x = cytokine, y = pathway, fill = avg_corr,co
           axis.title = element_text(size = 10),
           legend.text = element_text(size = 8),
           legend.title = element_text(size = 10),
-          legend.key.width = unit(4,'mm'),
-          legend.key.height = unit(2,'mm'),
-          legend.position = "bottom",
-          legend.direction = "horizontal",
-          legend.box = "vertical")           +
+          ## legend.key.width = unit(4,'mm'),
+          ## legend.key.height = unit(2,'mm'),
+          legend.position = "right",
+          legend.direction = "vertical",
+          legend.box = "horizontal")           +
     xlab("") + ylab("")
-pdf("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/enrichment/T21_enrichment.pdf", width =2.5,height = 4)
+pdf("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/enrichment/T21_enrichment.pdf", width =6,height = 3)
 print(p1)
 dev.off()
 ```
