@@ -6,12 +6,14 @@ load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSub
 load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/partial_correlation_results/full_partial_correlation_results_1_22_24.RData")
 #transcription_factors <- read.delim("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/transcription_factors.txt", header = F)
 load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/partial_correlation_results/full_z_percent_1_15_24.RData")
-load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/partial_correlation_results/long_z_1_15_24.RData") 
+load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/partial_correlation_results/long_z_12_4.RData")
 load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/partial_correlation_results/partial_corrlation_gsea_results_formatted_1_15_24.RData") 
 load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/partial_correlation_results/difference_in_clusters.RData")
 names(long_z) <-as.character(c("T21","D21",1,2,3,4))
 load(file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/partial_correlation_results/cluster_correlations.RData")
+
 source("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/R/partial_correlation_functions.R")
+
 pathways_all <- gmtPathways("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/pathway/h.all.v2023.1.Hs.symbols.gmt")
 met_path <- get(load("/Users/lucas/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/pathway/metabolite_pathway.RData"))
 
@@ -26,6 +28,8 @@ toplot_clusters <- lapply(gsea_results_formatted, function(x) {
 toplot_clusters <- lapply(toplot_clusters, function(x) {
   x %>%
     dplyr::select(contains("NES"))
+
+
 }) 
 for(x in 2:6) {
   names(toplot_clusters[[x]]) <- names(toplot_clusters[[1]])
@@ -74,33 +78,44 @@ dev.off()
 ```{r}
 library(tidyverse)
 library(ggplot2)
-```
+library(ggrepel)
 
-``` {r}
+load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/partial_correlation_results/long_z_1_15_24.RData")
+
 key_cyt_met <- "IFN-gamma-kynurenine"
 
 single_rel_z <- long_z[[1]] %>%
   filter(`cyt_met` == key_cyt_met) %>%
   as.data.frame() %>%
   arrange(-combined_Z) %>%
-  mutate(rank = row_number())
-
+    mutate(rank = row_number()) %>%
+    mutate(pathway = gene %in% pathways_all$HALLMARK_INTERFERON_GAMMA_RESPONSE) %>%
+    mutate(label = ifelse((combined_Z >5) | gene %in%  c("IDO1") , gene, ""))
 
 
 p1 <- ggplot(single_rel_z, aes(x = rank, y = combined_Z)) +
-  geom_point() +
-  geom_point(data = single_rel_z[single_rel_z$gene == "IDO1",], aes(x = rank, y = combined_Z),  color ="red")+
-  annotate("text", y= single_rel_z[single_rel_z$gene == "IDO1","combined_Z"],x =single_rel_z[single_rel_z$gene == "IDO1","rank"]+ 1000, angle = 0,  label="IDO1", color = "red", size = 6) +
-  geom_point(data = single_rel_z[single_rel_z$gene == "STAT1",], aes(x = rank, y = combined_Z),  color ="darkgreen")+
-  annotate("text", y= single_rel_z[single_rel_z$gene == "STAT1","combined_Z"],x =single_rel_z[single_rel_z$gene == "STAT1","rank"]+ 1050, angle = 0,  label="STAT1", color = "darkgreen", size = 6)+
-  theme_classic() +
-  xlab("rank") +
-  ylab("Z score")
-
-pdf(paste0("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/partial_correlation_results/figures/",key_cyt_met,"_Z_trend_plot.pdf"), width = 10, height = 8)
+    geom_point(size = .2)+
+    geom_point(data = single_rel_z[single_rel_z$pathway == TRUE,], aes(x = rank, y = combined_Z),  color ="red", size = .2)+
+    theme_classic() +
+    xlab("rank") +
+    ylab("Z score") +
+    ggtitle(paste0(key_cyt_met))+
+    theme(axis.text = element_text(size = 6),
+          axis.title = element_text(size = 7),
+          plot.title = element_text(size = 8, hjust = .5))+
+    geom_text_repel(aes(label = label),size = 2,
+                    min.segment.length = unit(0,"line"),
+                    segment.size = .2,
+                    segment.color = "gray50",
+                    segment.alpha = .4,
+                    max.overlaps = 10000,
+                    hjust = 1,
+                    force = 10,
+                    nudge_x = 1500
+                    )
+pdf(paste0("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/mediation_trendplots/",key_cyt_met,"_Z_trend_plot_",Sys.Date(),".pdf"), width = 2, height = 2.5)
 print(p1)
 dev.off()
-
 
 
 ```
@@ -110,24 +125,38 @@ dev.off()
 ```{r}
 ### placeholder for long_z file
 key_gene <- "STAT1"
-
-single_rel_z <- long_z[[1]] %>%
+single_gene_z <- long_z[[1]] %>%
   filter(gene == key_gene) %>%
   as.data.frame() %>%
   arrange(-combined_Z) %>%
- mutate(rank = row_number())
+    mutate(rank = row_number())%>%
+    mutate(label = ifelse(combined_Z > 5,cyt_met, "")) %>%
+    mutate(ifn = grepl("IFN-gamma", cyt_met))
 
-p1 <- ggplot(single_rel_z, aes(x = rank, y = combined_Z)) +
-  geom_point() +
-  geom_point(data = single_rel_z[single_rel_z$cyt_met == "IFN-gamma-kynurenine",], aes(x = rank, y = combined_Z),  color ="red")+
-    annotate("text", y= single_rel_z[single_rel_z$cyt_met == "IFN-gamma-kynurenine","combined_Z"],x =single_rel_z[single_rel_z$cyt_met == "IFN-gamma-kynurenine","rank"]+ 100, angle = 0,  label="IFN-gamma-kynurenine", color = "red", size = 6) +
-  theme_classic() +
-  xlab("rank") +
-  ylab("Z score")
-
-pdf(paste0("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/partial_correlation_results/figures/",key_gene,"_Z_trend_plot.pdf"), width = 10, height = 8)
+p1 <- ggplot(single_gene_z, aes(x = rank, y = combined_Z)) +
+    geom_point(size = .2) +
+    geom_point(data = single_gene_z[single_gene_z$ifn == TRUE,],aes(x = rank, y = combined_Z), color = "red",size = .2)+
+    theme_classic() +
+    xlab("rank") +
+    ylab("Z score")+
+    ylim(c(-6,6))+
+    geom_text_repel(aes(label = label),size = 2,
+                    min.segment.length = unit(0,"line"),
+                    segment.size = .2,
+                    segment.color = "gray50",
+                    segment.alpha = .4,
+                    max.overlaps = 10000,
+                    force = 1000,
+                )+
+    ggtitle(key_gene)+
+        theme(axis.text = element_text(size = 6),
+          axis.title = element_text(size = 7),
+          plot.title = element_text(size = 8, hjust = 0.5))
+pdf(paste0("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/mediation_trendplots/",key_gene,"_Z_trend_plot_",Sys.Date(),".pdf"), width = 2.5, height = 2.5)
 print(p1)
 dev.off()
+
+
 ```
 
 
