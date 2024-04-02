@@ -120,14 +120,15 @@ heatmapDataPrep <- function(key_pathways,pathways_all, met_path, formatted_gsea,
 geneSetUnion <- function(key_pathways,pathways_all, met_path, formatted_gsea, threshold = 200, frequency = 5, z_scores, num_cyt_met = 100, padj_threshold = .05 ) {
     
     
-    cyt_met_examples <- formatted_gsea %>%                                                  
+
+   cyt_met_examples <- formatted_gsea %>%                                                  
         rownames_to_column("pathway") %>%
         filter(pathway %in% key_pathways) %>%
         pivot_longer(cols = contains("NES"), values_to = "NES", names_to = "cyt_met_NES") %>%
         pivot_longer(cols = contains("padj"), values_to = "padj", names_to = "cyt_met_padj") %>%
         filter(gsub(" NES", "", cyt_met_NES) == gsub(" padj", "", cyt_met_padj)) %>%
         mutate(cyt_met = gsub(" NES", "", cyt_met_NES)) %>%
-        select(pathway, cyt_met, NES, padj) %>%
+        dplyr::select(pathway, cyt_met, NES, padj) %>%
         filter(padj < padj_threshold & NES > 0) %>%
         arrange(padj) %>%
         top_n(n = -num_cyt_met) %>%
@@ -139,7 +140,7 @@ geneSetUnion <- function(key_pathways,pathways_all, met_path, formatted_gsea, th
             filter(cyt_met == x) %>%
             arrange(desc(combined_Z)) %>%
             mutate(rank = row_number()) %>%
-            select(gene,rank)
+            dplyr::select(gene,rank)
         names(tmp)[2] <- x
         return(tmp)
     })
@@ -154,12 +155,12 @@ geneSetUnion <- function(key_pathways,pathways_all, met_path, formatted_gsea, th
         as.data.frame() 
     tokeep <- tokeep[tokeep %in% names(toplot)]
     toplot <- toplot %>%
-        select(tokeep)
+        dplyr::select(tokeep)
 
     agg_rank_gene_set <- lapply(key_pathways, function(pathway) {
         gene_set <- tokeep[tokeep %in% pathways_all[[pathway]]]
         mean_ranks <- toplot %>%
-            select(gene_set)%>%
+            dplyr::select(gene_set)%>%
             summarise(across(everything(), mean)) %>%
             pivot_longer(cols = everything()) %>%
             arrange(value) %>%
@@ -170,7 +171,7 @@ geneSetUnion <- function(key_pathways,pathways_all, met_path, formatted_gsea, th
     agg_rank_gene_set <- unlist(agg_rank_gene_set)
     agg_rank_gene_set <- agg_rank_gene_set[!duplicated(agg_rank_gene_set)]
     toplot <- toplot %>%
-        select(agg_rank_gene_set)
+        dplyr::select(agg_rank_gene_set)
     
     return(toplot)
 }
@@ -208,7 +209,7 @@ multiHeatmap <- function(toplot1, toplot2, key_pathways,pathways_all, met_path, 
 
     toplot2 <- toplot2 %>%
         dplyr::filter(rownames(toplot2) %in% key_pathways) %>%
-        select(rownames(toplot1)) %>%
+        dplyr::select(rownames(toplot1)) %>%
         t() %>%
         as.data.frame() %>%
         arrange(match(rownames(toplot1), rownames(toplot2)))
@@ -309,7 +310,7 @@ multiHeatmapOrderedGSEA <- function(toplot1, toplot2, key_pathways,pathways_all,
 
     toplot2 <- toplot2 %>%
         dplyr::filter(rownames(toplot2) %in% key_pathways) %>%
-        select(rownames(toplot1)) %>%
+        dplyr::select(rownames(toplot1)) %>%
         t() %>%
         as.data.frame() %>%
         arrange(-!!sym(order_pathway), .keep_all = TRUE)
@@ -363,7 +364,7 @@ multiHeatmapOrderedGSEA <- function(toplot1, toplot2, key_pathways,pathways_all,
                                   row_names_gp = gpar(fontsize = 2),
                                   column_names_gp = gpar(fontsize = 5),
                                   show_column_names = FALSE,
-                                  show_row_names = TRUE,
+                                  show_row_names = FALSE,
                                   row_names_side = "left",
                                   show_row_dend = FALSE,
                                   show_column_dend = FALSE,
@@ -418,7 +419,7 @@ OrderedGSEA <- function(formatted_gsea, key_pathway, p_thresh ) {
         pivot_longer(cols = contains("padj"), values_to = "padj", names_to = "cyt_met_padj") %>%
         filter(gsub(" NES", "", cyt_met_NES) == gsub(" padj", "", cyt_met_padj)) %>%
         mutate(cyt_met = gsub(" NES", "", cyt_met_NES)) %>%
-        select(pathway, cyt_met, NES, padj) %>%
+        dplyr::select(pathway, cyt_met, NES, padj) %>%
         filter(padj < p_thresh & NES > 0)    %>%
         arrange(padj)
 
@@ -435,7 +436,7 @@ OrderedGSEA <- function(formatted_gsea, key_pathway, p_thresh ) {
    
     ## toplot2 <- toplot2 %>%
     ##     filter(rownames(toplot2) == order_pathway) %>%
-    ##     select(rownames(toplot1)) %>%
+    ##     dplyr::select(rownames(toplot1)) %>%
     ##     t() %>%
     ##     as.data.frame() %>%
     ##     arrange(-!!sym(order_pathway), .keep_all = TRUE)
@@ -485,7 +486,7 @@ filterCyt_Mets_unbiased <- function(sig_list, formatted_gsea, key_pathway, gene_
 
     sig <- intersect(sig_list, cluster_sig$cyt_met)
     tmp_gsea <- formatted_gsea %>%
-        select(contains(sig)) %>%
+        dplyr::select(contains(sig)) %>%
         t()    %>%
          as.data.frame()    %>%
         arrange(-!!sym(key_pathway))
@@ -513,7 +514,7 @@ clusterGeneRanks <- function(cyt_mets, long_z_list, key_pathway, gene_sets ) {
                 filter(cyt_met == x)            %>%
                 arrange(desc(combined_Z)) %>%
                 mutate(rank = row_number()) %>%
-                select(gene,rank)
+                dplyr::select(gene,rank)
             names(tmp)[2] <- x
             return(tmp)
         })
@@ -529,7 +530,7 @@ clusterGeneRanks <- function(cyt_mets, long_z_list, key_pathway, gene_sets ) {
 
         toplot <- toplot %>%
             as.data.frame() %>%
-            select(tokeep)
+            dplyr::select(tokeep)
 
         
         
@@ -544,7 +545,7 @@ clusterGeneRanks <- function(cyt_mets, long_z_list, key_pathway, gene_sets ) {
 
     results <- lapply(results, function(x) {
         tmp <- x %>%
-            select(mean_ranks)
+            dplyr::select(mean_ranks)
         return(tmp)
     })
     names(results) <- names(long_z_list)
@@ -656,7 +657,7 @@ mediationSignatures <- function(key_pathway, tmp_gsea_formatted, tmp_toplot_clus
     pivot_longer(cols = contains("padj"), values_to = "padj", names_to = "cyt_met_padj") %>% 
     filter(gsub(" NES", "", cyt_met_NES) == gsub(" padj", "", cyt_met_padj)) %>%
     mutate(cyt_met = gsub(" NES", "", cyt_met_NES)) %>%
-    select(pathway, cyt_met, NES, padj) %>%
+    dplyr::select(pathway, cyt_met, NES, padj) %>%
     filter(padj < .05 & NES > 0 & pathway == key_pathway) %>%
     arrange(padj)
   
@@ -697,7 +698,7 @@ clusterCytMetNES <- function(key_pathway,cluster,gsea_results, num_cyt_mets = 20
         path_scores <- path_scores %>%
             bind_rows() %>%
             mutate(cyt_met = names(tmp_gsea[[1]])) %>%
-            select(padj,NES,cyt_met)
+            dplyr::select(padj,NES,cyt_met)
     })
 
     all_pathway_gsea <- pathway_filtered_gsea %>% reduce(left_join, by = "cyt_met")
@@ -708,7 +709,7 @@ clusterCytMetNES <- function(key_pathway,cluster,gsea_results, num_cyt_mets = 20
         filter(T21.NES >0 & cluster.NES > 0 & cluster.padj < .1) %>%
         top_n(num_cyt_mets,diff) %>%
         arrange(-cluster.NES) %>%
-        select(cyt_met, T21.NES,  cluster.NES)
+        dplyr::select(cyt_met, T21.NES,  cluster.NES)
         names(all_pathway_gsea) <- c( "cyt_met", "T21",   paste0("cluster", cluster))
     all_pathway_gsea$cyt_met <- factor(all_pathway_gsea$cyt_met, levels = all_pathway_gsea$cyt_met)
     all_pathway_gsea <- all_pathway_gsea %>%
@@ -720,7 +721,7 @@ clusterCytMetNES <- function(key_pathway,cluster,gsea_results, num_cyt_mets = 20
 clusterGeneZscores <- function(key_gene, long_z_list, cyt_mets) {
     gene_z <- lapply(long_z, function(x) {
         x %>% filter(gene %in% key_gene & cyt_met %in% cyt_mets) %>%
-            select(cyt_met,combined_Z) %>%
+            dplyr::select(cyt_met,combined_Z) %>%
             arrange(-combined_Z)
             
     })
@@ -775,7 +776,7 @@ topMediatorsCluster <- function(long_z_list, cyt_mets, cluster) {
     gene_z <- lapply(long_z_list, function(x) {
         tmp <- sapply(1:length(cyt_mets), function(y) {
             x %>% filter(gene== genes[y] & cyt_met ==cyt_mets[y]) %>%
-                select(gene,cyt_met,combined_Z) 
+                dplyr::select(gene,cyt_met,combined_Z) 
         })
         tmp %>% t() %>% as.data.frame()
     })
