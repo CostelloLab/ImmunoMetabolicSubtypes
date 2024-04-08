@@ -8,13 +8,11 @@ load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSub
 load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/partial_correlation_results/full_z_percent_1_15_24.RData")
 
 load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/partial_correlation_results/long_z_1_15_24.RData")
-names(long_z) <-as.character(c("T21","D21",1,2,3,4))
 
 load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/partial_correlation_results/partial_corrlation_gsea_results_formatted_1_15_24.RData") 
 load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/partial_correlation_results/difference_in_clusters.RData")
-
+names(long_z) <-as.character(c("T21","D21",1,2,3,4))
 load(file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/partial_correlation_results/cluster_correlations.RData")
-
 source("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/R/partial_correlation_functions.R")
 
 pathways_all <- gmtPathways("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/pathway/h.all.v2023.1.Hs.symbols.gmt")
@@ -24,7 +22,6 @@ met_path <- get(load("/Users/lucas/OneDrive - The University of Colorado Denver/
 
 ## data prep
 ```{r  data}
-
 library(tidyverse)
 toplot_clusters <- lapply(gsea_results_formatted, function(x) {
   x[,colSums(is.na(gsea_results_formatted[[1]])) <1]
@@ -32,7 +29,7 @@ toplot_clusters <- lapply(gsea_results_formatted, function(x) {
 toplot_clusters <- lapply(toplot_clusters, function(x) {
   x %>%
     dplyr::select(contains("NES"))
-
+nn
 
 }) 
 for(x in 2:6) {
@@ -82,8 +79,9 @@ dev.off()
 ```{r}
 library(tidyverse)
 library(ggplot2)
-library(ggrepel)
+```
 
+``` {r}
 load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/partial_correlation_results/long_z_1_15_24.RData")
 
 key_cyt_met <- "IFN-gamma-kynurenine"
@@ -93,33 +91,23 @@ single_rel_z <- long_z[[1]] %>%
   as.data.frame() %>%
   arrange(-combined_Z) %>%
     mutate(rank = row_number()) %>%
-    mutate(pathway = gene %in% pathways_all$HALLMARK_INTERFERON_GAMMA_RESPONSE) %>%
-    mutate(label = ifelse((combined_Z >5) | gene %in%  c("IDO1") , gene, ""))
+    mutate(ifn = ifelse(gene %in% pathways_all$HALLMARK_INTERFERON_GAMMA_RESPONSE, gene, ""))
 
+head(single_rel_z)
 
 p1 <- ggplot(single_rel_z, aes(x = rank, y = combined_Z)) +
-    geom_point(size = .2)+
-    geom_point(data = single_rel_z[single_rel_z$pathway == TRUE,], aes(x = rank, y = combined_Z),  color ="red", size = .2)+
-    theme_classic() +
-    xlab("rank") +
-    ylab("Z score") +
-    ggtitle(paste0(key_cyt_met))+
-    theme(axis.text = element_text(size = 6),
-          axis.title = element_text(size = 7),
-          plot.title = element_text(size = 8, hjust = .5))+
-    geom_text_repel(aes(label = label),size = 2,
-                    min.segment.length = unit(0,"line"),
-                    segment.size = .2,
-                    segment.color = "gray50",
-                    segment.alpha = .4,
-                    max.overlaps = 10000,
-                    hjust = 1,
-                    force = 10,
-                    nudge_x = 1500
-                    )
-pdf(paste0("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/mediation_trendplots/",key_cyt_met,"_Z_trend_plot_",Sys.Date(),".pdf"), width = 2, height = 2.5)
+  geom_point() +
+  geom_point(data = single_rel_z[single_rel_z$ifn != "",], aes(x = rank, y = combined_Z),  color ="red")+
+                                        #
+    annotate("text", y= single_rel_z[single_rel_z$ifn != "","combined_Z"],x =single_rel_z[single_rel_z$ifn != "","rank"]+ 1000, angle = 0,  label="IDO1", color = "red", size = 6) +
+  theme_classic() +
+  xlab("rank") +
+  ylab("Z score")
+
+pdf(paste0("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/partial_correlation_results/figures/",key_cyt_met,"_Z_trend_plot.pdf"), width = 10, height = 8)
 print(p1)
 dev.off()
+
 
 
 ```
@@ -129,38 +117,24 @@ dev.off()
 ```{r}
 ### placeholder for long_z file
 key_gene <- "STAT1"
-single_gene_z <- long_z[[1]] %>%
+
+single_rel_z <- long_z[[1]] %>%
   filter(gene == key_gene) %>%
   as.data.frame() %>%
   arrange(-combined_Z) %>%
-    mutate(rank = row_number())%>%
-    mutate(label = ifelse(combined_Z > 5,cyt_met, "")) %>%
-    mutate(ifn = grepl("IFN-gamma", cyt_met))
+ mutate(rank = row_number())
 
-p1 <- ggplot(single_gene_z, aes(x = rank, y = combined_Z)) +
-    geom_point(size = .2) +
-    geom_point(data = single_gene_z[single_gene_z$ifn == TRUE,],aes(x = rank, y = combined_Z), color = "red",size = .2)+
-    theme_classic() +
-    xlab("rank") +
-    ylab("Z score")+
-    ylim(c(-6,6))+
-    geom_text_repel(aes(label = label),size = 2,
-                    min.segment.length = unit(0,"line"),
-                    segment.size = .2,
-                    segment.color = "gray50",
-                    segment.alpha = .4,
-                    max.overlaps = 10000,
-                    force = 1000,
-                )+
-    ggtitle(key_gene)+
-        theme(axis.text = element_text(size = 6),
-          axis.title = element_text(size = 7),
-          plot.title = element_text(size = 8, hjust = 0.5))
-pdf(paste0("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/mediation_trendplots/",key_gene,"_Z_trend_plot_",Sys.Date(),".pdf"), width = 2.5, height = 2.5)
+p1 <- ggplot(single_rel_z, aes(x = rank, y = combined_Z)) +
+  geom_point() +
+  geom_point(data = single_rel_z[single_rel_z$cyt_met == "IFN-gamma-kynurenine",], aes(x = rank, y = combined_Z),  color ="red")+
+    annotate("text", y= single_rel_z[single_rel_z$cyt_met == "IFN-gamma-kynurenine","combined_Z"],x =single_rel_z[single_rel_z$cyt_met == "IFN-gamma-kynurenine","rank"]+ 100, angle = 0,  label="IFN-gamma-kynurenine", color = "red", size = 6) +
+  theme_classic() +
+  xlab("rank") +
+  ylab("Z score")
+
+pdf(paste0("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/partial_correlation_results/figures/",key_gene,"_Z_trend_plot.pdf"), width = 10, height = 8)
 print(p1)
 dev.off()
-
-
 ```
 
 
@@ -169,7 +143,6 @@ dev.off()
 ## Heatmaps filtered by genes in geneset and ordered by gene set enrichment
 
 ``` r
-
 T21_filtered_full <- T21_filtered %>%
     filter(cor_cyt_met_p < .05)
 
@@ -204,7 +177,6 @@ toplot1 <- geneSetUnion(key_pathways = DS_pathways,
 
 ## Exploring top ranked cytokine-metabolite relationships and genes in a particular pathway
 ``` r
-
 ## IFN_gamma
 IFN_cyt_mets <- OrderedGSEA(
                formatted_gsea = gsea_results_formatted[['T21']],
@@ -228,39 +200,16 @@ metEnrich(sig_mets, met_path)
 met_path %>% filter(Pathway %in% c("Other sugars", "Saturated Fatty acids")) %>% select(compound)
 
 
-## plot mediation for top cyt-metabolic
-
-tmp <- long_z[[1]] %>%
-    filter(cyt_met == IFN_cyt_mets$cyt_met[1]) %>%
-    mutate(pathway = ifelse(gene %in% pathways_all$HALLMARK_INTERFERON_GAMMA_RESPONSE, "IFN-gamma", "other")) %>%
-    mutate(pathway = factor(pathway, levels = c("other", "IFN-gamma")))
-
-library(ggbeeswarm)
-p1 <- ggplot(tmp, aes(x = pathway, y = combined_Z, color = pathway))+
-    geom_quasirandom(size = .1)+
-    geom_boxplot(outlier.size = .1, alpha = .6) + 
-    theme_classic() +
-    ggtitle(IFN_cyt_mets$cyt_met[[1]]) +
-    theme(axis.text = element_text(size = 6),
-          plot.title = element_text(size = 6),
-          axis.title = element_text(size = 6),
-          legend.position = "none"
-          )
-pdf(paste0("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/mediation_boxplots/IFN-gamma-",IFN_cyt_mets$cyt_met[1],"_", Sys.Date(),".pdf"), height = 1.5, width = 1.5)
-print(p1)
-dev.off()
-
-
 
 
 ## Heme Metabolism
-heme_heme_cyt_mets <- OrderedGSEA(
+heme_cyt_mets <- OrderedGSEA(
                formatted_gsea = gsea_results_formatted[['T21']],
     key_pathway = "HALLMARK_HEME_METABOLISM",
     p_thresh = .05)
 
-dim(heme_heme_cyt_mets)
-head(heme_heme_cyt_mets,20)
+dim(heme_cyt_mets)
+head(heme_cyt_mets,20)
 
 met_path %>% select(name, Pathway)
 sig_mets <- as.character(heme_cyt_mets$cyt_met)
@@ -270,49 +219,14 @@ sig_mets <- unique(unlist(sapply(cytokines, function(x) {
 })))
 metEnrich(sig_mets, met_path)
 
-tmp <- long_z[[1]] %>%
-    filter(cyt_met == heme_heme_cyt_mets$cyt_met[1]) %>%
-    mutate(pathway = ifelse(gene %in% pathways_all$HALLMARK_HEME_METABOLISM, "Heme\nMetabolism", "other")) %>%
-    mutate(pathway = factor(pathway, levels = c("other", "Heme\nMetabolism")))
-p1 <- ggplot(tmp, aes(x = pathway, y = combined_Z, color = pathway))+
-    geom_quasirandom(size = .1)+
-    geom_boxplot(outlier.size = .1, alpha = .6) + 
-    theme_classic() +
-    ggtitle(heme_heme_cyt_mets$cyt_met[[1]]) +
-    theme(axis.text = element_text(size = 6),
-          plot.title = element_text(size = 6),
-          axis.title = element_text(size = 6),
-          legend.position = "none"
-          )
-pdf(paste0("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/mediation_boxplots/heme--",heme_heme_cyt_mets$cyt_met[1],"_", Sys.Date(),".pdf"), height = 1.5, width = 1.5)
-print(p1)
-dev.off()
 
 
 
 ## Oxidative Phosphorylation
-op_op_cyt_mets <- OrderedGSEA(
+op_cyt_mets <- OrderedGSEA(
                formatted_gsea = gsea_results_formatted[['T21']],
     key_pathway = "HALLMARK_OXIDATIVE_PHOSPHORYLATION",
     p_thresh = .05)
-
-tmp <- long_z[[1]] %>%
-    filter(cyt_met == op_op_cyt_mets$cyt_met[1]) %>%
-    mutate(pathway = ifelse(gene %in% pathways_all$HALLMARK_OXIDATIVE_PHOSPHORYLATION, "Oxidative\nPhosphorylation", "other")) %>%
-    mutate(pathway = factor(pathway, levels = c("other", "Oxidative\nPhosphorylation")))
-p1 <- ggplot(tmp, aes(x = pathway, y = combined_Z, color = pathway))+
-    geom_quasirandom(size = .1)+
-    geom_boxplot(outlier.size = .1, alpha = .6) + 
-    theme_classic() +
-    ggtitle(op_op_cyt_mets$cyt_met[[1]]) +
-    theme(axis.text = element_text(size = 6),
-          plot.title = element_text(size = 6),
-          axis.title = element_text(size = 6),
-          legend.position = "none"
-          )
-pdf(paste0("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/mediation_boxplots/OxPhos--",op_op_cyt_mets$cyt_met[1],"_", Sys.Date(),".pdf"), height = 1.5, width = 1.5)
-print(p1)
-dev.off()
 
 dim(op_cyt_mets)
 head(op_cyt_mets,20)
@@ -324,6 +238,23 @@ sig_mets <- unique(unlist(sapply(cytokines, function(x) {
 })))
 metEnrich(sig_mets, met_path)
 
+```
+
+### differential mediation for particular cyt-met relationships
+``` r
+relationship <- IFN_cyt_mets$cyt_met[1]
+long_z_tibble <- long_z[[1]]
+pathway_genes <- pathways_all$HALLMARK_INTERFERON_GAMMA_RESPONSE
+
+pathwayAnnotateZ <- function(relationship, long_z_tibble, pathway_genes) {
+    output <- long_z_tibble %>%
+        filter(cyt_met %in% ) %>%
+        mutate(pathway = ifelse(gene %in% pathway_genes, "in pathway", "other"))
+
+    return(output)
+}
+               
+ifn_z <- pathwayAnnotateZ(IFN_cyt_mets$cyt_met[1], long_z[[1]],pathways_all$HALLMARK_INTERFERON_GAMMA_RESPONSE)
 
 
 
@@ -332,7 +263,6 @@ metEnrich(sig_mets, met_path)
 
 #### Venn Diagram of mediation signatures 
 ```{r}
-
 DS_pathways <- c("HALLMARK_INTERFERON_GAMMA_RESPONSE", 
                  "HALLMARK_HEME_METABOLISM", 
                  "HALLMARK_OXIDATIVE_PHOSPHORYLATION"
@@ -343,19 +273,17 @@ DS_pathways <- c("HALLMARK_INTERFERON_GAMMA_RESPONSE",
 
 library(ggvenn)
 
-x <- list(IFN_cyt_mets$cyt_met, heme_heme_cyt_mets$cyt_met, op_op_cyt_mets$cyt_met)
+x <- list(IFN_cyt_mets$cyt_met, heme_cyt_mets$cyt_met, op_cyt_mets$cyt_met)
 names(x) <- gsub("HALLMARK_", "", DS_pathways)
-names(x) <- c("IFN-  Response", "Heme Metabolism","Oxidative Phosphorylation")
 
 venn <- ggvenn(
   x, 
   fill_color = c("#0073C2FF", "#EFC000FF", "#868686FF", "#CD534CFF"),
-  stroke_size = 0.5, 
-  show_percentage = FALSE,
-  text_size = 2.5,
-  set_name_size =2.5
-    )
-ggsave(filename = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/venn_diagrams/mediation_signatures_venn.pdf", width = 2, height =2, units ="in")
+  stroke_size = 0.5, set_name_size = 3
+  )
+
+
+ggsave(filename = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/venn_diagrams/mediation_signatures_venn.pdf", width = 10, height =5, units ="in")
 
 
 IFN_heme <- intersect(x[[1]],x[[2]])
@@ -639,7 +567,6 @@ metEnrich(sig_mets, met_path)
 ### Gene centric differences in Z score by cluster
 
 ```r
-
 
 scores <- clusterGeneZscores(key_gene= "STAT1",
                              long_z_list = long_z,
