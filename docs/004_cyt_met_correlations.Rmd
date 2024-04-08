@@ -92,7 +92,6 @@ cyt_heatmap = Heatmap(T21_cytokine_correlations$
 pdf("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/correlation_heatmaps/T21_Cytokines_Correlation_Heatmap.pdf", height = 3, width =3)
 draw(cyt_heatmap, heatmap_legend_side = "bottom")
 dev.off()
-
 ```
 
 ``` r
@@ -212,8 +211,8 @@ T21_correlations$long %>%
 D21_correlations$long %>%
     filter(fdr < .1)
 
-write.csv(T21_correlations$long, file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/tables/T21_cyt_met_correlations.csv", row.names = F)
-write.csv(D21_correlations$long, file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/tables/D21_cyt_met_correlations.csv", row.names = F)
+write.table(T21_correlations$long, file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/tables/T21_cyt_met_correlations.csv", row.names = F, sep = "|")
+write.table(D21_correlations$long, file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/tables/D21_cyt_met_correlations.csv", row.names = F, sep = "|")
 
 ```
 
@@ -325,6 +324,7 @@ dev.off()
 ### Metabolite Pathway enrichment
 
 ```r
+
 load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/pathway/metabolite_pathway.RData")
 
 correlations_long <- T21_correlations$long
@@ -367,3 +367,20 @@ D21_enrichment <- correlationsEnrichmentWrapper(D21_correlations$long,met_path)
 D21_enrich_plot_data <- enrichmentPlotPrep(D21_enrichment)
 ```
 
+## Cytoscape
+
+```{r output to cytoscape}
+library(RCy3)
+cytoscapePing()
+cytoscapeVersionInfo()
+library(RColorBrewer)
+
+load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/pathway/metabolite_pathway.RData")
+
+sif <- T21_correlations$long %>%
+    filter(abs(r) > .2)
+
+write.csv(sif, file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/cytoscape/T21_cyt_met_2024_4_8.csv")
+
+
+```
