@@ -106,16 +106,48 @@ write_csv(x = metabolite_res$summary,file = "~/OneDrive - The University of Colo
 
 ## Perform the clustering
 
-``` r
-
+```r
 all_clust <- nemo.clustering(omics.list = list(t(T21.mixed$cytokines),t(T21.mixed$metabolites)),num.clusters = 4,num.neighbors = num_neighbors)
+
 save(all_clust, file ="~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/clusterings/all_clust.RData")
 
 cyt_clust <- nemo.clustering(omics.list = list(t(T21.mixed$cytokines)),num.clusters =2,num.neighbors = num_neighbors)
+
 save(cyt_clust, file ="~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/clusterings/cyt_clust.RData")
 
 met_clust <- nemo.clustering(omics.list = list(t(T21.mixed$metabolites)),num.clusters = 3,num.neighbors = num_neighbors)
+
 save(met_clust, file ="~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/clusterings/met_clust.RData")
+
+```
+
+## Visualizing the clusters for workflow figure
+
+```r
+library(ComplexHeatmap)
+
+similarityHeatmaps <- function(clust_list, output_file) {
+    sorted_clusters <- names(sort(clust_list$clustering))
+    p1 <- Heatmap(clust_list$graph,
+            row_order = sorted_clusters,
+            column_order = sorted_clusters,
+            show_row_dend = FALSE,
+            show_column_dend = FALSE,
+            show_column_names = FALSE,
+            show_row_names = FALSE,
+            col = colorRamp2(c(0,.02),c("navy", "yellow")),
+            show_heatmap_legend = FALSE
+            )
+    
+    pdf(output_file)
+    draw(p1)
+    dev.off()
+}
+
+similarityHeatmaps(all_clust, "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/similarity_heatmaps/met_cyt.pdf")
+similarityHeatmaps(cyt_clust, "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/similarity_heatmaps/cyt.pdf")
+similarityHeatmaps(met_clust, "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/similarity_heatmaps/met.pdf")
+
 
 ```
 
