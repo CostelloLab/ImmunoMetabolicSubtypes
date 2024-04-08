@@ -8,6 +8,7 @@ load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSub
 
 
 load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/processed/T21_standardized_cyt_met.RData")
+
 source("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/R/cluster_evaluation.R")
 source("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/R/data_prep_functions.R")
 
@@ -18,6 +19,7 @@ source("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicS
 ## Visualizing and profiling the clusters
 
 ```r
+
 omics.data <- as.data.frame(t(cbind(T21.mixed$cytokines, T21.mixed$metabolites)))
 
 cluster_associations <- association_test(clinic = T21.mixed$clinic,
@@ -25,6 +27,9 @@ cluster_associations <- association_test(clinic = T21.mixed$clinic,
                                          phenotypes = names(T21.mixed$clinic)[10:21])
 
 differential_expression <- diff_expr_wilcoxon(omics.data,all_clust$clustering)
+
+kmeans_clusters = kmeans(differential_expression$FC, centers = 4)
+
 
 p1 <- clusterHeatmap(omics.data = omics.data,
                diff_expr = differential_expression,
@@ -35,12 +40,14 @@ p1 <- clusterHeatmap(omics.data = omics.data,
                title = "T21",
                fontsize = 5,
                phenotypes = names(T21.mixed$clinic)[10:21],
-               clinical_threshold = .2
+               clinical_threshold = .2,
+               legend_pos_auto = TRUE
                )
 
-pdf("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/cluster_heatmaps/T21_cyt_met_diff_clinic_4clusters_25neighbors_heatmap.pdf", width = 12, height = 6)
-draw(p1$h, heatmap_legend_side = "bottom")
+pdf("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/cluster_heatmaps/T21_cyt_met_diff_clinic_4clusters_25neighbors_heatmap.pdf", width = 6, height = 4)
+draw(p1$h,heatmap_legend_side = "bottom")
 dev.off()
+
 
 ```
 
