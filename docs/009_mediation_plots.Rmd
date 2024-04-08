@@ -8,10 +8,11 @@ load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSub
 load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/partial_correlation_results/full_z_percent_1_15_24.RData")
 
 load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/partial_correlation_results/long_z_1_15_24.RData")
+names(long_z) <-as.character(c("T21","D21",1,2,3,4))
 
 load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/partial_correlation_results/partial_corrlation_gsea_results_formatted_1_15_24.RData") 
 load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/partial_correlation_results/difference_in_clusters.RData")
-names(long_z) <-as.character(c("T21","D21",1,2,3,4))
+
 load(file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/partial_correlation_results/cluster_correlations.RData")
 source("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/R/partial_correlation_functions.R")
 
@@ -248,9 +249,8 @@ pathway_genes <- pathways_all$HALLMARK_INTERFERON_GAMMA_RESPONSE
 
 pathwayAnnotateZ <- function(relationship, long_z_tibble, pathway_genes) {
     output <- long_z_tibble %>%
-        filter(cyt_met %in% ) %>%
+        filter(cyt_met ==relationship ) %>%
         mutate(pathway = ifelse(gene %in% pathway_genes, "in pathway", "other"))
-
     return(output)
 }
                
