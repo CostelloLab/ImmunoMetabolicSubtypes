@@ -943,10 +943,10 @@ boostrapCluster <- function(omics.list, iterations = 100, num.clusters, num.neig
 
 
 ## heatmap of clusters
-clusterHeatmap = function(omics.data,clustering,diff_expr, cluster_assoc,threshold, phenotypes, split_num, clinical_threshold, title, fontsize, dendrogram = TRUE,enrichment = NULL, column_names = TRUE, legend_pos_auto = TRUE ){
-	library(ComplexHeatmap)
-	library(RColorBrewer)
-	library(circlize)
+clusterHeatmap = function(omics.data,clustering,diff_expr, cluster_assoc,threshold, phenotypes, split_num, clinical_threshold, title, fontsize, dendrogram = TRUE,enrichment = NULL, column_names = TRUE, legend_pos_auto = TRUE ) {
+    library(ComplexHeatmap)
+    library(RColorBrewer)
+    library(circlize)
 
 	omics = t(omics.data)
 	sig = apply(diff_expr$sig[,2:ncol(diff_expr$sig)],2, function(x) diff_expr$sig$feature[x<threshold])
@@ -984,15 +984,17 @@ names(FC) = paste(1:length(unique(clustering)))
 		col = list(Cluster = c("1" = "#7FC97F", "2" = "#BEAED4", "3" = "#FDC086", "4" = "#FFFF99", "5" = "#386CB0", "6" = "#F0027F","7" = "#BF5B17", "8" ="#666666")))
 
 	col_fun_main = colorRamp2(c(-2, 0, 2), c("blue", "white", "red"))
-	if(dendrogram){
+	if(dendrogram) {
 		ht <- Heatmap(t(FC),
 				name = "log2FC", 
 				show_row_names = FALSE, 
-				show_column_names = column_names, 
+				show_column_names = FALSE, 
 				show_row_dend = FALSE, 
 				row_dend_reorder = FALSE,
-				column_title = title, 
-				row_title = "", 
+                              column_title = title,
+                              column_title_gp = gpar(fontsize = 8),
+                              row_title = "",
+                              row_names_gp = gpar(fontsize = 6),
 				column_km = split_num, 
 				row_split = rownames(t(FC)), 
 			#	column_names_rot = 60, 
@@ -1011,7 +1013,7 @@ names(FC) = paste(1:length(unique(clustering)))
 		ht <- Heatmap(t(FC),
 				name = "log2FC", 
 				show_row_names = TRUE, 
-				show_column_names = column_names, 
+				show_column_names = FALSE, 
 				row_order = rownames(t(FC)),
 				#right_annotation = ha, h_list
 				 
@@ -1089,8 +1091,9 @@ names(FC) = paste(1:length(unique(clustering)))
 			col = col_fun_phen,
 			row_order = unlist(row_order(ht)), 
 			column_order = colnames(assoc_toplot), 
-			column_title = "Phenotypes", 
-			column_names_gp = gpar(fontsize = fontsize),
+                    column_title = "Phenotypes",
+                    column_title_gp = gpar(fontsize = 8),
+			column_names_gp = gpar(fontsize = 6),
 			cell_fun = padj_fun,
 			heatmap_legend_param = list(legend_direction = "horizontal"),
 			#column_names_rot = 60 ),
@@ -1146,9 +1149,10 @@ names(FC) = paste(1:length(unique(clustering)))
 		return(list(heatmap = h_list))
 	}else{
 		lgd = packLegend(
-			Legend(title = "log2FC", col_fun = col_fun_main, direction = "horizontal" ),
+			Legend(title = "log2FC", col_fun = col_fun_main, direction = "horizontal", labels_gp = gpar(fontsize =6) ),
 			Legend(title = "signed -log10(q)", col_fun = col_fun_phen, direction = "horizontal"),
-			direction = "horizontal"
+                    direction = "horizontal"
+
 		)
 		return(list(heatmap = h_list, lgd = lgd))
 	}
