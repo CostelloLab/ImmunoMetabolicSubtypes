@@ -180,7 +180,7 @@ toplot1 <- geneSetUnion(key_pathways = DS_pathways,
 ``` r
 ## IFN_gamma
 IFN_cyt_mets <- OrderedGSEA(
-               formatted_gsea = gsea_results_formatted[['T21']],
+               formatted_gsea = gsea_results_formatted[[1]],
     key_pathway = "HALLMARK_INTERFERON_GAMMA_RESPONSE",
     p_thresh = .05)
 
@@ -256,17 +256,56 @@ pathwayAnnotateZ <- function(relationship, long_z_tibble, pathway_genes) {
 }
                
 
-ifn_z <- pathwayAnnotateZ(IFN_cyt_mets$cyt_met[1], long_z[[1]],pathways_all$HALLMARK_INTERFERON_GAMMA_RESPONSE)
 
 
-dev.off()
+
+
 
 library(ggplot2)
-ggplot(ifn_z, aes(x = pathway, y  = combined_Z)) +
-    geom_violin(aes(fill = pathway)) +
-    geom_boxplot(width = .05) +
-    theme_classic() 
+
+relationshipZPlot <- function(relationship, annotatedZ, output_file) {
+
+    p1 <- ggplot(annotatedZ, aes(x = pathway, y  = combined_Z)) +
+        geom_violin(aes(fill = pathway)) +
+        geom_boxplot(width = .05,
+                     outlier.alpha = 0,
+                     coef = 0
+                     ) +
+        theme_classic() +
+        xlab("") +
+        ylab("Mediation Z score")+
+        ggtitle(relationship)+
+        theme(legend.position = "none",
+              axis.text = element_text(size =6),
+              axis.title = element_text(size = 7),
+              plot.title = element_text(hjust = 0.5, size = 8)
+              )
+
+    ggsave(filename = output_file)
+
+}
+           
+ZPlotWrapper <- function(relationship,long_z_tibble,pathway_genes,output_file) {
+    annotatedZ <- pathwayAnnotateZ(relationship, long_z_tibble,pathway_genes)
+    relationshipZPlot(relationship,annotatedZ, output_file)
+}
+
     
+ZPlotWrapper(relationship = IFN_cyt_mets$cyt_met[1],
+             long_z_tibble = long_z[[1]],
+             pathway_genes = pathways_all$HALLMARK_INTERFERON_GAMMA_RESPONSE,
+             output_file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/mediation_violin_plots/ifn.pdf")
+
+ZPlotWrapper(relationship = heme_cyt_mets$cyt_met[1],
+             long_z_tibble = long_z[[1]],
+             pathway_genes = pathways_all$HALLMARK_HEME_METABOLISM,
+             output_file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/mediation_violin_plots/heme.pdf")
+
+
+ZPlotWrapper(relationship = op_cyt_mets$cyt_met[1],
+             long_z_tibble = long_z[[1]],
+             pathway_genes = pathways_all$HALLMARK_OXIDATIVE_PHOSPHORYLATION,
+             output_file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/mediation_violin_plots/op.pdf")
 
 
 
@@ -310,7 +349,6 @@ write.csv(as.data.frame(heme_op), file = "~/OneDrive - The University of Colorad
 
 
 ``` r
-
 source("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/R/partial_correlation_functions.R")
 multiHeatmapOrderedGSEA(toplot1 = toplot1, 
                         toplot2 = toplot_clusters[[1]],
@@ -319,11 +357,10 @@ multiHeatmapOrderedGSEA(toplot1 = toplot1,
                         met_path = met_path,
                         formatted_gsea = gsea_results_formatted[[1]] ,
                         full_results = T21_filtered_full,
-                        output_file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/mediation_heatmaps/T21_heatmaps/2D_filtered_ordered-IFN-gamma.pdf",
+                        output_file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/mediation_heatmaps/T21_heatmaps/2D_filtered_ordered-IFN-gamma_2024_04_09.pdf",
                         order_pathway = "HALLMARK_INTERFERON_GAMMA_RESPONSE",
-                        col_vector = col_vector)
-
-
+                        col_vector = col_vector,
+                        labels_vector =c(IFN_cyt_mets$cyt_met[1],heme_cyt_mets$cyt_met[1],op_cyt_mets$cyt_met[1]))
 
 multiHeatmapOrderedGSEA(toplot1 = toplot1,
                         toplot2 = toplot_clusters[[1]],
@@ -409,8 +446,7 @@ cluster_heatmaps <- clusterHeatmapWrapper(cluster_ranks, name = "Oxidative Phosp
 
 ``` r
 source("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/R/partial_correlation_functions.R")
-
-all_correlations <- lapply(all_correlations, function(x) {
+_correlations <- lapply(all_correlations, function(x) {
     x %>% mutate(cyt_met = paste0(A, "-", B))
 })
 
@@ -536,7 +572,7 @@ clusterDiffPlot(pathway = "HALLMARK_TGF_BETA_SIGNALING",
 
 ### Enrichment of metabolic classes mediated
 
-``` r
+```r
 names(gsea_results) <- c("T21", "D21", 1,2,3,4)
 
 cluster_gsea <- clusterCytMetNES(key_pathway = "HALLMARK_INTERFERON_GAMMA_RESPONSE",
