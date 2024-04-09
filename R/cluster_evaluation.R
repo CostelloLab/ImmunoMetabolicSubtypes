@@ -295,21 +295,34 @@ association_test = function(clustering, clinic, phenotypes) {
     clustering = as.data.frame(clustering)
     dat = merge(clinic, clustering, by.x = "LabID", by.y = 0)
 
-
-
     res <- matrix(0,nrow =  length(unique(dat$clustering)), ncol = 2*length(phenotypes))
     dir = matrix(0,nrow =  length(unique(dat$clustering)), ncol = length(phenotypes))
     lcl = matrix(0,nrow =  length(unique(dat$clustering)), ncol = length(phenotypes))
     ucl = matrix(0,nrow =  length(unique(dat$clustering)), ncol = length(phenotypes))
     ratio = matrix(0,nrow =  length(unique(dat$clustering)), ncol = length(phenotypes))
 
+    if(length(unique(dat$clustering)) == 2) {
+        res <- as.data.frame(res)
+        rownames(res) = unique(dat$clustering)
+        dir <- as.data.frame(dir)
+        rownames(dir) = unique(dat$clustering)
+        lcl <- as.data.frame(lcl)
+        rownames(lcl) = unique(dat$clustering)
+        ucl <- as.data.frame(ucl)
+        rownames(ucl) = unique(dat$clustering)
+        ratio <- as.data.frame(ratio)
+        rownames(ratio) = unique(dat$clustering)
+        
+
+    }
+    
     for(i in 1:length(phenotypes)) {
 
                                         # counter for results
 	n = 1
 
                                         # test variable type
-	if(length(unique(dat[,phenotypes[i]])) < 7| class(dat[,phenotypes[i]]) != "numeric"){ # categorical
+	if(length(unique(dat[,phenotypes[i]])) < 7| class(dat[,phenotypes[i]]) != "numeric") { # categorical
             
             tab <- table(dat[ ,phenotypes[i]],dat$clustering)
             if(nrow(tab) == 1){next}
@@ -322,8 +335,10 @@ association_test = function(clustering, clinic, phenotypes) {
                     cntg_tab[z,2] <- tab[z,paste(j)]
 
                 }
+                
                 ft<-  fisher.test(cntg_tab, simulate.p.value = T)
- 		if(sum(!is.na(unique(dat[,phenotypes[i]]))) ==2){
+                
+ 		if(sum(!is.na(unique(dat[,phenotypes[i]]))) ==2) {
                     
                     res[j,(i*2-1)] <- sprintf("Clust:%s%% | All:%s%%",round((tab[2,paste(j)]/sum(tab[,paste(j)]))*100,0), round((sum(tab[2,])/sum(tab))*100,0))
                     res[j,(i*2)] <- ft$p.value
@@ -389,14 +404,16 @@ association_test = function(clustering, clinic, phenotypes) {
                                         # ucl = apply(ucl, 2, as.numeric)
 
 
-    rownames(res) <- paste("cluster", 1:length(unique(dat$clustering)))
-    rownames(pvals) <- paste("cluster", 1:length(unique(dat$clustering)))
-    rownames(dir) <- paste("cluster", 1:length(unique(dat$clustering)))
-    rownames(ratio) = paste("cluster", 1:length(unique(dat$clustering)))
-    colnames(dir) = paste(phenotypes, "OR")
-    colnames(lcl) = paste(phenotypes, "lcl")
-    colnames(ucl) = paste(phenotypes, "ucl")
-    colnames(ratio) = phenotypes
+    if(length(unique(dat$clustering)) > 2) {
+        rownames(res) <- paste("cluster", 1:length(unique(dat$clustering)))
+        rownames(pvals) <- paste("cluster", 1:length(unique(dat$clustering)))
+        rownames(dir) <- paste("cluster", 1:length(unique(dat$clustering)))
+        rownames(ratio) = paste("cluster", 1:length(unique(dat$clustering)))
+    }
+        colnames(dir) = paste(phenotypes, "OR")
+        colnames(lcl) = paste(phenotypes, "lcl")
+        colnames(ucl) = paste(phenotypes, "ucl")
+        colnames(ratio) = phenotypes
 
 
                                         # comining pvals and dir (Odds ratio) into a single table
