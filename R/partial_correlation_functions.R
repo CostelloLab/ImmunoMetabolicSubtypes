@@ -292,7 +292,7 @@ multiHeatmap <- function(toplot1, toplot2, key_pathways,pathways_all, met_path, 
 
 ## Outputs: pdf file of figure
 
-multiHeatmapOrderedGSEA <- function(toplot1, toplot2, key_pathways,pathways_all, met_path, formatted_gsea, full_results, output_file, order_pathway,threshold = 1000, frequency = 5, col_vector) {
+multiHeatmapOrderedGSEA <- function(toplot1, toplot2, key_pathways,pathways_all, met_path, formatted_gsea, full_results, output_file, order_pathway,threshold = 1000, frequency = 5, col_vector,labels_vector) {
     
     names(toplot2) <- gsub(" NES", "", names(toplot2))
 
@@ -352,19 +352,21 @@ multiHeatmapOrderedGSEA <- function(toplot1, toplot2, key_pathways,pathways_all,
                             col = column_col,
                             show_legend = rep(FALSE,length(key_pathways)),
                             annotation_name_side = "left",
-                            annotation_name_gp = gpar(fontsize = 6))
+                            annotation_name_gp = gpar(fontsize = 6),
+                            show_annotation_name = FALSE
+                            )
 
     ## col_fun <- colorRamp2(c(min(toplot1), 2000, max(toplot1) ), c("blue", "white", "gray"))
     ## col_fun <- colorRamp2(c(1, median(apply(toplot1,2,median)), 12624 ), c("purple", "white", "yellow"))
    col_fun <- colorRamp2(c(1, 4000, 12624 ), c("darkblue", "white", "gray"))
 
-    
     p1 <- ComplexHeatmap::Heatmap(as.matrix(toplot1),
                                   name = "Rank",
-                                  row_names_gp = gpar(fontsize = 2),
-                                  column_names_gp = gpar(fontsize = 5),
+                                  row_names_gp = gpar(fontsize = 6),
+                                  column_names_gp = gpar(fontsize = 6),
                                   show_column_names = FALSE,
                                   show_row_names = FALSE,
+                                  row_labels = row_names,
                                   row_names_side = "left",
                                   show_row_dend = FALSE,
                                   show_column_dend = FALSE,
@@ -374,29 +376,36 @@ multiHeatmapOrderedGSEA <- function(toplot1, toplot2, key_pathways,pathways_all,
                                   col = col_fun,
                                   top_annotation = ha,
                                   heatmap_legend_param = list(
-                                      legend_direction = "horizontal") ,
-                                   left_annotation = hr,
-                                  width = unit(6,"in"))
+                                      legend_direction = "horizontal",) ,
+                                  ##  left_annotation = hr,
+                                  ## width = unit(6,"in"))
+                                  )
   
   col_fun2 <- colorRamp2(c(-3,0, 3 ), c("white","gray", "red"))
-  
+    row_names <- ifelse(rownames(toplot1) %in% labels_vector, rownames(toplot1), "")  
     p2 <- Heatmap(name = "GSEA NES",
       as.matrix(toplot2),
       col = col_fun2,
       row_order = rownames(toplot2),
-      show_row_names = FALSE,
+      show_row_names = TRUE,
+      row_labels = row_names,
+      row_names_side = "right",
+      row_names_gp = gpar(fontsize = 6),
       show_row_dend = FALSE,
       column_order = names(toplot2),
-      width = unit(2, "in"),
+      width = unit(.5, "in"),
       column_names_side = "top",
       show_column_dend = FALSE,
       column_names_gp = gpar(fontsize = 8),
-      column_names_rot = 45
+      column_names_rot = 45,
+      show_column_names = FALSE,
+      heatmap_legend_param = list(legend_direction = "horizontal")
+      
       )
 
     heatmaps <- p1+p2
     
-  pdf(output_file, width = 12, height = 12)
+  pdf(output_file, width = 4.5, height = 4.5)
   draw(heatmaps, heatmap_legend_side = "bottom")
   dev.off()
 
