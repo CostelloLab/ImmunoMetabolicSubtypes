@@ -250,11 +250,23 @@ pathway_genes <- pathways_all$HALLMARK_INTERFERON_GAMMA_RESPONSE
 pathwayAnnotateZ <- function(relationship, long_z_tibble, pathway_genes) {
     output <- long_z_tibble %>%
         filter(cyt_met ==relationship ) %>%
-        mutate(pathway = ifelse(gene %in% pathway_genes, "in pathway", "other"))
-    return(output)
+        mutate(pathway = ifelse(gene %in% pathway_genes, "pathway", "other"))
+    output$pathway = factor(output$pathway, ordered = TRUE, levels = c("other", "pathway"))
+        return(output)
 }
                
+
 ifn_z <- pathwayAnnotateZ(IFN_cyt_mets$cyt_met[1], long_z[[1]],pathways_all$HALLMARK_INTERFERON_GAMMA_RESPONSE)
+
+
+dev.off()
+
+library(ggplot2)
+ggplot(ifn_z, aes(x = pathway, y  = combined_Z)) +
+    geom_violin(aes(fill = pathway)) +
+    geom_boxplot(width = .05) +
+    theme_classic() 
+    
 
 
 
