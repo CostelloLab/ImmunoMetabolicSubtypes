@@ -181,7 +181,7 @@ toplot = sapply(1:ncol(toplot), function(x) toplot[,x] - totals[x]  )
 #toplot = rbind(toplot,totals)
 colnames(toplot) = gsub(" ", "\n",column_names)
 #toplot = toplot[,4]
-toplot = melt(toplot)
+ptoplot = melt(toplot)
 
 assoc_barplot = ggplot(toplot, aes(x = as.factor(Var2), y = value, fill = Var1, width = .7, alpha = .8)) +
 	geom_bar(stat = "identity", position = "dodge") + 
@@ -264,18 +264,11 @@ dev.off()
 
 ```r
 ## To align the cluster colors to all the other data, set the colors
+cols <- c("blue4", "orange4", "springgreen4", "brown3", "grey")
 names(cols) <- c(paste("cluster", c(1,2,3,4)), "D21")
 
-full_clinic <- rbind(T21.mixed$clinic,D21.mixed$clinic)
-D21 <- ifelse(D21.mixed$clinic$Karyotype == "Control", 5,"")
-names(D21) <- D21.mixed$clinic$LabID
-clustering_D21 <- c(all_clust$clustering, D21)
 
-karyotype_associations <- association_test(clinic = full_clinic,
-                                         clustering = clustering_D21 ,
-                                         phenotypes = names(T21.mixed$clinic)[10:21])
-
-toplot = as.data.frame(karyotype_associations$dir.pvals.confint)
+toplot = as.data.frame(cluster_associations$dir.pvals.confint)
 ## toplot <- toplot %>%
 ##     filter(rownames(.) != "T21")
 tokeep = apply(cluster_associations$dir.pvals.confint[, grepl("q.value", colnames(cluster_associations$dir.pvals.confint))],2, function(x) any(x < .2) )
@@ -283,7 +276,7 @@ tokeep = tokeep[tokeep == TRUE]
 tokeep = gsub(" q.value","",names(tokeep))
 tokeep = paste(tokeep, collapse = "|")
 toplot = toplot[, grepl(tokeep, colnames(toplot))]
-rownames(toplot)[5] <- "D21"
+
 
 toplot <- toplot %>%
     rownames_to_column("cluster") %>%
@@ -302,25 +295,28 @@ toplot2 <- toplot1 %>%
     mutate(statistic = gsub("\\s+|[/]","",gsub(pattern,"", toplot1$name, perl = TRUE)))
 
 toplot3 <- toplot2 %>%
-    select(-name) %>%
+    dplyr::select(-name) %>%
     pivot_wider(id_cols = c("cluster","condition"),values_from = value,names_from = statistic) %>%
-    mutate(cluster = factor(cluster, ordered = TRUE, levels = c("D21", paste("cluster", c(4,3,2,1))))) %>%
+    mutate(cluster = factor(cluster, ordered = TRUE, levels = c( paste("cluster", c(4,3,2,1))))) %>%
     mutate(condition = ifelse(condition == "Any autoimmune skin condition ", "Any autoimmune\nskin condition",
-                              ifelse(condition == "Frequent/Recurrent pneumonia ", "Frequent/Recurrent\npneumonia",condition)))
+                       ifelse(condition == "Frequent/Recurrent pneumonia ", "Frequent/Recurrent\npneumonia",condition))) 
+
+toplot3[,c("lcl", "OR", "ucl")] <- log(toplot3[,c("lcl", "OR", "ucl")])
+
 
 p1 <- ggplot(toplot3, aes(y=fct_rev(condition))) +
     theme_classic() +
     geom_point(aes(x = OR,color = cluster,size = -log10(toplot3$q.)), shape = 15, position = position_dodge(0.6)) +
     geom_linerange(aes(xmin = lcl, xmax = ucl, color = cluster), position = position_dodge(0.6)) +
-    geom_vline(xintercept = 1, linetype = "dashed") +
+    geom_vline(xintercept = 0, linetype = "dashed") +
     scale_color_manual(values = cols) +
-    ylab("") +
+    ylab("") + xlab("Log Odds")+
     labs(size = "-log10(q value)", color = "") +
     theme(axis.text = element_text(size = 6),
           legend.text = element_text(size = 6),
           axis.title = element_text(size = 6),
           legend.title = element_text(size =6),
-          legend.position = c(.83,.65),
+          legend.position = c(1,.65),
           legend.box = "horizontal",
           legend.margin = unit(units = "cm",x = .01),
           legend.key.width = unit(units = "cm", x = .01)
