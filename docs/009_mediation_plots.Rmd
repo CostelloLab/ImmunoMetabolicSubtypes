@@ -30,7 +30,7 @@ toplot_clusters <- lapply(gsea_results_formatted, function(x) {
 toplot_clusters <- lapply(toplot_clusters, function(x) {
   x %>%
     dplyr::select(contains("NES"))
-nn
+
 
 }) 
 for(x in 2:6) {
