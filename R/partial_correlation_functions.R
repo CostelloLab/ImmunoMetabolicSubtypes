@@ -682,18 +682,23 @@ clusterPathwayEnrichment <- function(key_pathway, gsea_results) {
     output <-  lapply(gsea_results, function(x) {
         path_scores <- lapply(x, function(y) {
             y %>%
-                filter(pathway == key_pathway & padj < .1 & NES > 0 ) 
-        })
-        summary_score <- path_scores %>%
-            bind_rows() %>%
-            summarise(summary_score = mean(NES,na.rm = T)) %>%
-            .$summary_score
+                mutate(one_sided_p = pval/2) %>%
+                mutate(signed_p = ifelse(NES < 0, 1-one_sided_p, one_sided_p)) 
 
-        ## summary_score <- path_scores %>%
-        ##     bind_rows()
-        ## return(nrow(summary_score) /length(x))
+        })
+        
+        summary_scores <- path_scores %>% 
+            bind_rows() %>%
+            filter(!is.na(signed_p)) %>%
+            group_by(pathway) %>%
+            summarise(combined_chisq = -2 * sum(log(signed_p)),df = 2* n(), .groups = "keep") %>%
+            mutate(combined_p = pchisq(combined_chisq,df,lower.tail = FALSE))
+        summary_scores$adj_combined_p <- p.adjust(summary_scores$combined_p, method = "fdr")
+        
+
+        
     })
-    return(output)  
+    return(summary_scores)  
 } 
 
 
