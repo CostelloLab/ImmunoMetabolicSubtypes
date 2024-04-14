@@ -677,7 +677,7 @@ mediationSignatures <- function(key_pathway, tmp_gsea_formatted, tmp_toplot_clus
 } 
 
 
-clusterPathwayEnrichment <- function(key_pathway, gsea_results) {
+clusterPathwayEnrichment <- function(gsea_results) {
   
     output <-  lapply(gsea_results, function(x) {
         path_scores <- lapply(x, function(y) {
@@ -692,13 +692,15 @@ clusterPathwayEnrichment <- function(key_pathway, gsea_results) {
             filter(!is.na(signed_p)) %>%
             group_by(pathway) %>%
             summarise(combined_chisq = -2 * sum(log(signed_p)),df = 2* n(), .groups = "keep") %>%
-            mutate(combined_p = pchisq(combined_chisq,df,lower.tail = FALSE))
-        summary_scores$adj_combined_p <- p.adjust(summary_scores$combined_p, method = "fdr")
-        
+            mutate(combined_p = pchisq(combined_chisq,df,lower.tail = FALSE, log.p = TRUE))
 
         
+##        summary_scores$adj_combined_p <- p.adjust(summary_scores$combined_p, method = "fdr")
+        
+        return(summary_scores)        
     })
-    return(summary_scores)  
+
+    return(output  )
 } 
 
 
