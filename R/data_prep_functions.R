@@ -47,13 +47,11 @@ read_HTP <- function(cytokine_file, metabolite_file, metadata_file, commorbidity
 
 	# comorbidity meta data
 	comorbidity_meta <- com[!duplicated(com$Condition), c("Condition", "Age.group", "min_Age", "max_Age")]
-n
+
 	# merge meta and comorbidity data to get clinic data
 	com <- suppressWarnings(dcast(com[, c("RecordID", "Condition", "HasCondition")], RecordID ~ Condition))
 	clinic <- merge(meta,com, by = "RecordID", all.x = TRUE) 
 
-	### Removing phenotypes with low case counts(Cataracts, Autism, Regression, Pulmonary Hyptertension)
-	clinic = clinic[, !(names(clinic) %in%c("Autism spectrum disorder", "Cataracts", "Regression", "Pulmonary hypertension"))]
 
 	# assign LABID's as rownames
 	rownames(clinic) = clinic$LabID
