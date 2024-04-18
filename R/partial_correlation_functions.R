@@ -692,11 +692,38 @@ clusterPathwayEnrichment <- function(gsea_results) {
             filter(!is.na(signed_p)) %>%
             group_by(pathway) %>%
             summarise(combined_chisq = -2 * sum(log(signed_p)),df = 2* n(), .groups = "keep") %>%
-            mutate(combined_p = pchisq(combined_chisq,df,lower.tail = FALSE, log.p = TRUE))
+            mutate(combined_p = pchisq(combined_chisq,df,lower.tail = FALSE, log.p = FALSE))
 
         
-##        summary_scores$adj_combined_p <- p.adjust(summary_scores$combined_p, method = "fdr")
+        summary_scores$adj_combined_p <- p.adjust(summary_scores$combined_p, method = "fdr")
         
+        return(summary_scores)        
+    })
+
+    return(output  )
+} 
+
+
+clusterPathwayRatios <- function(gsea_results) {
+  
+    output <-  lapply(gsea_results, function(x) {
+
+        path_scores <- lapply(x, function(y) {
+            y %>%
+                mutate(sig_pos = ifelse(NES > 0 &  padj < .05, TRUE, FALSE)) %>%
+                dplyr::select(pathway, padj,NES, sig_pos)
+
+        })
+        
+        summary_scores <- path_scores %>% 
+            bind_rows() %>%
+            filter(!is.na(NES)) %>%
+            group_by(pathway) %>%
+            summarise(sig_cyt_met = sum(sig_pos), sig_cyt_met_perc = sum(sig_pos)/n(), .groups = "keep") 
+
+
+        
+                
         return(summary_scores)        
     })
 
