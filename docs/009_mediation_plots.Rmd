@@ -25,6 +25,7 @@ met_path <- get(load("/Users/lucas/OneDrive - The University of Colorado Denver/
 
 ## data prep
 ```{r  data}
+
 library(tidyverse)
 toplot_clusters <- lapply(gsea_results_formatted, function(x) {
   x[,colSums(is.na(gsea_results_formatted[[1]])) <1]
@@ -206,6 +207,7 @@ met_path %>% filter(Pathway %in% c("Other sugars", "Saturated Fatty acids")) %>%
 
 
 ## Heme Metabolism
+
 heme_cyt_mets <- OrderedGSEA(
                formatted_gsea = gsea_results_formatted[['T21']],
     key_pathway = "HALLMARK_HEME_METABOLISM",
@@ -496,36 +498,39 @@ cluster_heatmaps <- clusterHeatmapWrapper(cluster_ranks, name = "Interferon Gamm
 ### Global cluster enrichment by pathways
 Enrichment over pathway between clusters
 ```r
-cluster_enrichment <-  clusterPathwayEnrichment(gsea_results)
 
-cluster_enrichment_toplot <- lapply(cluster_enrichment, function(x) x %>% dplyr::select(pathway, combined_p))
+cluster_enrichment <-  clusterPathwayRatios(gsea_results)
+
+cluster_enrichment_toplot <- lapply(cluster_enrichment, function(x) x %>% dplyr::select(pathway, sig_cyt_met_perc))
 cluster_enrichment_toplot <- reduce(cluster_enrichment_toplot, left_join, by = "pathway")
 names(cluster_enrichment_toplot)[2:7] <- c("T21", "D21", 1,2,3,4)
 cluster_enrichment_toplot <- cluster_enrichment_toplot %>%
+    mutate(pathway = gsub("HALLMARK","", pathway)) %>%
+    mutate(pathway = gsub("_"," ", pathway)) %>%
     column_to_rownames("pathway")
 
-cluster_enrichment_toplot <- -1 * cluster_enrichment_toplot
+## cluster_enrichment_toplot <- -1 * cluster_enrichment_toplot
 
 p1 <- Heatmap(as.matrix(cluster_enrichment_toplot),
-              name = "-log(combined p values)",
+              name = "percent cyt-met\nrelationships enriched",
               column_order= names(cluster_enrichment_toplot),
               show_row_dend = F,
               row_names_side = "left",
               row_names_gp = gpar(fontsize = 8),
               column_names_side = "top"
               )
-pdf("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/mediation_heatmaps/global_pathway_heatmaps/cluster_mediation_pathway_enrichment_combined_p_2024_04_12.pdf")
+pdf("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/mediation_heatmaps/global_pathway_heatmaps/cluster_mediation_pathway_ratios__2024_04_17.pdf")
 print(p1)
 dev.off()
 
 
-write.csv(cluster_enrichment_toplot, "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/tables/cluster_mediation_pathway_enrichment_combnined_p_2024_04_12.csv", row.names = F)
+## write.csv(cluster_enrichment_toplot, "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/tables/cluster_mediation_pathway_enrichment_combnined_p_2024_04_12.csv", row.names = F)
 
 
-normalized_enrichment <- cluster_enrichment[,c(1,3:6)]/cluster_enrichment[,2]
-col_fun <- colorRamp2(c(0.5,1,1.1), c("blue","white", "red"))
+normalized_enrichment <- cluster_enrichment_toplot[,c(1,3:6)]/cluster_enrichment_toplot[,2]
+col_fun <- colorRamp2(c(0,1,5), c("white","gray", "blue"))
 p1 <- Heatmap(as.matrix(normalized_enrichment),
-              name = "D21-normalized\nNES",
+              name = "D21-normalized percent",
               column_order= names(normalized_enrichment),
               show_row_dend = F,
               col = col_fun,
@@ -533,10 +538,20 @@ p1 <- Heatmap(as.matrix(normalized_enrichment),
               row_names_gp = gpar(fontsize = 8),
               column_names_side = "top"
               )
-pdf("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/mediation_heatmaps/global_pathway_heatmaps/D21_normalized_NES_global_pathway_heatmap.pdf")
+pdf("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/mediation_heatmaps/global_pathway_heatmaps/D21_normalized_cluster_mediation_pathway_ratios_2024_04_17.pdf")
 print(p1)
 dev.off()
 ```
+
+## Cluster specific metabolite class enrichments
+
+``` r
+
+
+
+```
+
+
 
 ### Difference of enrichment of cytokine-metabolites in cluster vs T21
 This plot shows the difference in enrichment scores for a pathway between the cluster and individuals with T21
