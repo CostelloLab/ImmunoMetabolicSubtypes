@@ -103,7 +103,7 @@ miss_filtered <- expression %>%
     filter(EnsemblID %in% (missingness %>% filter(missingness < .2) %>% .$EnsemblID))
 
 ## logtranformation
-miss_filtered$logValue <- log(miss_filtered$Value+1)
+miss_filtered$logValue <- log2(miss_filtered$Value+1)
 
 
 ## filtering based on variance threshold
