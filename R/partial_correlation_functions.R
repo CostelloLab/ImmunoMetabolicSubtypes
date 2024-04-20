@@ -7,6 +7,7 @@ library(circlize)
 library(fgsea)
 library(RColorBrewer)
 
+source("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/R/enrichment_functions.R")
 
 
 
@@ -731,7 +732,38 @@ clusterPathwayRatios <- function(gsea_results) {
 } 
 
 
-clusterCytMetNES <- function(key_pathway,cluster,gsea_results, num_cyt_mets = 20) {
+
+clusterMetabolitePathwayEnrichment <- function(gsea_results) {
+
+    output <-  lapply(gsea_results, function(x) {
+
+        path_scores <- lapply(x, function(y) {
+            y %>%
+                mutate(sig_pos = ifelse(NES > 0 &  padj < .05, TRUE, FALSE)) %>%
+                dplyr::select(pathway, padj,NES, sig_pos)
+
+        })
+        
+        summary_scores <- path_scores %>% 
+            bind_rows() %>%
+            filter(!is.na(NES)) %>%
+            group_by(pathway) %>%
+            summarise(sig_cyt_met = sum(sig_pos), sig_cyt_met_perc = sum(sig_pos)/n(), .groups = "keep") 
+
+        return(summary_scores)        
+    })
+
+    return(output  )
+  
+}
+
+vector_match <- function(x, y) {
+    grepl(x, y)
+}
+
+
+
+clusterCytMetNES <- function(key_pathway,cluster,gsea_results, num_cyt_mets = 20,met_path,met_class) {
     tmp_gsea <- gsea_results[c("T21","D21", cluster)]
     pathway_filtered_gsea <- lapply(tmp_gsea, function(x) {
         path_scores <- lapply(x, function(y) {
@@ -743,22 +775,26 @@ clusterCytMetNES <- function(key_pathway,cluster,gsea_results, num_cyt_mets = 20
             mutate(cyt_met = names(tmp_gsea[[1]])) %>%
             dplyr::select(padj,NES,cyt_met)
     })
-
     all_pathway_gsea <- pathway_filtered_gsea %>% reduce(left_join, by = "cyt_met")
+
+    res <- lapply(met_path[met_path$Pathway == met_class,"name"], function(x) {
+        all_pathway_gsea %>% filter(grepl(x,cyt_met))
+    })
+    all_pathway_gsea <- bind_rows(res)
     names(all_pathway_gsea) <- c("T21.padj", "T21.NES", "cyt_met", "D21.padj", "D21.NES", "cluster.padj", "cluster.NES")
     all_pathway_gsea <- all_pathway_gsea %>%
         filter(!if_any(everything(), is.na)) %>%
         mutate(diff = cluster.NES - T21.NES) %>%
-        filter(T21.NES >0 & cluster.NES > 0 & cluster.padj < .1) %>%
-        top_n(num_cyt_mets,diff) %>%
+        filter( cluster.padj < .1) %>%
         arrange(-cluster.NES) %>%
-        dplyr::select(cyt_met, T21.NES,  cluster.NES)
+        top_n(num_cyt_mets,diff) %>%
+        dplyr::select(cyt_met, T21.NES,  cluster.NES) %>%
+        distinct(cyt_met, .keep_all =TRUE)
         names(all_pathway_gsea) <- c( "cyt_met", "T21",   paste0("cluster", cluster))
     all_pathway_gsea$cyt_met <- factor(all_pathway_gsea$cyt_met, levels = all_pathway_gsea$cyt_met)
     all_pathway_gsea <- all_pathway_gsea %>%
         pivot_longer(-cyt_met, names_to = "cluster", values_to = "NES")
     return(all_pathway_gsea)
-    
 }
     
 clusterGeneZscores <- function(key_gene, long_z_list, cyt_mets) {
@@ -807,30 +843,27 @@ clusterDiffPlot <- function(pathway, key_cluster = 1, gsea_results. = gsea_resul
 }
 
 
-topMediatorsCluster <- function(long_z_list, cyt_mets, cluster) {
-
+topMediatorsCluster <- function(long_z_list, cyt_mets, cluster, key_pathway, pathways_all, all_correlations) {
+    ## sig_cyt_mets <- all_correlations[[as.character(cluster)]] %>%
+    ##     filter(fdr < .1) %>%
+    ##     mutate(cyt_met = paste0(A,"-", B)) %>%
+    ##     .$cyt_met
+    ## cyt_mets <- cyt_mets[cyt_mets %in% sig_cyt_mets]
     genes <- sapply(cyt_mets, function(x) {
         long_z_list[[as.character(cluster)]] %>%
             filter(cyt_met == x) %>%
+           filter(gene %in% pathways_all[[key_pathway]]) %>%
             top_n(1,combined_Z) %>%
             .$gene
     })
-        
-    gene_z <- lapply(long_z_list, function(x) {
+            gene_z <- lapply(long_z_list, function(x) {
         tmp <- sapply(1:length(cyt_mets), function(y) {
             x %>% filter(gene== genes[y] & cyt_met ==cyt_mets[y]) %>%
                 dplyr::select(gene,cyt_met,combined_Z) 
         })
         tmp %>% t() %>% as.data.frame()
     })
-
     gene_z <- gene_z %>% reduce(left_join,by = c("gene","cyt_met")) %>% column_to_rownames("cyt_met")
     names(gene_z)[2:7] <- names(long_z_list)
-
     return(gene_z)
-
-    
-
-    
-
 }
