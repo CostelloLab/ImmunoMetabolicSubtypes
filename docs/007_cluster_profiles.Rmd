@@ -160,115 +160,15 @@ ggsave(p2,file = "~/OneDrive - The University of Colorado Denver/Projects/Immuno
 
 ## Cluster Descriptive Statistics
 
-## Cluster Barplots
-
-```r
-#### side_by_side barplots
-
-
-
-clinic <- rbind(T21.mixed$clinic, D21.mixed$clinic)
-toplot = cluster_associations$ratio
-tokeep = apply(cluster_associations$dir.pvals.confint[, grepl("q.value", colnames(cluster_associations$dir.pvals.confint))],2, function(x) any(x < .2) )
-tokeep = tokeep[tokeep == TRUE]
-tokeep = gsub(" q.value","",names(tokeep))
-tokeep = paste(tokeep, collapse = "|")
-toplot = toplot[, grepl(tokeep, colnames(toplot))]
-total_col = which(grepl(tokeep, colnames(T21.mixed$clinic)))
-totals = sapply(total_col, function(x) sum(clinic[,x] ==1, na.rm = T)/sum(!is.na(clinic[,x])))
-column_names = colnames(toplot)
-toplot = sapply(1:ncol(toplot), function(x) toplot[,x] - totals[x]  )
-#toplot = rbind(toplot,totals)
-colnames(toplot) = gsub(" ", "\n",column_names)
-#toplot = toplot[,4]
-ptoplot = melt(toplot)
-
-assoc_barplot = ggplot(toplot, aes(x = as.factor(Var2), y = value, fill = Var1, width = .7, alpha = .8)) +
-	geom_bar(stat = "identity", position = "dodge") + 
-	theme_classic() +
-    scale_fill_manual(values = cols) +
-	theme(legend.position = c(0.6,-0.3),
-          legend.direction  = "horizontal",
-          legend.key.width = unit(5, "mm"))+
-	xlab("") + ylab("Percent Normalized \n to T21 Average")+
-    labs(fill = "") +
-    guides(alpha = "none")
-
-pdf("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/phenotype_barplots/T21_integrated_disease_enrichments.pdf", height = 3, width = 6)
-print(assoc_barplot)
-dev.off()
-
-#### side_by_side barplots - cytokines
-clinic <- rbind(T21.mixed$clinic, D21.mixed$clinic)
-toplot = cyt_cluster_associations$ratio
-tokeep = apply(cluster_associations$dir.pvals.confint[, grepl("q.value", colnames(cluster_associations$dir.pvals.confint))],2, function(x) any(x < .2) )
-tokeep = tokeep[tokeep == TRUE]
-tokeep = gsub(" q.value","",names(tokeep))
-tokeep = paste(tokeep, collapse = "|")
-toplot = toplot[, grepl(tokeep, colnames(toplot))]
-total_col = which(grepl(tokeep, colnames(T21.mixed$clinic)))
-totals = sapply(total_col, function(x) sum(clinic[,x] ==1, na.rm = T)/sum(!is.na(clinic[,x])))
-column_names = colnames(toplot)
-toplot = sapply(1:ncol(toplot), function(x) toplot[,x] - totals[x]  )
-#toplot = rbind(toplot,totals)
-colnames(toplot) = gsub(" ", "\n",column_names)
-#toplot = toplot[,4]
-toplot = melt(toplot)
-assoc_barplot = ggplot(toplot, aes(x = as.factor(Var2), y = value, fill = Var1, width = .7, alpha = .8)) +
-	geom_bar(stat = "identity", position = "dodge") + 
-	theme_classic() +
-    scale_fill_manual(values = cols)+
-    	theme(legend.position = c(0.6,-0.3),
-          legend.direction  = "horizontal",
-          legend.key.width = unit(5, "mm"))+
-	xlab("") + ylab("Percent Normalized \n to T21 Average")+
-    labs(fill = "") +
-    guides(alpha = "none")
-pdf("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/phenotype_barplots/T21_cytokine_disease_enrichments.pdf", height = 3, width = 6)
-print(assoc_barplot)
-dev.off()
-
-#### side_by_side barplots
-clinic <- rbind(T21.mixed$clinic, D21.mixed$clinic)
-toplot = met_cluster_associations$ratio
-tokeep = apply(cluster_associations$dir.pvals.confint[, grepl("q.value", colnames(cluster_associations$dir.pvals.confint))],2, function(x) any(x < .2) )
-tokeep = tokeep[tokeep == TRUE]
-tokeep = gsub(" q.value","",names(tokeep))
-tokeep = paste(tokeep, collapse = "|")
-toplot = toplot[, grepl(tokeep, colnames(toplot))]
-total_col = which(grepl(tokeep, colnames(T21.mixed$clinic)))
-totals = sapply(total_col, function(x) sum(clinic[,x] ==1, na.rm = T)/sum(!is.na(clinic[,x])))
-column_names = colnames(toplot)
-toplot = sapply(1:ncol(toplot), function(x) toplot[,x] - totals[x]  )
-#toplot = rbind(toplot,totals)
-colnames(toplot) = gsub(" ", "\n",column_names)
-#toplot = toplot[,4]
-toplot = melt(toplot)
-assoc_barplot = ggplot(toplot, aes(x = as.factor(Var2), y = value, fill = Var1, width = .7, alpha = .8)) +
-	geom_bar(stat = "identity", position = "dodge") + 
-	theme_classic() +
-    scale_fill_manual(values = cols) +
-    theme(legend.position = c(0.6,-0.3),
-          legend.direction  = "horizontal",
-          legend.key.width = unit(5, "mm"))+
-	xlab("") + ylab("Percent Normalized \n to T21 Average")+
-    labs(fill = "") +
-    guides(alpha = "none")
-pdf("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/phenotype_barplots/T21_metabolite_disease_enrichments.pdf", height = 3, width = 6)
-print(assoc_barplot)
-dev.off()
-```
 
 
 ## Cluster Forest Plots
 
 ```r
 ## To align the cluster colors to all the other data, set the colors
-cols <- c("blue4", "orange4", "springgreen4", "brown3", "grey")
 names(cols) <- c(paste("cluster", c(1,2,3,4)), "D21")
 
-
-toplot = as.data.frame(cluster_associations$dir.pvals.confint)
+toplot = as.data.frame(karyotype_associations$dir.pvals.confint)
 ## toplot <- toplot %>%
 ##     filter(rownames(.) != "T21")
 tokeep = apply(cluster_associations$dir.pvals.confint[, grepl("q.value", colnames(cluster_associations$dir.pvals.confint))],2, function(x) any(x < .2) )
@@ -276,7 +176,7 @@ tokeep = tokeep[tokeep == TRUE]
 tokeep = gsub(" q.value","",names(tokeep))
 tokeep = paste(tokeep, collapse = "|")
 toplot = toplot[, grepl(tokeep, colnames(toplot))]
-
+rownames(toplot)[5] <- "D21"
 
 toplot <- toplot %>%
     rownames_to_column("cluster") %>%
@@ -295,28 +195,25 @@ toplot2 <- toplot1 %>%
     mutate(statistic = gsub("\\s+|[/]","",gsub(pattern,"", toplot1$name, perl = TRUE)))
 
 toplot3 <- toplot2 %>%
-    dplyr::select(-name) %>%
+    select(-name) %>%
     pivot_wider(id_cols = c("cluster","condition"),values_from = value,names_from = statistic) %>%
-    mutate(cluster = factor(cluster, ordered = TRUE, levels = c( paste("cluster", c(4,3,2,1))))) %>%
+    mutate(cluster = factor(cluster, ordered = TRUE, levels = c("D21", paste("cluster", c(4,3,2,1))))) %>%
     mutate(condition = ifelse(condition == "Any autoimmune skin condition ", "Any autoimmune\nskin condition",
-                       ifelse(condition == "Frequent/Recurrent pneumonia ", "Frequent/Recurrent\npneumonia",condition))) 
-
-toplot3[,c("lcl", "OR", "ucl")] <- log(toplot3[,c("lcl", "OR", "ucl")])
-
+                              ifelse(condition == "Frequent/Recurrent pneumonia ", "Frequent/Recurrent\npneumonia",condition)))
 
 p1 <- ggplot(toplot3, aes(y=fct_rev(condition))) +
     theme_classic() +
     geom_point(aes(x = OR,color = cluster,size = -log10(toplot3$q.)), shape = 15, position = position_dodge(0.6)) +
     geom_linerange(aes(xmin = lcl, xmax = ucl, color = cluster), position = position_dodge(0.6)) +
-    geom_vline(xintercept = 0, linetype = "dashed") +
+    geom_vline(xintercept = 1, linetype = "dashed") +
     scale_color_manual(values = cols) +
-    ylab("") + xlab("Log Odds")+
+    ylab("") +
     labs(size = "-log10(q value)", color = "") +
     theme(axis.text = element_text(size = 6),
           legend.text = element_text(size = 6),
           axis.title = element_text(size = 6),
           legend.title = element_text(size =6),
-          legend.position = c(1,.65),
+          legend.position = c(.83,.65),
           legend.box = "horizontal",
           legend.margin = unit(units = "cm",x = .01),
           legend.key.width = unit(units = "cm", x = .01)
@@ -327,63 +224,116 @@ dev.off()
 
 #### side_by_side barplots - cytokines
 clinic <- rbind(T21.mixed$clinic, D21.mixed$clinic)
-toplot = cyt_cluster_associations$ratio
-tokeep = apply(cluster_associations$dir.pvals.confint[, grepl("q.value", colnames(cluster_associations$dir.pvals.confint))],2, function(x) any(x < .2) )
+
+## To align the cluster colors to all the other data, set the colors
+cols <- c("blue4", "orange4", "springgreen4", "brown3", "grey")
+names(cols) <- c( c(1,2,3,4), "D21")
+toplot = as.data.frame(cyt_cluster_associations$dir.pvals.confint)
+## toplot <- toplot %>%
+##     filter(rownames(.) != "T21")
+tokeep = apply(cyt_cluster_associations$dir.pvals.confint[, grepl("q.value", colnames(cyt_cluster_associations$dir.pvals.confint))],2, function(x) any(x < .2) )
 tokeep = tokeep[tokeep == TRUE]
 tokeep = gsub(" q.value","",names(tokeep))
 tokeep = paste(tokeep, collapse = "|")
 toplot = toplot[, grepl(tokeep, colnames(toplot))]
-total_col = which(grepl(tokeep, colnames(T21.mixed$clinic)))
-totals = sapply(total_col, function(x) sum(clinic[,x] ==1, na.rm = T)/sum(!is.na(clinic[,x])))
-column_names = colnames(toplot)
-toplot = sapply(1:ncol(toplot), function(x) toplot[,x] - totals[x]  )
-#toplot = rbind(toplot,totals)
-colnames(toplot) = gsub(" ", "\n",column_names)
-#toplot = toplot[,4]
-toplot = melt(toplot)
-assoc_barplot = ggplot(toplot, aes(x = as.factor(Var2), y = value, fill = Var1, width = .7, alpha = .8)) +
-	geom_bar(stat = "identity", position = "dodge") + 
-	theme_classic() +
-    scale_fill_manual(values = cols)+
-    	theme(legend.position = c(0.6,-0.3),
-          legend.direction  = "horizontal",
-          legend.key.width = unit(5, "mm"))+
-	xlab("") + ylab("Percent Normalized \n to T21 Average")+
-    labs(fill = "") +
-    guides(alpha = "none")
-pdf("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/phenotype_barplots/T21_cytokine_disease_enrichments.pdf", height = 3, width = 6)
-print(assoc_barplot)
+toplot <- toplot %>%
+    rownames_to_column("cluster") %>%
+    pivot_longer(cols = -cluster)
+toplot1 <- toplot %>%
+    mutate(condition = gsub("lcl|OR|q.value|ucl","", toplot$name))
+# Strings to keep
+specific_strings <- c("lcl","OR","q.value","ucl")
+# Create a regular expression pattern to match any string that is not in the specific_strings list
+pattern <- paste0("(?!", paste(specific_strings, collapse = "|"), ")\\b\\w+\\b")
+toplot2 <- toplot1 %>%
+    mutate(statistic = gsub("\\s+|[/]","",gsub(pattern,"", toplot1$name, perl = TRUE)))
+toplot3 <- toplot2 %>%
+    select(-name) %>%
+    pivot_wider(id_cols = c("cluster","condition"),values_from = value,names_from = statistic) %>%
+    mutate(cluster = factor(cluster, ordered = TRUE, levels = c(4,3,2,1))) %>%
+    mutate(condition = ifelse(condition == "Any autoimmune skin condition ", "Any autoimmune\nskin condition",
+                              ifelse(condition == "Frequent/Recurrent pneumonia ", "Frequent/Recurrent\npneumonia",condition)))
+toplot3[, c("lcl", "OR", "ucl")] <- log(toplot3[, c("lcl", "OR", "ucl")])
+## only 2 cytokine clusters
+toplot3 <- toplot3 %>%
+    filter(cluster == 1) %>%
+    mutate(OR = -1*OR)
+p1 <- ggplot(toplot3, aes(y=fct_rev(condition))) +
+    theme_classic() +
+    geom_point(aes(x = OR,color = cluster,size = -log10(toplot3$q.)), shape = 15, position = position_dodge(0.6)) +
+    geom_linerange(aes(xmin = lcl, xmax = ucl, color = cluster), position = position_dodge(0.6)) +
+    geom_vline(xintercept = 0, linetype = "dashed") +
+    scale_color_manual(values = cols) +
+    ylab("") +
+    labs(size = "-log10(q value)", color = "") +
+    theme(axis.text = element_text(size = 6),
+          legend.text = element_text(size = 6),
+          axis.title = element_text(size = 6),
+          legend.title = element_text(size =6),
+          legend.position = c(.83,.65),
+          legend.box = "horizontal",
+          legend.margin = unit(units = "cm",x = .01),
+          legend.key.width = unit(units = "cm", x = .01)
+          )
+pdf("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/phenotype_forest_plots/T21_cytokine_disease_enrichments.pdf", height = 2.5, width = 3.5)
+print(p1)
 dev.off()
 
-#### side_by_side barplots
-clinic <- rbind(T21.mixed$clinic, D21.mixed$clinic)
-toplot = met_cluster_associations$ratio
-tokeep = apply(cluster_associations$dir.pvals.confint[, grepl("q.value", colnames(cluster_associations$dir.pvals.confint))],2, function(x) any(x < .2) )
+## To align the cluster colors to all the other data, set the colors
+cols <- c("blue4", "orange4", "springgreen4", "brown3", "grey")
+names(cols) <- c(paste("cluster", c(1,2,3,4)), "D21")
+toplot = as.data.frame(met_cluster_associations$dir.pvals.confint)
+## toplot <- toplot %>%
+##     filter(rownames(.) != "T21")
+tokeep = apply(cyt_cluster_associations$dir.pvals.confint[, grepl("q.value", colnames(cyt_cluster_associations$dir.pvals.confint))],2, function(x) any(x < .2) )
 tokeep = tokeep[tokeep == TRUE]
 tokeep = gsub(" q.value","",names(tokeep))
 tokeep = paste(tokeep, collapse = "|")
 toplot = toplot[, grepl(tokeep, colnames(toplot))]
-total_col = which(grepl(tokeep, colnames(T21.mixed$clinic)))
-totals = sapply(total_col, function(x) sum(clinic[,x] ==1, na.rm = T)/sum(!is.na(clinic[,x])))
-column_names = colnames(toplot)
-toplot = sapply(1:ncol(toplot), function(x) toplot[,x] - totals[x]  )
-#toplot = rbind(toplot,totals)
-colnames(toplot) = gsub(" ", "\n",column_names)
-#toplot = toplot[,4]
-toplot = melt(toplot)
-assoc_barplot = ggplot(toplot, aes(x = as.factor(Var2), y = value, fill = Var1, width = .7, alpha = .8)) +
-	geom_bar(stat = "identity", position = "dodge") + 
-	theme_classic() +
-    scale_fill_manual(values = cols) +
-    theme(legend.position = c(0.6,-0.3),
-          legend.direction  = "horizontal",
-          legend.key.width = unit(5, "mm"))+
-	xlab("") + ylab("Percent Normalized \n to T21 Average")+
-    labs(fill = "") +
-    guides(alpha = "none")
-pdf("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/phenotype_barplots/T21_metabolite_disease_enrichments.pdf", height = 3, width = 6)
-print(assoc_barplot)
+toplot <- toplot %>%
+    rownames_to_column("cluster") %>%
+    pivot_longer(cols = -cluster)
+
+toplot1 <- toplot %>%
+    mutate(condition = gsub("lcl|OR|q.value|ucl","", toplot$name))
+# Strings to keep
+specific_strings <- c("lcl","OR","q.value","ucl")
+# Create a regular expression pattern to match any string that is not in the specific_strings list
+pattern <- paste0("(?!", paste(specific_strings, collapse = "|"), ")\\b\\w+\\b")
+toplot2 <- toplot1 %>%
+    mutate(statistic = gsub("\\s+|[/]","",gsub(pattern,"", toplot1$name, perl = TRUE)))
+
+toplot3 <- toplot2 %>%
+    select(-name) %>%
+    pivot_wider(id_cols = c("cluster","condition"),values_from = value,names_from = statistic) %>%
+    mutate(cluster = factor(cluster, ordered = TRUE, levels = c(paste("cluster",c(4,3,2,1))))) %>%
+    mutate(condition = ifelse(condition == "Any autoimmune skin condition ", "Any autoimmune\nskin condition",
+                              ifelse(condition == "Frequent/Recurrent pneumonia ", "Frequent/Recurrent\npneumonia",condition)))
+toplot3[, c("lcl", "OR", "ucl")] <- log(toplot3[, c("lcl", "OR", "ucl")])
+
+
+p1 <- ggplot(toplot3, aes(y=fct_rev(condition))) +
+    theme_classic() +
+    geom_point(aes(x = OR,color = cluster,size = -log10(toplot3$q.)), shape = 15, position = position_dodge(0.6)) +
+    geom_linerange(aes(xmin = lcl, xmax = ucl, color = cluster), position = position_dodge(0.6)) +
+    geom_vline(xintercept = 0, linetype = "dashed") +
+    scale_color_manual(values = cols) +
+    ylab("") +
+    labs(size = "-log10(q value)", color = "") +
+    theme(axis.text = element_text(size = 6),
+          legend.text = element_text(size = 6),
+          axis.title = element_text(size = 6),
+          legend.title = element_text(size =6),
+          legend.position = c(.83,.65),
+          legend.box = "horizontal",
+          legend.margin = unit(units = "cm",x = .01),
+          legend.key.width = unit(units = "cm", x = .01)
+          )
+pdf("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/phenotype_forest_plots/T21_metabolite_disease_enrichments.pdf", height = 2.5, width = 3.5)
+print(p1)
 dev.off()
+
+
 ```
 
 ## Cluster Sina Plots
