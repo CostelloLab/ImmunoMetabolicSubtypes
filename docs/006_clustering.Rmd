@@ -162,7 +162,6 @@ NUMC <- 2:6
 phenotypes =  names(T21.mixed$clinic)[c(2,6,9:21)]
 iterations = 1
 
-
 num_neighbors_grid <- seq(10,100,5)
 
 multi_omic_res = lapply(num_neighbors_grid, function(x) {
