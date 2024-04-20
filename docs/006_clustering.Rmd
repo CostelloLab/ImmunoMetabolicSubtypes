@@ -183,17 +183,24 @@ enriched_conditions <- as.data.frame(enriched_conditions)
 enriched_conditions$clusters <- NUMC
 
 enriched_conditions <- enriched_conditions %>%
-    pivot_longer(cols = -clusters)
+    column_to_rownames("clusters")
 
-names(enriched_conditions)[2] <- "Neighbors"
+col_fun <- colorRamp2(c(0,10), c("white", "blue"))
 
-p1 <- ggplot(enriched_conditions, aes(x = clusters, y = value, color = Neighbors)) +
-    geom_line(size = 2.5) +
-    theme_classic() +
-    ylab("# of enriched features") + xlab("# of clusters") 
-    
-pdf("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/neighbors/num_neighbors_2024_01_12.pdf", height = 4, width = 10)
-print(p1)
+p1 <- Heatmap(as.matrix(enriched_conditions),
+        name = "number of enriched conditions",
+        row_order = rownames(enriched_conditions),
+        column_order = names(enriched_conditions),
+        show_column_dend = FALSE,
+        show_row_dend = FALSE,
+        cell_fun = function(j, i, x, y, width, height, fill) 
+        {
+          grid.text(sprintf("%.1f", as.integer(enriched_conditions[i, j])), x, y, gp = gpar(fontsize = 6))
+        },
+        col = col_fun,
+        heatmap_legend_param = list(legend_direction = "horizontal"))
+pdf("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/neighbors/num_neighbors_2024_04_19.pdf", height = 2, width = 4)
+draw(p1, heatmap_legend_side = "bottom")
 dev.off()
 
 
