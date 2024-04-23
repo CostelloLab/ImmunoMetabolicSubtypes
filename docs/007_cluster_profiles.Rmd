@@ -256,7 +256,6 @@ toplot3 <- toplot2 %>%
 toplot3[, c("lcl", "OR", "ucl")] <- log(toplot3[, c("lcl", "OR", "ucl")])
 ## only 2 cytokine clusters
 toplot3 <- toplot3 %>%
-    filter(cluster == 1) %>%
     mutate(OR = -1*OR)
 p1 <- ggplot(toplot3, aes(y=fct_rev(condition))) +
     theme_classic() +
@@ -285,7 +284,7 @@ names(cols) <- c(paste("cluster", c(1,2,3,4)), "D21")
 toplot = as.data.frame(met_cluster_associations$dir.pvals.confint)
 ## toplot <- toplot %>%
 ##     filter(rownames(.) != "T21")
-tokeep = apply(cyt_cluster_associations$dir.pvals.confint[, grepl("q.value", colnames(cyt_cluster_associations$dir.pvals.confint))],2, function(x) any(x < .2) )
+tokeep = apply(met_cluster_associations$dir.pvals.confint[, grepl("q.value", colnames(met_cluster_associations$dir.pvals.confint))],2, function(x) any(x < .4) )
 tokeep = tokeep[tokeep == TRUE]
 tokeep = gsub(" q.value","",names(tokeep))
 tokeep = paste(tokeep, collapse = "|")
