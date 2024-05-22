@@ -4,8 +4,9 @@ This repository contains the necessary scripts to reproduce the figures from Int
 # Installation 
 To download the  necessary scripts, clone this repository with:
 
-``` shell
+``` 
 git clone Integrated analysis of immunometabolic Interactions in Down syndrome
+
 ```
 
 
