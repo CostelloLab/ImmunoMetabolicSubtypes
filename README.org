@@ -1,1 +1,10 @@
-This repository contains the necessary scripts to reproduce the figures from [Immuno-metabolic subtypes paper]. 
+# Overview
+This repository contains the necessary scripts to reproduce the figures from Integrated analysis of immunometabolic Interactions in Down syndrome (under review at Science Advances).
+
+# Installation 
+To download the  necessary scripts, clone this repository with:
+```
+git clone Integrated analysis of immunometabolic Interactions in Down syndrome
+```
+
+
