@@ -268,6 +268,7 @@ all_correlations$significance <- ifelse(all_correlations$T21_fdr < .1 & all_corr
 
 all_correlations$diff <- abs(all_correlations$T21_r - all_correlations$D21_r)
 
+
 all_correlations$label <- ifelse(abs(all_correlations$T21_r) > .285 & abs(all_correlations$D21_r) < .22, paste(all_correlations$cytokine, "-",all_correlations$metabolite),
                                ifelse(abs(all_correlations$T21_r) < .1 & abs(all_correlations$D21_r) > .53, paste(all_correlations$cytokine, "-",all_correlations$metabolite) ,""))
 p1 <- ggplot(all_correlations, aes(x = T21_r, y = D21_r, color = significance,label = label, alpha = significance ))+
@@ -278,7 +279,7 @@ p1 <- ggplot(all_correlations, aes(x = T21_r, y = D21_r, color = significance,la
     xlim(-.6,.6) + ylim(-.6,.6) +
     geom_vline(xintercept = 0, linetype = "dashed", color = "grey") +
     geom_hline(yintercept = 0, linetype = "dashed", color = "grey") +
-    scale_color_manual(values = c("Both" = "red", "T21 only" = "blue", "D21 only" = "brown", "None" = "gray"))+
+    scale_color_manual(values = c("Both" = "darkgreen", "T21 only" = "blue", "D21 only" = "brown", "None" = "gray"))+
     scale_alpha_manual(values = c(1,1,.2,1))  +
     xlab("T21 correlation coefficient") +
     ylab("D21 correlation coefficient")
