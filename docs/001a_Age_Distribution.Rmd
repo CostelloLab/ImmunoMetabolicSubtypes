@@ -1,0 +1,118 @@
+``` R
+load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/processed/T21_mixed_cyt_met.RData")
+load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/processed/D21_mixed_cyt_met.RData")
+```
+
+
+### what is the age distribution?
+
+``` R
+library(tidyverse)
+
+dat <- rbind(T21.mixed$clinic, D21.mixed$clinic)
+p1 <- ggplot(dat, aes(x = Age_at_visit, fill = Karyotype, color = Karyotype)) +
+    geom_density(alpha = .5) +
+    theme_classic()
+ggsave(p1, file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/cohort_exploration/age_density.pdf", width = 10, height = 3)
+```
+
+
+##Disease Co-occurrence
+
+``` R
+
+library(ggcorrplot)
+
+phenotypes <- names(dat)[9:21]
+
+dcc <- data.frame()
+for(x in phenotypes) {
+    for(y in phenotypes) {
+        dcc[x,y] <-  -log10(fisher.test(dat[,x], dat[,y], alternative = "greater", simulate.p.value = T)$p.value)
+    }
+}
+dcc[upper.tri(dcc, diag = T)] <- NA
+dcc <- dcc %>%
+    rownames_to_column("condition_1") %>%
+    pivot_longer(names_to = "condition_2", cols = -c("condition_1")) %>%
+    filter(!is.na(value))
+
+p2 <- ggplot(dcc, aes(x = condition_1, y = condition_2, color= value,fill = value)) +
+    geom_point(
+        shape = 21, size = 10) +
+    scale_fill_gradient2(
+        low = "white",
+        high = "blue",
+        limit = c(0, max(dcc$value))) +
+    scale_color_gradient2(
+        low = "white",
+        high = "blue",
+        limit = c(0, max(dcc$value))) +
+    theme_classic() +
+    theme(axis.text.x = element_text(angle = 70, hjust = 1))
+ggsave(p2, file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/cohort_exploration/full_cohort_co_occurrence.pdf")
+
+#### Within T21
+
+t21 <- dat %>%
+    filter(Karyotype == "T21")
+t21_dcc <- data.frame()
+for(x in phenotypes) {
+    for(y in phenotypes) {
+        t21_dcc[x,y] <-  -log10(fisher.test(t21[,x], t21[,y], alternative = "greater", simulate.p.value = T)$p.value)
+    }
+}
+t21_dcc[upper.tri(t21_dcc, diag = T)] <- NA
+t21_dcc <- t21_dcc %>%
+    rownames_to_column("condition_1") %>%
+    pivot_longer(names_to = "condition_2", cols = -c("condition_1")) %>%
+    filter(!is.na(value))
+p3 <- ggplot(t21_dcc, aes(x = condition_1, y = condition_2, color= value,fill = value)) +
+    geom_point(
+        shape = 21,
+        size = 10) +
+    scale_fill_gradient2(
+        low = "white",
+        high = "blue",
+        limit = c(0, max(dcc$value))) +
+    scale_color_gradient2(
+        low = "white",
+        high = "blue",
+        limit = c(0, max(dcc$value))) +
+    theme_classic() +
+    theme(axis.text.x = element_text(angle = 70, hjust = 1))
+ggsave(p3, file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/cohort_exploration/t21_co_occurrence.pdf")
+
+
+### Control
+Control <- dat %>%
+    filter(Karyotype == "Control")
+Control_dcc <- data.frame()
+for(x in phenotypes) {
+    for(y in phenotypes) {
+        Control_dcc[x,y] <-  ifelse(any(dim(table(Control[,x], Control[,y])) ==1)|any(rowSums(table(Control[,x], Control[,y])) ==0)|any(colSums(table(Control[,x], Control[,y])) ==0),
+                                    0,
+                                    -log10(fisher.test(Control[,x], Control[,y], alternative = "greater", simulate.p.value = T)$p.value))
+    }
+}
+Control_dcc[upper.tri(Control_dcc, diag = T)] <- NA
+Control_dcc <- Control_dcc %>%
+    rownames_to_column("condition_1") %>%
+    pivot_longer(names_to = "condition_2", cols = -c("condition_1")) %>%
+    filter(!is.na(value))
+p4 <- ggplot(Control_dcc, aes(x = condition_1, y = condition_2, color= value,fill = value)) +
+    geom_point(
+        shape = 21,
+        size = 10) +
+    scale_fill_gradient2(
+        low = "white",
+        high = "blue",
+        limit = c(0, max(dcc$value))) +
+    scale_color_gradient2(
+        low = "white",
+        high = "blue",
+        limit = c(0, max(dcc$value))) +
+    theme_classic() +
+    theme(axis.text.x = element_text(angle = 70, hjust = 1))
+ggsave(p4, file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/cohort_exploration/Control_co_occurrence.pdf")
+```
