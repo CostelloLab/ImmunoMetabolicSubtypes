@@ -993,7 +993,7 @@ clusterHeatmap = function(omics.data,clustering,diff_expr, cluster_assoc,thresho
 	}
 
 
-names(FC) = paste(1:length(unique(clustering)))
+    names(FC) = paste(1:length(unique(clustering)))
 
  	clustering = as.factor(clustering)
 	ha = rowAnnotation(
@@ -1005,7 +1005,7 @@ names(FC) = paste(1:length(unique(clustering)))
 		ht <- Heatmap(t(FC),
 				name = "log2FC", 
 				show_row_names = FALSE, 
-				show_column_names = FALSE, 
+				show_column_names = TRUE, 
 				show_row_dend = FALSE, 
 				row_dend_reorder = FALSE,
                               column_title = title,
@@ -1163,7 +1163,7 @@ names(FC) = paste(1:length(unique(clustering)))
 	#draw(h_list)
 
 	if(legend_pos_auto){
-		return(list(heatmap = h_list))
+		return(list(heatmap = h_list, FC = FC, column_order = column_order(h_list)))
 	}else{
 		lgd = packLegend(
 			Legend(title = "log2FC", col_fun = col_fun_main, direction = "horizontal", labels_gp = gpar(fontsize =6) ),
