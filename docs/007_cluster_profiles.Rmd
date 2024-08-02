@@ -15,11 +15,10 @@ source("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicS
 
 ```
 
-
-
 ## Visualizing and profiling the clusters
 
 ```r
+
 omics.data <- as.data.frame(t(cbind(T21.mixed$cytokines, T21.mixed$metabolites)))
 
 cluster_associations <- association_test(clinic = T21.mixed$clinic,
@@ -28,11 +27,10 @@ cluster_associations <- association_test(clinic = T21.mixed$clinic,
 
 
 
-Differential_expression <- diff_expr_wilcoxon(omics.data,all_clust$clustering)
-
-kmeans_clusters = kmeans(differential_expression$FC, centers = 4)
+differential_expression <- diff_expr_wilcoxon(omics.data,all_clust$clustering)
 
 
+source("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/R/cluster_evaluation.R")
 p1 <- clusterHeatmap(omics.data = omics.data,
                diff_expr = differential_expression,
                clustering = all_clust$clustering,
@@ -46,21 +44,40 @@ p1 <- clusterHeatmap(omics.data = omics.data,
                legend_pos_auto = TRUE
                )
 
-pdf("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/cluster_heatmaps/T21_cyt_met_diff_clinic_4clusters_25neighbors_heatmap.pdf", width = 6, height = 4)
+pdf("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/cluster_heatmaps/T21_cyt_met_diff_clinic_4clusters_25neighbors_heatmap.pdf", width = 12, height = 4)
 draw(p1$h,heatmap_legend_side = "bottom")
 dev.off()
+
+#### D21 clustering
+D21.omics <- as.data.frame(t(cbind(D21.mixed$cytokines, D21.mixed$metabolites)))
+D21.omics <- D21.omics[rownames(p1$FC),]
+
+D21.means <- t(apply(D21.omics, 1, mean))
+
+col_fun_main = colorRamp2(c(-1, 0, 1), c("blue", "white", "red"))
+
+for(i in 1:4){
+    D21.means_i <- D21.means[,p1$column_order$log2FC[[i]]]
+    p <- ComplexHeatmap::Heatmap(t(D21.means_i),
+                        column_order = names(D21.means_i),
+                        col = col_fun_main,
+                        height = unit(5, 'mm'),
+                        show_column_names = T
+                        )
+    pdf(paste0("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/cluster_heatmaps/D21_",names(p1$column_order$log2FC)[[i]],".pdf"))
+    draw(p)
+    dev.off()
+}
+
+
 
 
 ```
 
-## Individual Omics Heatmaps
+### Individual omic profiles
 
-```r
-cyt_differential_expression <- diff_expr_wilcoxon(t(T21.mixed$cytokines),cyt_clust$clustering)
+```R
 
-cyt_cluster_associations <- association_test(clinic = T21.mixed$clinic,
-                                         clustering = cyt_clust$clustering,
-                                         phenotypes = names(T21.mixed$clinic)[10:21])
 
 p1 <- clusterHeatmap(omics.data = t(T21.mixed$cytokines),
                diff_expr = cyt_differential_expression,
