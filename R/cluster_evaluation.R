@@ -335,8 +335,10 @@ association_test = function(clustering, clinic, phenotypes) {
                     cntg_tab[z,2] <- tab[z,paste(j)]
 
                 }
+
                 
                 ft<-  fisher.test(cntg_tab, simulate.p.value = T)
+                
                 
  		if(sum(!is.na(unique(dat[,phenotypes[i]]))) ==2) {
                     
@@ -347,10 +349,11 @@ association_test = function(clustering, clinic, phenotypes) {
                     lcl[j,i] = ft$conf.int[1]
                     ucl[j,i] = ft$conf.int[2]
                     
-                    
-
 
                 }
+
+
+
                 else { 
                     
 
@@ -850,7 +853,11 @@ clusterEval <- function(omics.list, clinic, phenotypes, iterations = 100, NUMC =
         
         cluster_eval <- association_test(clustering <- clustering, clinic, phenotypes)
         condition_diff[[i]] <- cluster_eval
-        num_sig <- sum(cluster_eval$pvals[,!(colnames(cluster_eval$pvals) %in% c("Sex q.value","Age_at_visit q.value"))]  < clinical_threshold)
+        cluster_eval$pvals[cluster_eval$dir == 0] <- 1
+                
+        num_sig <- sum(cluster_eval$pvals[,!(colnames(cluster_eval$pvals) %in% c("Sex q.value","Age_at_visit q.value"))]  < clinical_threshold) 
+
+        
         if(i ==2){ num_sig <- num_sig/2}                                         # Divide by two in the case of 2 clusters, because each cluster will have the same score
             
         diff.expr.cluster <- diff_expr_wilcoxon(omics.data,clustering)
