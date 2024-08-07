@@ -836,7 +836,7 @@ clusterEval <- function(omics.list, clinic, phenotypes, iterations = 100, NUMC =
     omics.data <- as.data.frame(rbindlist(lapply(omics.list,as.data.frame)))
     rownames(omics.data) <- unlist(sapply(omics.list,rownames))
 
-    min_cluster <- .05 * ncol(omics.data)
+    min_cluster <- ceiling(.05 * ncol(omics.data))
 
     final_NUMC <- numeric()
     results <- list()
@@ -1066,7 +1066,7 @@ clusterHeatmap = function(omics.data,clustering,diff_expr, cluster_assoc,thresho
 
 	assoc_toplot = as.matrix(cluster_assoc$pvals)
 	tokeep = apply(assoc_toplot, 2, function(x) any(x< .5))
-	assoc_toplot = assoc_toplot[, tokeep]
+	assoc_toplot = as.data.frame(assoc_toplot[, tokeep])
 	assoc_toplot = -log10(assoc_toplot)
 	colnames(assoc_toplot) = gsub(" q.value","", colnames(assoc_toplot) )
 	
