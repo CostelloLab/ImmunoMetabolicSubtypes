@@ -37,7 +37,8 @@ load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSub
 2. Robust Clust
    *
 3. Davies-Bouldin
-   * Lower index values indicate a better clustering result. The index is improved (lowered) by increased separation between clusters and decreased variation within clusters.
+   * Lower index values indicate a better clustering result. The index is improved (lowered) by increased separation betw
+   een clusters and decreased variation within clusters.
 4. Calinksi-Harabasz
    * A higher value of CH indicates a better clustering, because it means that the data points are more spread out between clusters than they are within clusters.
 
@@ -60,8 +61,6 @@ num_neighbors = 25
 ```
 
 ``` r
-
-```
 
 res <- clusterEval(omics.list = list(t(T21.mixed$cytokines),t(T21.mixed$metabolites)),
                 clinic = T21.mixed$clinic,
@@ -102,6 +101,27 @@ metabolite_res$summary
 metabolite_res$eigengap
 metabolite_res$nemo
 write_csv(x = metabolite_res$summary,file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/tables/metabolite_clustering_results.csv")
+
+
+T21.transcripts <- expression_list$expression %>%
+    filter(rownames(.) %in% rownames(T21.mixed$cytokines))
+
+transcript_res = clusterEval(omics.list = list(t(T21.transcripts)),
+						clinic = T21.mixed$clinic,
+					 	phenotypes = phenotypes,
+					  	iterations = iterations, 
+						NUMC = 2:5,  
+                      diff_sig_threshold = diff_sig_threshold ,
+                      clinical_threshold = clinical_threshold,
+                      num_neighbors = num_neighbors)
+transcript_res$summary
+transcript_res$eigengap
+transcript_res$nemo
+
+write_csv(x = transcript_res$summary,file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/tables/transcript_clustering_results.csv")
+
+
+
 ```
 
 ## Perform the clustering
@@ -118,6 +138,11 @@ save(cyt_clust, file ="~/OneDrive - The University of Colorado Denver/Projects/I
 met_clust <- nemo.clustering(omics.list = list(t(T21.mixed$metabolites)),num.clusters = 3,num.neighbors = num_neighbors)
 
 save(met_clust, file ="~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/clusterings/met_clust.RData")
+
+
+rna_clust <- nemo.clustering(omics.list = list(t(T21.transcripts)),num.clusters = 4,num.neighbors = num_neighbors)
+
+save(rna_clust, file ="~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/clusterings/rna_clust.RData")
 
 ```
 
