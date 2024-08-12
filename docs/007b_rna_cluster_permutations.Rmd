@@ -1,0 +1,117 @@
+# Comparing RNA clustering in T21 with integrated clustering overall
+
+## Load the data
+```r
+load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/clusterings/all_clust.RData")
+load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/clusterings/cyt_clust.RData")
+load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/clusterings/met_clust.RData")
+load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/clusterings/rna_clust.RData")
+```
+
+
+```r
+library(ggalluvial)
+
+cyt_met_all_clusterings <- cbind(cytokine = cyt_clust$clustering,
+                                 integrated = all_clust$clustering,
+                                 metabolite = met_clust$clustering,
+                                 rna = rna_clust$clustering)
+cyt_met_all_clusterings <- cyt_met_all_clusterings %>%
+    as.data.frame() %>%
+    count(cytokine, integrated,metabolite, rna)
+
+cyt_met_all_clusterings[1:4] <- apply(cyt_met_all_clusterings[1:4],2,as.factor)
+
+cols <- c("blue4", "orange4", "springgreen4", "brown3", "grey")
+names(cols) <- c(1,2,3,4,"D21")
+
+p3 <- ggplot(as.data.frame(cyt_met_all_clusterings),
+       aes(y = n, axis1 = integrated, axis2 = rna)) +
+  geom_alluvium(aes(fill = integrated), width = 1/12) +
+  geom_stratum(width = 1/12, fill = "black", color = "grey") +
+  geom_label(stat = "stratum", aes(label = after_stat(stratum))) +
+    scale_x_discrete(limits = c("integrated","rna" ), expand = c(.05, .05)) +
+    scale_fill_manual(values = cols) +
+#  scale_fill_brewer(type = "qual", palette = "Set1") +
+    ggtitle("") +
+    theme_classic() +
+    ylab("count")+
+    theme(axis.text = element_text(size = 12),
+          legend.position = "bottom")
+
+ggsave(p3,file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/riverplots/rna_integrated_25neighbors_riverplot.pdf", height = 3, width = 5)
+
+
+```
+
+## permutations
+```r
+library(aricode) ## for AMI
+
+set.seed(1234) ## for reproducibility
+
+
+### calculating jaccard based on counting pairs between two clusterings
+
+all_clustering <- all_clust$clustering
+
+rna_clustering <- rna_clust$clustering
+
+clust_num <- as.numeric(table(rna_clustering)) ## for checking the breakdown
+total <- sum(clust_num) ## total size of the cohort
+
+total_pairs <- 2 * (total ^ 2 - total)
+
+clusteringPairsJaccard <- function(integrated_clustering, other_clustering) {
+    ss <- 0
+    sd <- 0
+    ds <- 0
+    for(i in 1:4) {
+        all_pairs <- expand.grid(names(integrated_clustering[integrated_clustering==i]),names(integrated_clustering[integrated_clustering==i]))
+        all_pairs <- all_pairs[all_pairs$Var1 != all_pairs$Var2,]
+        all_pairs$pair <- paste(all_pairs$Var1,all_pairs$Var2)
+        ds_tmp <- nrow(all_pairs)    
+        for(j in 1:4) {
+            other_pairs <- expand.grid(names(other_clustering[other_clustering==j]),names(other_clustering[other_clustering==j]))
+            other_pairs <- other_pairs[other_pairs$Var1 != other_pairs$Var2,]
+            other_pairs$pair <- paste(other_pairs$Var1,other_pairs$Var2)
+            ss_tmp <- length(intersect(all_pairs$pair, other_pairs$pair))
+            sd_tmp <- nrow(other_pairs) - ss_tmp
+            ss <- ss + ss_tmp
+            sd <- sd + sd_tmp
+            ds_tmp <- ds_tmp - ss_tmp
+        }
+        ds <- ds+ds_tmp
+    }
+    jaccard <- ss/(ss+sd+ds)
+    return(jaccard)
+}
+
+
+rna_jaccard <- clusteringPairsJaccard(integrated_clustering = all_clustering,
+                                      other_clustering = rna_clustering)
+
+cluster_names <- names(rna_clustering)
+
+permutation_jaccards <- sapply(1:1000, function(x) {
+      permutation <- sample(rna_clust$clustering, size = total, replace = F)
+    names(permutation) <- cluster_names
+    clusteringPairsJaccard(integrated_clustering = all_clustering,
+                                              other_clustering = permutation)
+} )
+
+
+empirical_p <- sum(rna_jaccard< permutation_jaccards)/1001
+
+
+toplot <- as.data.frame(permutation_jaccards)
+
+p4 <- ggplot(toplot, aes(x = permutation_jaccards)) +
+    geom_density() +
+    geom_vline(xintercept = rna_jaccard, color = "darkred") +
+    theme_classic()
+
+ggsave(p4, file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/clustering_permutations/permutation_density.pdf")
+
+
+```

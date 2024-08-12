@@ -1,0 +1,46 @@
+
+# Clustering of RNA in T21 subjects
+
+## Load required scripts and packages
+```r
+source("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/R/data_prep_functions.R")
+source("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/R/nemo_functions.R")
+source("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/R/cluster_evaluation.R")
+library(tidyverse)
+```
+
+## Set the seed for reproducibility
+
+``` r
+set.seed(1234)
+```
+
+## Load the data
+```r
+load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/processed/T21_standardized_cyt_met.RData")
+load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/processed/processed_transcriptome.RData")
+```
+
+
+``` R
+
+T21.transcripts <- expression_list$expression %>%
+    filter(rownames(.) %in% rownames(T21.mixed$cytokines))
+
+transcript_res = clusterEval(omics.list = list(t(T21.transcripts)),
+						clinic = T21.mixed$clinic,
+					 	phenotypes = phenotypes,
+					  	iterations = iterations, 
+						NUMC = 2:5,  
+                      diff_sig_threshold = diff_sig_threshold ,
+                      clinical_threshold = clinical_threshold,
+                      num_neighbors = num_neighbors)
+transcript_res$summary
+transcript_res$eigengap
+transcript_res$nemo
+
+write_csv(x = transcript_res$summary,file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/tables/transcript_clustering_results.csv")
+
+``` 
+
+
