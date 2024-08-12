@@ -103,23 +103,6 @@ metabolite_res$nemo
 write_csv(x = metabolite_res$summary,file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/tables/metabolite_clustering_results.csv")
 
 
-T21.transcripts <- expression_list$expression %>%
-    filter(rownames(.) %in% rownames(T21.mixed$cytokines))
-
-transcript_res = clusterEval(omics.list = list(t(T21.transcripts)),
-						clinic = T21.mixed$clinic,
-					 	phenotypes = phenotypes,
-					  	iterations = iterations, 
-						NUMC = 2:5,  
-                      diff_sig_threshold = diff_sig_threshold ,
-                      clinical_threshold = clinical_threshold,
-                      num_neighbors = num_neighbors)
-transcript_res$summary
-transcript_res$eigengap
-transcript_res$nemo
-
-write_csv(x = transcript_res$summary,file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/tables/transcript_clustering_results.csv")
-
 
 
 ```

@@ -48,120 +48,6 @@ pdf("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubt
 draw(p1$h,heatmap_legend_side = "bottom")
 dev.off()
 
-#### D21 clustering
-
-D21.omics <- as.data.frame(t(cbind(D21.mixed$cytokines, D21.mixed$metabolites)))
-
-## D21 all_cluster
-load(file ="~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/clusterings/D21_all_clust.RData")
-source("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/R/cluster_evaluation.R")
-
-D21_differential_expression <- diff_expr_wilcoxon(D21.omics,D21_all_clust$clustering)
-
-D21_cluster_associations <- association_test(clinic = D21.mixed$clinic,
-                                         clustering = D21_all_clust$clustering,
-                                         phenotypes = names(D21.mixed$clinic)[10:21])
-tokeep <- apply(D21_cluster_associations$dir, 2, function(x) sum(x) !=0)
-D21_cluster_associations$pvals <- as.matrix(D21_cluster_associations$pvals)[,tokeep]
-D21_cluster_associations$dir <- as.matrix(D21_cluster_associations$dir)[,tokeep]
-
-
-source("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/R/cluster_evaluation.R")
-p2 <- clusterHeatmap(omics.data = D21.omics,
-               diff_expr = D21_differential_expression,
-               clustering = D21_all_clust$clustering,
-               cluster_assoc = D21_cluster_associations,
-               threshold = .1,
-               split_num = 4,
-               title = "D21",
-               fontsize = 5,
-               phenotypes = names(D21.mixed$clinic)[10:21],
-               clinical_threshold = .2,
-               legend_pos_auto = TRUE
-               )
-
-pdf("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/cluster_heatmaps/D21_cyt_met_diff_clinic_4clusters_25neighbors_heatmap.pdf", width = 12, height = 4)
-draw(p2$h,heatmap_legend_side = "bottom")
-dev.off()
-
-
-### Alluvial plot of omics features between T21 and D21
-
-library(ggalluvial)
-
-T21_heatmap_col <- column_order(p1$heatmap)$log2FC
-T21_mol <- numeric(length = length(unlist(T21_heatmap_col)))
-names(T21_mol) <- unlist(T21_heatmap_col)
-T21_mol <- ifelse(names(T21_mol) %in% T21_heatmap_col$'1',1,
-           ifelse(names(T21_mol) %in% T21_heatmap_col$'2',2,
-           ifelse(names(T21_mol) %in% T21_heatmap_col$'3',3,
-                  4)))
-names(T21_mol) <- unlist(T21_heatmap_col)
-
-D21_heatmap_col <- column_order(p2$heatmap)$log2FC
-D21_mol <- numeric(length = length(unlist(D21_heatmap_col)))
-names(D21_mol) <- unlist(D21_heatmap_col)
-D21_mol <- ifelse(names(D21_mol) %in% D21_heatmap_col$'1',1,
-           ifelse(names(D21_mol) %in% D21_heatmap_col$'2',2,
-           ifelse(names(D21_mol) %in% D21_heatmap_col$'3',3,
-                  4)))
-names(D21_mol) <- unlist(D21_heatmap_col)
-
-
-D21_mol <- as.data.frame(D21_mol) %>%
-    rownames_to_column("mol")
-
-T21_mol <- as.data.frame(T21_mol) %>%
-    rownames_to_column("mol")
-
-
-mols <- T21_mol %>%
-    full_join(D21_mol, by = "mol")
-
-mols <- mols %>%
-    as.data.frame() %>%
-    count(T21_mol, D21_mol)
-
-mols[1:2] <- apply(mols[1:2],2,as.factor)
-
-cols <- c("blue4", "orange4", "springgreen4", "brown3", "grey")
-names(cols) <- c(1,2,3,4,NA)
-
-p3 <- ggplot(as.data.frame(mols),
-       aes(y = n, axis1 = T21_mol, axis2 = D21_mol)) +
-  geom_alluvium(aes(fill = T21_mol), width = 1/12) +
-  geom_stratum(width = 1/12, fill = "black", color = "grey") +
-  geom_label(stat = "stratum", aes(label = after_stat(stratum))) +
-  scale_x_discrete(limits = c("T21_mol", "D21_mol"), expand = c(.05, .05)) +
-    ##  scale_fill_brewer(type = "qual", palette = "Set1") +
-    scale_fill_manual(values = cols) +
-    ggtitle("T21 vs. D21 Cytokine/Metablite groupings")+
-    theme_classic()+
-    theme(axis.text = element_text(size = 12),
-          legend.position = "bottom")
-
-ggsave(p3,file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/riverplots/T21vsD21_cyt_met_groupings.pdf", height = 4, width = 6)
-
-
-
-### Means
-## D21.means <- t(apply(D21.omics, 1, mean))
-
-## col_fun_main = colorRamp2(c(-1, 0, 1), c("blue", "white", "red"))
-
-## for(i in 1:4){
-##     D21.means_i <- D21.means[,p1$column_order$log2FC[[i]]]
-##     p <- ComplexHeatmap::Heatmap(t(D21.means_i),
-##                         column_order = names(D21.means_i),
-##                         col = col_fun_main,
-##                         height = unit(5, 'mm'),
-##                         show_column_names = T
-##                         )
-##     pdf(paste0("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/cluster_heatmaps/D21_",names(p1$column_order$log2FC)[[i]],".pdf"))
-##     draw(p)
-##     dev.off()
-## }
-
 
 ```
 
@@ -252,14 +138,14 @@ library(ggalluvial)
 
 cyt_met_all_clusterings <- cbind(cytokine = cyt_clust$clustering,
                                  integrated = all_clust$clustering,
-                                 metabolite = met_clust$clustering,
-                                 rna = rna_clust$clustering)
+                                 metabolite = met_clust$clustering)
+
 
 cyt_met_all_clusterings <- cyt_met_all_clusterings %>%
     as.data.frame() %>%
-    count(cytokine, integrated,metabolite, rna)
+    count(cytokine, integrated,metabolite)
 
-cyt_met_all_clusterings[1:4] <- apply(cyt_met_all_clusterings[1:4],2,as.factor)
+cyt_met_all_clusterings[1:3] <- apply(cyt_met_all_clusterings[1:3],2,as.factor)
 
 cols <- c("blue4", "orange4", "springgreen4", "brown3", "grey")
 names(cols) <- c(1,2,3,4,"D21")
