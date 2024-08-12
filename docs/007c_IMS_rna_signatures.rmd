@@ -1,0 +1,9 @@
+# Comparing RNA clustering in T21 with integrated clustering overall
+
+## Load the data
+```r
+load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/clusterings/all_clust.RData")
+load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/clusterings/cyt_clust.RData")
+load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/clusterings/met_clust.RData")
+load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/clusterings/rna_clust.RData")
+```
