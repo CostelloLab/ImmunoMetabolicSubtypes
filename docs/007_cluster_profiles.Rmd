@@ -97,35 +97,6 @@ draw(p1$h, heatmap_legend_side = "bottom")
 dev.off()
 
 
-load(file ="~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/clusterings/rna_clust.RData")
-load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/processed/processed_transcriptome.RData")
-
-T21.transcripts <- expression_list$expression %>%
-    filter(rownames(.) %in% rownames(T21.mixed$cytokines))
-
-rna_differential_expression <- diff_expr_wilcoxon(t(T21.transcripts),rna_clust$clustering)
-rna_cluster_associations <- association_test(clinic = T21.mixed$clinic,
-                                         clustering = rna_clust$clustering,
-                                         phenotypes = names(T21.mixed$clinic)[10:21])
-
-p1 <- clusterHeatmap(omics.data = t(T21.transcripts),
-               diff_expr = rna_differential_expression,
-               clustering = rna_clust$clustering,
-               cluster_assoc = rna_cluster_associations,
-               threshold = .1,
-               split_num = 3,
-               title = "T21 Transcripts",
-               fontsize = 5,
-               phenotypes = names(T21.mixed$clinic)[10:21],
-               clinical_threshold = .2,
-               column_names = F
-               )
-
-pdf("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/cluster_heatmaps/RNA_diff_clinic_D4clusters_25neighbors_heatmap.pdf", width = 12, height = 8)
-draw(p1$h, heatmap_legend_side = "bottom")
-dev.off()
-
-
 ```
 
 

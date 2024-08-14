@@ -3,7 +3,234 @@
 ## Load the data
 ```r
 load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/clusterings/all_clust.RData")
-load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/clusterings/cyt_clust.RData")
-load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/clusterings/met_clust.RData")
-load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/clusterings/rna_clust.RData")
+load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/processed/processed_transcriptome.RData")
+```
+
+# Signature prediction models
+
+## prepare data for modeling
+
+```r
+expr <- expression_list$expression
+clustering <- factor(all_clust$clustering)
+expr <- expr[rownames(expr) %in% names(clustering),]
+identical(rownames(expr), names(clustering))
+expr <- cbind(clustering = clustering, expr)
+
+set.seed(222)
+ind <- sample(2, nrow(expr), replace = TRUE, prob = c(0.8, 0.2))
+train_data <- expr[ind==1,]
+test_data <- expr[ind==2,]
+
+
+```
+
+
+## random forest
+### predicting all
+
+```R
+library(randomForest)
+library(caret)
+library(tidyverse)
+library(fgsea)
+
+rf <- randomForest(clustering ~ ., data = train_data)
+
+p1 <- predict(rf, train_data)
+confusionMatrix(p1, train_data$clustering)
+
+p2 <- predict(rf, test_data)
+test_accuracy <- confusionMatrix(p2, test_data$clustering)
+test_balanced_acccuracy <- mean(test_accuracy$byClass[,"Balanced Accuracy"])
+
+## permuting the test labels
+permutation_balanced_accuracy <- lapply(1:1000, function(x) {
+    test_accuracy <- confusionMatrix(p2,sample(test_data$clustering, length(test_data$clustering)))
+    mean(test_accuracy$byClass[,"Balanced Accuracy"])
+})
+
+permutation_balanced_accuracy <- as.data.frame(unlist(permutation_balanced_accuracy))
+names(permutation_balanced_accuracy) <- "balanced_accuracy"
+## plotting
+
+perm_dist <- ggplot(permutation_balanced_accuracy, aes(x = balanced_accuracy))+
+         geom_density(color = "gray", fill = "gray", alpha = .3) +
+         geom_vline(xintercept = test_balanced_acccuracy) +
+         theme_classic()
+
+ggsave(perm_dist, file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/IMS_RNA_signatures/permutation_pvalue_dist.pdf")
+
+sum(permutation_balanced_accuracy$balanced_accuracy > test_balanced_acccuracy) / 1000
+
+
+## ## permuting training and testing labels
+## rf_permutations <- lapply(1:3, function(x) {
+##     train_tmp <- train
+##     test_tmp <- test
+##     train_tmp$clustering <- sample(train$clustering, length(train$clustering))
+##     test_tmp$clustering <- sample(test$clustering, length(test$clustering))
+##     rf <-  randomForest(clustering ~ ., data = train_tmp)
+##     p2 <- predict(rf, test_tmp)
+##     test_accuracy <- confusionMatrix(p2, test_tmp$clustering)
+##     test_balanced_acccuracy <- mean(test_accuracy$byClass[,"Balanced Accuracy"])
+##     return(test_balanced_acccuracy)
+## })
+
+imp <- importance(rf)
+
+imp <- imp %>%
+    as.data.frame() %>%
+    arrange(-MeanDecreaseGini)
+
+rf_features <- imp %>%
+    filter(MeanDecreaseGini !=0) %>%
+    rownames()
+length(rf_features)
+
+ranked_imp <- imp$MeanDecreaseGini
+names(ranked_imp) <- rownames(imp)
+
+pathways <- gmtPathways("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/pathway/h.all.v2023.1.Hs.symbols.gmt")
+
+fgseaRes <- fgsea(pathways = pathways,
+                  stats    = ranked_imp,
+                  minSize  = 15,
+                  maxSize  = 500)
+
+load(file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/mediation_heatmaps/global_pathway_heatmaps/T21_heatmap.Rdata")
+
+toplot <- t(fgseaRes[, c( 'NES')])
+colnames(toplot) <- fgseaRes$pathway
+colnames(toplot) <- gsub("HALLMARK_|_", " ", colnames(toplot))
+
+path_order <- row_order(p1)
+
+col_fun <- colorRamp2(c(0,1,1.5), c("white","gray", "purple"))
+enrichemnt_heatmap <- Heatmap(t(toplot),
+                              row_order= path_order,
+                              show_row_dend = F,
+                              col = col_fun,
+                              column_names_side = "top"
+                              )
+pdf("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/IMS_RNA_signatures/enrichment_signature_GSEA.pdf")
+draw(enrichemnt_heatmap)
+dev.off()
+
+```
+
+## individual predictions
+```R
+library(randomForest)
+library(caret)
+library(tidyverse)
+
+for(i in 1:4){
+
+    train_tmp <- train_data
+    train_tmp$clustering <- as.factor(ifelse(train_tmp$clustering == i, 1,0))
+
+    rf_ind <- randomForest(clustering ~ ., data = train_tmp)
+
+    p1 <- predict(rf_ind, train_tmp)
+    confusionMatrix(p1, train_tmp$clustering)
+
+    test_tmp <- test_data
+    test_tmp$clustering <- as.factor(ifelse(test_tmp$clustering == i, 1,0))
+
+
+    p2 <- predict(rf_ind, test_tmp)
+    test_accuracy <- confusionMatrix(p2, test_tmp$clustering)
+
+    test_balanced_acccuracy <- mean(test_accuracy$byClass[,"Balanced Accuracy"])
+
+} 
+
+```
+
+## penalized regression
+
+
+``` R
+library(tidyverse)
+library(caret)
+library(glmnet)
+
+x <- as.matrix(train_data[,-1])
+y <- as.numeric(train_data$clustering)
+
+set.seed(222)
+test_family <- "multinomial"
+test_alpha <- .004
+cv.lasso <- cv.glmnet(x, y, alpha = test_alpha, family = test_family , nfolds = 5)
+model <- glmnet(x, y, alpha = test_alpha, family = test_family,
+                lambda = cv.lasso$lambda.min)
+# Make predictions on the test data
+x.test <- as.matrix(test[,-1])
+
+probabilities <- model %>% predict(newx = x.test, s= cv.lasso$lambda.min, type = "class")  %>% as.factor()
+test_accuracy <- confusionMatrix(probabilities, test$clustering)
+test_balanced_acccuracy <- mean(test_accuracy$byClass[,"Balanced Accuracy"])
+
+## permuting the test labels
+permutation_balanced_accuracy <- lapply(1:1000, function(x) {
+    test_accuracy <- confusionMatrix(probabilities,sample(test$clustering, length(test$clustering)))
+    mean(test_accuracy$byClass[,"Balanced Accuracy"])
+})
+
+permutation_balanced_accuracy <- as.data.frame(unlist(permutation_balanced_accuracy))
+names(permutation_balanced_accuracy) <- "balanced_accuracy"
+
+## plotting
+
+ggplot(permutation_balanced_accuracy, aes(x = balanced_accuracy))+
+    geom_density() +
+    geom_vline(xintercept = test_balanced_acccuracy)
+
+sum(permutation_balanced_accuracy$balanced_accuracy > test_balanced_acccuracy) / 1000
+
+coefficients <- coef(model, s = cv.lasso$lambda.min)
+coefficients <- lapply(1:4, function(x) coefficients[[x]][which(coefficients[[x]] !=0),] )
+lasso_features <- unlist(lapply(coefficients, names))
+lasso_features <- features[lasso_features != "(Intercept)"]
+length(lasso_features)
+
+```
+
+## similarity between model fetures
+
+``` R
+j_num <- length(intersect(lasso_features,rf_features))
+j_denom <- length(union(lasso_features,rf_features))
+j_num/j_denom
+```
+
+## pamr
+
+``` R
+library(pamr)
+data <- list(x = t(expr[,-1]), y = as.character(expr$clustering))
+
+pamr_train <- pamr.train(data)
+
+pamr_cv <- pamr.cv(fit = pamr_train, data = data, nfold =5)
+
+pamr.plotcv(pamr_cv)
+
+# compute the confusion matrix for a particular model (threshold=4.0)
+pamr.confusion(pamr_cv,threshold=7.6)
+
+# plot the cross-validated class probabilities by class
+pamr.plotcvprob(pamr_cv, data,threshold=7.6)
+
+# plot the class centroids
+pamr.plotcen(pamr_train, data, threshold=7.6)
+
+# make a gene plot of the most significant genes
+pamr.geneplot(pamr_train, data, threshold=7.6)
+
+# list the significant genes
+pamr.listgenes(pamr_train, data,threshold=4.0)
+
+
 ```

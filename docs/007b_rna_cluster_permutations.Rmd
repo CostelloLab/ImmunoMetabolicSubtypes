@@ -1,13 +1,41 @@
 # Comparing RNA clustering in T21 with integrated clustering overall
 
-## Load the data
-```r
-load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/clusterings/all_clust.RData")
-load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/clusterings/cyt_clust.RData")
-load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/clusterings/met_clust.RData")
-load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/clusterings/rna_clust.RData")
-```
+# heatmap
+``` r
+load(file ="~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/clusterings/rna_clust.RData")
+load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/processed/processed_transcriptome.RData")
+load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/processed/T21_standardized_cyt_met.RData")
+source("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/R/cluster_evaluation.R")
+source("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/R/data_prep_functions.R")
 
+T21.transcripts <- expression_list$expression %>%
+    filter(rownames(.) %in% rownames(T21.mixed$cytokines))
+
+rna_differential_expression <- diff_expr_wilcoxon(t(T21.transcripts),rna_clust$clustering)
+
+rna_cluster_associations <- association_test(clinic = T21.mixed$clinic,
+                                         clustering = rna_clust$clustering,
+                                         phenotypes = names(T21.mixed$clinic)[10:21])
+
+p1 <- clusterHeatmap(omics.data = t(T21.transcripts),
+               diff_expr = rna_differential_expression,
+               clustering = rna_clust$clustering,
+               cluster_assoc = rna_cluster_associations,
+               threshold = .1,
+               split_num = 1,
+               title = "T21 Transcripts",
+               fontsize = 0,
+               phenotypes = names(T21.mixed$clinic)[10:21],
+               clinical_threshold = .2,
+               column_names = F,
+               dendrogram = F
+               )
+
+pdf("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/cluster_heatmaps/RNA_diff_clinic_D4clusters_25neighbors_heatmap.pdf", width = 12, height = 8)
+draw(p1$h, heatmap_legend_side = "bottom")
+dev.off()
+
+```
 
 ```r
 library(ggalluvial)
@@ -94,7 +122,7 @@ rna_jaccard <- clusteringPairsJaccard(integrated_clustering = all_clustering,
 cluster_names <- names(rna_clustering)
 
 permutation_jaccards <- sapply(1:1000, function(x) {
-      permutation <- sample(rna_clust$clustering, size = total, replace = F)
+    permutation <- sample(rna_clust$clustering, size = total, replace = F)
     names(permutation) <- cluster_names
     clusteringPairsJaccard(integrated_clustering = all_clustering,
                                               other_clustering = permutation)
@@ -113,5 +141,70 @@ p4 <- ggplot(toplot, aes(x = permutation_jaccards)) +
 
 ggsave(p4, file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/clustering_permutations/permutation_density.pdf")
 
+
+```
+
+
+## RNA signatures for IMSs
+
+``` r
+library(fgsea)
+pathways <- gmtPathways("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/pathway/h.all.v2023.1.Hs.symbols.gmt")
+
+differential_expression <- diff_expr_wilcoxon(t(T21.transcripts),all_clust$clustering)
+
+signatures <- lapply(1:4, function(i) {
+                  rnk <- as.numeric(differential_expression$FC[,c(i+1)])
+                  names(rnk) <- differential_expression$FC$feature
+                  fgsea(pathways = pathways,
+                  stats    = rnk,
+                  minSize  = 15,
+                  maxSize  = 500)
+})
+
+
+signatures_NES <- lapply(1:4, function (x) {    
+    signatures[[x]] <- signatures[[x]] %>%
+        select(pathway, NES) %>%
+        setNames(c("pathway", paste0("NES",x)))
+})
+
+
+signatures_df <- signatures_NES %>% reduce(full_join, by = "pathway") %>% column_to_rownames("pathway")
+
+
+signatures_padj <- lapply(1:4, function (x) {    
+    signatures[[x]] <- signatures[[x]] %>%
+        select(pathway, padj) %>%
+        setNames(c("pathway", paste0("padj",x)))
+})
+
+
+signatures_df_padj <- signatures_padj %>% reduce(full_join, by = "pathway") %>% column_to_rownames("pathway")
+
+signatures_df_padj %>% filter(
+
+load(file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/mediation_heatmaps/global_pathway_heatmaps/T21_heatmap.Rdata")
+
+toplot <- t(signatures_df)
+
+colnames(toplot) <- signatures_df$pathway
+colnames(toplot) <- gsub("HALLMARK_|_", " ", colnames(toplot))
+
+path_order <- row_order(p1)
+
+col_fun <- colorRamp2(c(0.5,1,1.5), c("purple","white", "orange"))
+toplot <- abs(toplot)
+enrichemnt_heatmap <- Heatmap(t(toplot),
+                              row_order= path_order,
+                              show_row_dend = F,
+                              col = col_fun,
+                              column_names_side = "top",
+                              column_order = rownames(toplot),
+                              show_column_dend = F
+                              )
+pdf("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/IMS_RNA_signatures/individual_IMS_enrichment_signatures_GSEA.pdf")
+draw(enrichemnt_heatmap)
+dev.off()
 
 ```

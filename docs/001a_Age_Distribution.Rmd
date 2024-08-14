@@ -16,8 +16,37 @@ p1 <- ggplot(dat, aes(x = Age_at_visit, fill = Karyotype, color = Karyotype)) +
 ggsave(p1, file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/cohort_exploration/age_density.pdf", width = 10, height = 3)
 ```
 
+## Age groups
 
-##Disease Co-occurrence
+``` R
+dat <- dat %>%
+    mutate(age_groups = ifelse(Age_at_visit < 50 & Age_at_visit >= 40 , "40's",
+                        ifelse(Age_at_visit < 40 & Age_at_visit >= 30, "30's",
+                        ifelse(Age_at_visit < 30 & Age_at_visit >= 20, "20's",
+                        ifelse(Age_at_visit < 20 & Age_at_visit >= 10, "10's",
+                        ifelse(Age_at_visit < 10, "<10",
+                               "50's"))))))
+
+## dat <- dat %>%
+##     mutate(age_groups = 
+##                         ifelse(Age_at_visit < 40 & Age_at_visit >= 20, "20-39",
+##                         ifelse(Age_at_visit < 20, "0-19","40-60")))
+
+age_ordinal <- as.data.frame(table(dat$age_groups,dat$Karyotype))
+
+age_ordinal <- age_ordinal %>%
+    pivot_wider(id_cols = Var1, names_from = Var2, values_from = Freq)
+
+
+write.csv(age_ordinal, file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/tables/age_ordinal.csv")
+
+chisq.test(x = dat$age_groups ,y= dat$Karyotype)
+
+
+```
+
+
+## Disease Co-occurrence
 
 ``` R
 

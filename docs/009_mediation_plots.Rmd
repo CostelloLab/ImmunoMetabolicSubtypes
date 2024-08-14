@@ -498,16 +498,18 @@ cluster_heatmaps <- clusterHeatmapWrapper(cluster_ranks, name = "Interferon Gamm
 ### Global cluster enrichment by pathways
 Enrichment over pathway between clusters
 ```r
-
 cluster_enrichment <-  clusterPathwayRatios(gsea_results)
 
 cluster_enrichment_toplot <- lapply(cluster_enrichment, function(x) x %>% dplyr::select(pathway, sig_cyt_met))
 cluster_enrichment_toplot <- reduce(cluster_enrichment_toplot, left_join, by = "pathway")
+
 names(cluster_enrichment_toplot)[2:7] <- c("T21", "D21", 1,2,3,4)
 cluster_enrichment_toplot <- cluster_enrichment_toplot %>%
     mutate(pathway = gsub("HALLMARK","", pathway)) %>%
     mutate(pathway = gsub("_"," ", pathway)) %>%
     column_to_rownames("pathway")
+
+cluster_enrichment_toplot <- cluster_enrichment_toplot[, -c(1:2)]
 
 ## cluster_enrichment_toplot <- -1 * cluster_enrichment_toplot
 col_fun <- colorRamp2(c(0,25,100), c("blue","white", "red"))
@@ -524,6 +526,7 @@ pdf("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubt
 print(p1)
 dev.off()
 
+save(p1, file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/mediation_heatmaps/global_pathway_heatmaps/T21_heatmap.Rdata")
 
 ## write.csv(cluster_enrichment_toplot, "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/tables/cluster_mediation_pathway_enrichment_combnined_p_2024_04_12.csv", row.names = F)
 
@@ -571,6 +574,8 @@ p1 <- Heatmap(as.matrix(T21_normalized_enrichment),
 pdf("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/mediation_heatmaps/global_pathway_heatmaps/T21_normalized_cluster_mediation_pathway_ratios_2024_04_17.pdf",height  = 3.6, width = 3)
 print(p1)
 dev.off()
+
+
 
 ```
 

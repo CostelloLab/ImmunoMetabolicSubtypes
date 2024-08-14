@@ -1,0 +1,46 @@
+## Load the data
+```r
+load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/processed/T21_standardized_cyt_met.RData")
+load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/processed/processed_transcriptome.RData")
+T21.transcripts <- expression_list$expression %>%
+    filter(rownames(.) %in% rownames(T21.mixed$cytokines))
+```
+
+
+# KS test in each data
+``` R
+cyt_ks <- as.data.frame(apply(T21.mixed$cytokines,2, function(x) ks.test(x,y = "pnorm")$p.value))
+met_ks <- as.data.frame(apply(T21.mixed$metabolites,2, function(x) ks.test(x,y = "pnorm")$p.value))
+
+
+names(cyt_ks) <- "ks"
+names(met_ks) <- "ks"
+```
+
+# Visualization
+
+``` R
+p1 <- ggplot(cyt_ks, aes(x = ks)) +
+    geom_density(fill = "blue", color = "blue", alpha = .3)+
+    theme_classic() +
+    geom_vline(xintercept = .05, color = "black", linetype = "dashed")
+ggsave(p1, file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/KS_tests/cytokines.pdf")
+
+p2 <- ggplot(met_ks, aes(x = ks)) +
+    geom_density(fill = "darkgreen", color = "darkgreen", alpha = .3)+
+    theme_classic() +
+    geom_vline(xintercept = .05, color = "black", linetype = "dashed")
+ggsave(p2, file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/KS_tests/metabolites.pdf")
+
+
+```
+
+## random density plots
+``` R
+x = sample(1:50,1)
+ggplot(T21.mixed$cytokines, aes(x = T21.mixed$cytokines[,x]))+
+    geom_density()
+
+```
+
+
