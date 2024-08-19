@@ -10,14 +10,15 @@ source("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicS
 
 ### load the data
 ```r
-load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/processed/all_cyt_met_standardized.RData")
+load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/processed/all_age_sex_mixed_cyt_met.Rdata")
 
 ```
 
 ### Cytokines
 
 ```r
-cyt_diff <- diff_expr_wrapper(all_standardized$cytokines, all_standardized$clinic, "Karyotype", "Control", test = "wilcoxon")
+cyt_diff <- diff_expr_wrapper(all.mixed$cytokines, all.mixed$clinic, "Karyotype", "Control", test = "wilcoxon")
+
 write.xlsx(cyt_diff, file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/tables/Immune Markers by Karyotype.xlsx", rowNames = T)
 ```
 
@@ -31,7 +32,7 @@ write.xlsx(met_diff, file = "~/OneDrive - The University of Colorado Denver/Proj
 
 
 ### Plotting
-### Split violing plots
+### Split violin plots
 ```r
 tmp_data <- cbind(all_standardized$cytokines,all_standardized$metabolites,  Karyotype = all_standardized$clinic$Karyotype)
 
