@@ -10,6 +10,7 @@ library(tidyverse)
 ```
 # Data Files
 
+
 This script assumes that you are running it from the parent directory. The data subdirectory is organized as:
 - data
   - HTP_data
@@ -47,6 +48,8 @@ htp_overlap <- get_overlap(cytokine_data = htp$cytokines,
 ``` {r}
 ## Log transform
 htp_overlap[1:2] = lapply(htp_overlap[1:2], log2)
+
+
 
 ```
 # PCA plots of the data
@@ -148,14 +151,11 @@ original_names <- names(htp_expr)
 names(expr_metadata) <- make.names(names(expr_metadata))
 
 
-
-
-
 ```
 
 # Create Table 1
 
-``` r
+```{r}
 htp_tab1 <- htp_overlap$clinic %>%
     filter(LabID %in% expr_metadata$LabID)
 
@@ -219,6 +219,10 @@ mixed = lapply(mixed, function(x) as.data.frame(t(x)))
 names(mixed[[1]]) = rownames(htp_overlap[[1]])
 names(mixed[[2]]) = rownames(htp_overlap[[1]])
 
+
+processing_cor <- lapply(1:54, function(x) cor.test(htp_overlap$cytokines[,x], as.numeric(mixed[[1]][x,]), method = "spearman")$estimate)
+
+
 ```
 # Separating T21 and D21 data
 ``` {r}
@@ -229,8 +233,7 @@ all.mixed = list(cytokines = mixed[[1]], metabolites = mixed[[2]], clinic =  htp
 ```
 ## Adjust the gene expression data
 
-``` r
-
+```{r}
 
 
 ## Adjust the transcriptomic data for age, sex, and sample source as the cytokine and metabolite data
