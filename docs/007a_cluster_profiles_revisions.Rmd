@@ -24,8 +24,8 @@ cluster_associations <- association_test(clinic = T21.mixed$clinic,
                                          phenotypes = names(T21.mixed$clinic)[10:21])
 differential_expression <- diff_expr_wilcoxon(omics.data,all_clust$clustering)
 
-
 source("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/R/cluster_evaluation.R")
+
 p1 <- clusterHeatmap(omics.data = omics.data,
                diff_expr = differential_expression,
                clustering = all_clust$clustering,
