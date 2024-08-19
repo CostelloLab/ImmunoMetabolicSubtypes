@@ -18,7 +18,20 @@ set.seed(1234)
 ## Load the data
 ```r
 load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/processed/T21_standardized_cyt_met.RData")
+#load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/processed/processed_transcriptome_standardized.RData")
 load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/processed/processed_transcriptome.RData")
+```
+
+
+```r
+diff_sig_threshold = .01
+clinical_threshold = .3
+omics.list = list(t(T21.mixed$cytokines),t(T21.mixed$metabolites))
+NUMC <- 2:6
+phenotypes =  names(T21.mixed$clinic)[c(2,6,9:21)]
+iterations = 1
+num_neighbors = 25
+
 ```
 
 
@@ -40,6 +53,10 @@ transcript_res$eigengap
 transcript_res$nemo
 
 write_csv(x = transcript_res$summary,file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/tables/transcript_clustering_results.csv")
+
+
+rna_clust <- nemo.clustering(omics.list = list(t(T21.transcripts)),num.clusters = 4,num.neighbors = 25)
+save(rna_clust, file ="~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/clusterings/rna_clust.RData")
 
 ``` 
 
