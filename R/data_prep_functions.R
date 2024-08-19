@@ -214,43 +214,44 @@ replace_outlier <- function(x, coef = 3){
 }
 
 
-diff_expr_single = function(x,y, test ){
-	if(test == "t.test"){
-		test = t.test(x,y)
-	} else if(test == "wilcoxon"){
-		test = wilcox.test(x,y)
-	}
-	p = test$p.value
-	stat = test$statistic
-        FC = mean(x, na.rm = T) - mean(y, na.rm = T)
-	res = c(p, FC)
-	return(res)
+diff_expr_single = function(x,y, test ) {
+    if(test == "t.test") {
+        test = t.test(x,y)
+    } else if(test == "wilcoxon") {
+        test = wilcox.test(x,y)
+    }
+    
+    p = test$p.value
+    stat = test$statistic
+##    FC = mean(x,na.rm = T)/mean(y, na.rm = T)
+    ##    FC = mean(log(x), na.rm = T) /mean(log(y), na.rm = T))
+    FC = mean(x, na.rm = T) - mean(y, na.rm = T)
+    res = c(p, FC)
+    return(res)
 }
 
 
 
 
-
-
-
 diff_expr_wrapper = function(data, clinic, phenotype, control, q_cutoff = 0.05, test ){
-    data <- as.data.frame(t(data))
-	vals = unique(clinic[, phenotype])
-	which_x = which(clinic[, phenotype] == vals[vals != control])
-	which_y = which(clinic[, phenotype] == vals[vals == control])
 
-	x_dat = data[which_x,]
+    data <- as.data.frame(t(data))
+    vals = unique(clinic[, phenotype])
+    which_x = which(clinic[, phenotype] == vals[vals != control])
+    which_y = which(clinic[, phenotype] == vals[vals == control])
+
+    x_dat = data[which_x,]
     y_dat = data[which_y,]
 
-       res = sapply(1:ncol(data), function(i){
-				diff_expr_single(x =as.numeric(x_dat[,i]), as.numeric(y_dat[,i]), test)
-	})
-	res = as.data.frame(t(res))
-	rownames(res) = names(data)
-	colnames(res) = c("p.value", "FC")
-	res$q.value = p.adjust(res$p.value, method = "fdr")
+    res = sapply(1:ncol(data), function(i){
+        diff_expr_single(x =as.numeric(x_dat[,i]), as.numeric(y_dat[,i]), test)
+    })
+    res = as.data.frame(t(res))
+    rownames(res) = names(data)
+    colnames(res) = c("p.value", "FC")
+    res$q.value = p.adjust(res$p.value, method = "fdr")
     res <- res[, c("FC", "p.value", "q.value")]
-	return(res)
+    return(res)
 }
 
 
