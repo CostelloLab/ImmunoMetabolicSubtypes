@@ -580,32 +580,45 @@ sample_param = function(omics.list, num.clusters = NULL , num.neighbors = NA, pl
 }
 
 #### diff_expr is a function for finding the deferentially expressed omics levels by cluster.
-diff_expr <- function(omics.data,clustering){
-	all.siglist = list()
+diff_expr_limma <- function(omics.data,clustering, clinic = NULL) {
 
-	meta = as.data.frame(clustering)
-	design = model.matrix(~0+as.factor(clustering), data = meta)
-	colnames(design) = paste("c", 1:length(unique(clustering)), sep = "")
+    all.siglist = list()
+    
+    if(!is.null( clinic)) {
+        
 
-	for(i in 1:length(unique(clustering))){
-		c0 = sprintf("contrast =  makeContrasts(contrast= c%s, levels = design)",i)
-		eval(parse(text = c0))	
-		fit = eBayes(contrasts.fit(lmFit(omics.data,design),contrast))
-		all.siglist[[i]] = topTable(fit, adjust = 'f', number = nrow(omics.data)+1,
-                          confint = T)
-		all.siglist[[i]]$feature = rownames(all.siglist[[i]])
-		names(all.siglist[[i]])[1:8] = paste0(i,".",names(all.siglist[[i]])[1:8])
-	}
+        meta = as.data.frame(cbind(clustering, clinic[, c("Age_at_visit", "Sex", "Sample_source")]))
+        design = model.matrix(~0+as.factor(clustering) + Age_at_visit + Sex + Sample_source, data = meta)
+        
+        
+    } else {
+        meta = as.data.frame(clustering)
+        design = model.matrix(~0+as.factor(clustering) , data = meta)
+        }
 
-	res = Reduce(function(x,y) merge(x,y, by = "feature"), all.siglist)
+     colnames(design)[1:length(unique(clustering))] = paste("c", 1:length(unique(clustering)), sep = "")
 
+ for(i in 1:length(unique(clustering))){
+   
 
-	return(res)
+        not_i <- unique(clustering)[unique(clustering) != i]
+        other = sprintf("(c%s + c%s + c%s)/%s", not_i[1], not_i[2], not_i[3], length(not_i))
+        c0 = sprintf("contrast =  makeContrasts(contrast= c%s - %s , levels = design)",i,other)
+        eval(parse(text = c0))	
+        fit = eBayes(contrasts.fit(lmFit(omics.data,design),contrast))
+        all.siglist[[i]] = topTable(fit, adjust = 'f', number = nrow(omics.data)+1,
+                                    confint = T)
+        all.siglist[[i]]$feature = rownames(all.siglist[[i]])
+        names(all.siglist[[i]])[1:8] = paste0(i,".",names(all.siglist[[i]])[1:8])
+    }
+    res = Reduce(function(x,y) merge(x,y, by = "feature"), all.siglist)
+    return(res)
 }
 
 
 
 #### diff_expr is a function for finding the differentially expressed omics levels by cluster.
+
 diff_expr_cluster <- function(omics.data,clustering){
 	cluster.siglist = list()
 	meta = as.data.frame(clustering)
@@ -621,15 +634,11 @@ diff_expr_cluster <- function(omics.data,clustering){
 			fit = eBayes(contrasts.fit(lmFit(omics.data,design),contrast))
 			sig.list[[j]] = topTable(fit, adjust = 'fdr', number = nrow(omics.data)+1,
 	                          confint = T)
-			sig.list[[j]] = sig.list[[j]][sig.list[[j]]$adj.P.Val < .05, ]
 		}
-		sig.list = sig.list[(1:(length(unique(clustering))))[-i]]
-		sig.rows = lapply(sig.list, rownames)
-		sig = Reduce(intersect, sig.rows)
-		cluster.siglist[[i]] = sig
+		
 	}
 
-	return(cluster.siglist)
+	return(sig.list)
 
 }
 
@@ -637,27 +646,33 @@ diff_expr_cluster <- function(omics.data,clustering){
 #### wilcoxon differential expression test
 
 diff_expr_wilcoxon <- function(omics.data,clustering){
-	cluster.siglist = list()
-	meta = as.data.frame(clustering)
-	design = model.matrix(~0+as.factor(clustering), data = meta)
-	colnames(design) = 1:length(unique(clustering))
+
+
+    xbcluster.siglist = list()
+    meta = as.data.frame(clustering)
+    design = model.matrix(~0+as.factor(clustering), data = meta)
+    colnames(design) = 1:length(unique(clustering))
 
 	results = list()
 	for(i in colnames(design)){
 		results[[i]] = diff_expr_wrapper(omics.data,design, i, 0, test = "wilcoxon")
 		results[[i]]$feature = rownames(results[[i]])
 	}
-
 	res =  suppressWarnings(Reduce(function(x,y) merge(x,y, by = "feature"), results))
-	sig = res[,  grepl("q.value|feature",names(res) )]
-	sig[,2:ncol(sig)] = t(apply(sig[,2:ncol(sig)], 1, function(x) p.adjust(x,method = "fdr")))
-	names(sig)[2:ncol(sig)] = paste0("q.value.",colnames(design))
+	## sig = res[,  grepl("q.value|feature",names(res) )]
+	## sig[,2:ncol(sig)] = t(apply(sig[,2:ncol(sig)], 1, function(x) p.adjust(x,method = "fdr")))
+	## names(sig)[2:ncol(sig)] = paste0("q.value.",colnames(design))
 
-	FC = res[, grepl("FC|feature",names(res) )]
-	names(FC)[2:ncol(FC)] = paste0("FC.",colnames(design))
+	## FC = res[, grepl("FC|feature",names(res) )]
+	## names(FC)[2:ncol(FC)] = paste0("FC.",colnames(design))
 
-
-	return(list(sig = sig, FC = FC))
+    ## return(list(sig = sig, FC = FC))
+    res_names <- character()
+        for(i in colnames(design)) {
+            res_names <- c(res_names ,paste0("FC.",i) ,paste0("p.value",i) ,paste0("q.value",i))
+        }
+    names(res)[2:ncol(res)] <- res_names
+        return(res)
 
 }
 
