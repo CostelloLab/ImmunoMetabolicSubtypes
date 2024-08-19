@@ -15,6 +15,20 @@ met_ks <- as.data.frame(apply(T21.mixed$metabolites,2, function(x) ks.test(x,y =
 
 names(cyt_ks) <- "ks"
 names(met_ks) <- "ks"
+
+sum(cyt_ks$ks < .05)
+
+sum(met_ks$ks < .05)
+```
+# Shapiro-wilk's test for each data
+``` R
+cyt_sw <- apply(T21.mixed$cytokines,2, function(x) shapiro.test(x)$p.value)
+met_sw <- apply(T21.mixed$metabolites,2, function(x) shapiro.test(x)$p.value)
+
+
+sum(cyt_sw < .05)
+
+sum(met_sw < .05)
 ```
 
 # Visualization
