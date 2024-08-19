@@ -3,7 +3,11 @@
 # heatmap
 ``` r
 load(file ="~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/clusterings/rna_clust.RData")
+load(file ="~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/clusterings/all_clust.RData")
+load(file ="~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/clusterings/cyt_clust.Rdata")
+load(file ="~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/clusterings/met_clust.RData")
 load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/processed/processed_transcriptome.RData")
+##load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/processed/processed_transcriptome_standardized.RData")
 load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/processed/T21_standardized_cyt_met.RData")
 source("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/R/cluster_evaluation.R")
 source("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/R/data_prep_functions.R")
@@ -21,7 +25,7 @@ p1 <- clusterHeatmap(omics.data = t(T21.transcripts),
                diff_expr = rna_differential_expression,
                clustering = rna_clust$clustering,
                cluster_assoc = rna_cluster_associations,
-               threshold = .1,
+               threshold = .01,
                split_num = 1,
                title = "T21 Transcripts",
                fontsize = 0,
@@ -32,7 +36,9 @@ p1 <- clusterHeatmap(omics.data = t(T21.transcripts),
                )
 
 pdf("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/cluster_heatmaps/RNA_diff_clinic_D4clusters_25neighbors_heatmap.pdf", width = 12, height = 8)
+
 draw(p1$h, heatmap_legend_side = "bottom")
+
 dev.off()
 
 ```
@@ -80,7 +86,6 @@ set.seed(1234) ## for reproducibility
 
 
 ### calculating jaccard based on counting pairs between two clusterings
-
 all_clustering <- all_clust$clustering
 
 rna_clustering <- rna_clust$clustering
@@ -88,7 +93,6 @@ rna_clustering <- rna_clust$clustering
 clust_num <- as.numeric(table(rna_clustering)) ## for checking the breakdown
 total <- sum(clust_num) ## total size of the cohort
 
-total_pairs <- 2 * (total ^ 2 - total)
 
 clusteringPairsJaccard <- function(integrated_clustering, other_clustering) {
     ss <- 0
@@ -139,7 +143,7 @@ p4 <- ggplot(toplot, aes(x = permutation_jaccards)) +
     geom_vline(xintercept = rna_jaccard, color = "darkred") +
     theme_classic()
 
-ggsave(p4, file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/clustering_permutations/permutation_density.pdf")
+ggsave(p4, file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/clustering_permutations/permutation_density.pdf", width = 6, height = 3)
 
 
 ```
@@ -151,7 +155,38 @@ ggsave(p4, file = "~/OneDrive - The University of Colorado Denver/Projects/Immun
 library(fgsea)
 pathways <- gmtPathways("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/pathway/h.all.v2023.1.Hs.symbols.gmt")
 
-differential_expression <- diff_expr_wilcoxon(t(T21.transcripts),all_clust$clustering)
+
+differential_expression <- diff_expr_limma(t(T21.transcripts),all_clust$clustering)
+
+
+
+
+
+
+
+signature_output <- differential_expression$FC %>%
+    full_join(differential_expression$sig, by ="feature") %>%
+    arrange(q.value.1)
+
+temp <- cbind(T21.transcripts, all_clust$clustering)
+names(temp)[ncol(temp)] <- "clust"
+
+ggplot(temp, aes(x = ACKR3)) + geom_density()
+ggplot(temp, aes(x = ACKR3, fill = as.factor(clust))) + geom_density(alpha = .5)
+
+signature_output <- signature_output[, c("feature", "FC.1", "q.value.1", "FC.2", "q.value.2", "FC.3", "q.value.3", "FC.4", "q.value.4")]
+
+sig_1 <- signature_output %>%
+    filter(q.value.1 < .15 & q.value.2 > .15 & q.value.3 > .15 & q.value.4 > .15)
+
+
+plot(signature_output$FC.1,-log10(signature_output$q.value.1))
+
+
+write.csv(signature_output, file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/tables/RNA_IMS_signatures.csv")
+
+any(sig_list[[1]] %in% sig_list[[3]])
+ 
 
 signatures <- lapply(1:4, function(i) {
                   rnk <- as.numeric(differential_expression$FC[,c(i+1)])
@@ -206,5 +241,79 @@ enrichemnt_heatmap <- Heatmap(t(toplot),
 pdf("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/IMS_RNA_signatures/individual_IMS_enrichment_signatures_GSEA.pdf")
 draw(enrichemnt_heatmap)
 dev.off()
+
+```
+
+
+
+
+### Sanity check
+
+``` r
+counts <- read.delim("./data/HTP_data/HTP_WholeBlood_RNAseq_Counts_Synapse.txt")
+
+htp_expr <- counts %>%
+    filter(Gene_name %in% names(T21.transcripts)) %>%
+    filter(LabID %in% rownames(T21.transcripts)) %>%
+    dplyr::select(LabID, Gene_name,Value) %>%
+    distinct(LabID, Gene_name, .keep_all = T) %>%
+    pivot_wider(names_from = Gene_name, id_cols = LabID, values_from = Value) %>%
+    column_to_rownames("LabID")
+
+htp_expr <- log(htp_expr +1e-10)
+
+counts_limma <- diff_expr_limma(t(htp_expr), all_clust$clustering)
+
+plot(counts_limma$'1.logFC', -log10(counts_limma$'1.adj.P.Val'))
+
+counts_wilcox <- diff_expr_wilcoxon(t(htp_expr), all_clust$clustering)
+
+plot(-counts_wilcox[,2], -log10(counts_wilcox[,3]))
+
+cor.test(counts_limma$'1.logFC', counts_wilcox[,2])
+
+cor.test(counts_limma$'2.adj.P.Val', counts_wilcox$p.value.x)
+
+plot(counts_limma$'2.adj.P.Val', counts_wilcox$sig$q.value.1)
+
+plot(counts_limma$'1.logFC', counts_wilcox$FC$FC.1)
+
+FPKM <- read.delim("./data/HTP_data/HTP_WholeBlood_RNAseq_FPKMs_Synapse.txt")
+
+htp_expr_FPKM <- FPKM %>%
+    filter(Gene_name %in% names(T21.transcripts)) %>%
+    filter(LabID %in% rownames(T21.transcripts)) %>%
+    dplyr::select(LabID, Gene_name,Value) %>%
+    distinct(LabID, Gene_name, .keep_all = T) %>%
+    pivot_wider(names_from = Gene_name, id_cols = LabID, values_from = Value) %>%
+    column_to_rownames("LabID") %>%
+    log()
+
+FPKM_limma <- diff_expr_limma(t(htp_expr_FPKM), all_clust$clustering, T21.mixed$clinic)
+
+cor.test(counts_limma$'1.logFC', FPKM_limma$'1.logFC')
+
+load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/processed/processed_transcriptome.RData")
+load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/processed/processed_transcriptome_standardized.RData")
+
+adjusted <- expression_list$expression %>%
+    filter(rownames(.) %in% rownames(T21.mixed$cytokines))
+
+adjusted_limma <- diff_expr_limma(t(adjusted),all_clust$clustering)
+
+adjusted_limma <- adjusted_limma %>%
+    filter(feature %in% counts_limma$feature)
+
+cor.test(counts_limma$'1.logFC', adjusted_limma$'1.logFC')
+cor.test(FPKM_limma$'1.logFC', adjusted_limma$'1.logFC')
+
+adjusted_wilcox <- diff_expr_wilcoxon(t(adjusted),all_clust$clustering)
+
+adjusted_wilcox$FC <- adjusted_wilcox$FC %>%
+    filter(feature %in% counts_limma$feature)
+
+cor.test(adjusted_limma$'1.logFC', adjusted_wilcox$FC$FC.1)
+
+cor.test(adjusted_limma$'1.logFC', adjusted_wilcox$FC$FC.1)
 
 ```
