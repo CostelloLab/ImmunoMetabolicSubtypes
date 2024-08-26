@@ -1,16 +1,20 @@
 # Comparing RNA clustering in T21 with integrated clustering overall
 
 ## Load the data
-```r
+```{r}
 load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/clusterings/all_clust.RData")
 load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/processed/processed_transcriptome.RData")
 ```
+
+
+
+
 
 # Signature prediction models
 
 ## prepare data for modeling
 
-```r
+```{r}
 expr <- expression_list$expression
 clustering <- factor(all_clust$clustering)
 expr <- expr[rownames(expr) %in% names(clustering),]
@@ -29,7 +33,7 @@ test_data <- expr[ind==2,]
 ## random forest
 ### predicting all
 
-```R
+```{r}
 library(randomForest)
 library(caret)
 library(tidyverse)
@@ -120,7 +124,7 @@ dev.off()
 ```
 
 ## individual predictions
-```R
+```{r}
 library(randomForest)
 library(caret)
 library(tidyverse)

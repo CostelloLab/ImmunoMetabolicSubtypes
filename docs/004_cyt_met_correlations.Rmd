@@ -14,13 +14,13 @@ source("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicS
 ```
 ### load the data
 
-```r
+```{r}
 load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/processed/all_cyt_met_standardized.RData")
 ```
 
 ## Separate T21 and D21 subjects
 
-``` r
+```{r}
 T21.mixed <- lapply(all_standardized, function(x) {
     x %>%
         filter(rownames(x) %in% (all_standardized$clinic %>% filter(Karyotype == "T21") %>% .$LabID))
@@ -38,14 +38,14 @@ save(D21.mixed,file= "~/OneDrive - The University of Colorado Denver/Projects/Im
 
 ## Load the data in subsequent analyses
 
-``` r
+```{r}
 load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/processed/T21_standardized_cyt_met.RData")
 load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/processed/D21_standardized_cyt_met.RData")
 ```
 
 ### Calculate the correlations within Cytokines
 
-``` r
+```{r}
 T21_cytokine_correlations <- T21.mixed$cytokines %>%
     corr.test(method = "spearman", adjust = "fdr")
 
@@ -73,7 +73,7 @@ D21_cytokine_correlations <- D21.mixed$cytokines %>%
 
 ### Calculate the correlations within Metabolites
 
-``` r
+```{r}
 T21_metabolite_correlations <- T21.mixed$metabolites %>%
     corr.test(method = "spearman", adjust = "fdr")
 
@@ -100,7 +100,7 @@ D21_metabolite_correlations <- D21.mixed$metabolites %>%
 
 ### Heatmaps
 
-``` r
+```{r}
 cyt_heatmap = Heatmap(T21_cytokine_correlations$
 	r, 
 	name = "rho",
@@ -127,7 +127,7 @@ draw(cyt_heatmap, heatmap_legend_side = "bottom")
 dev.off()
 ```
 
-``` r
+```{r}
 met_heatmap = Heatmap(T21_metabolite_correlations$r, 
 	name = "rho",
 	row_dend_reorder = TRUE, 
@@ -156,7 +156,7 @@ dev.off()
 
 ### Calculate the correlations across molecular classs
 
-``` r
+```{r}
 T21.omics <- cbind( T21.mixed$cytokines, T21.mixed$metabolites)
 
 T21_correlations <- T21.omics %>%
@@ -171,7 +171,7 @@ D21_correlations <- D21.omics %>%
 
 ### Heatmap of multiomic correlations
 
-``` r
+```{r}
 all_heatmap = Heatmap(T21_correlations$r, 
 	name = "rho",
 	row_dend_reorder = TRUE, 
@@ -202,7 +202,7 @@ dev.off()
 
 #### Convert data to long format
 
-``` r
+```{r}
 T21_cytokine_correlations <- LongCorr(T21_cytokine_correlations)
 T21_metabolite_correlations <- LongCorr(T21_metabolite_correlations)
 T21_correlations <- LongCorr(T21_correlations)
@@ -212,7 +212,7 @@ T21_correlations$long <- T21_correlations$long %>%
 ```
 
 #### Plot creation
-```r
+```{r}
 corrScatterPlotsSingle(psych_object = T21_cytokine_correlations,
                        molecule_class = "cytokines",
                        omics_data = T21.mixed)
@@ -232,7 +232,7 @@ corrScatterPlotsMultiple(psych_object = T21_correlations,
 
 ### Compare T21 and D21 Correlations
 
-```r
+```{r}
 library(ggrepel)
 D21_correlations <- LongCorr(D21_correlations)
 D21_correlations$long <- D21_correlations$long %>%
@@ -255,7 +255,7 @@ write.table(D21_correlations$long, file = "~/OneDrive - The University of Colora
 
 ```
 
-```r
+```{r}
 
 all_correlations <- T21_correlations$long %>%
     full_join(D21_correlations$long, by = c("A","B"))
@@ -294,7 +294,7 @@ dev.off()
 ## Case Imbalance
 To test whether the case imbalance between the D21 and T21 data is enough to affect the correlations, I will subsample the T21 data to 46 (the same size at the D21 cohort) and recalculate the correlations. 
 
-```r
+```{r}
 library(parallel)
 
 sub_corr <- mclapply(1:1000, function(x) {
@@ -367,7 +367,7 @@ dev.off()
 
 ### Metabolite Pathway enrichment
 
-```r
+```{r}
 
 load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/pathway/metabolite_pathway.RData")
 
@@ -404,7 +404,7 @@ dev.off()
 ## Comparing enrichments between karyotypes
 
 
-```r
+```{r}
 
 D21_enrichment <- correlationsEnrichmentWrapper(D21_correlations$long,met_path)
 

@@ -11,6 +11,7 @@ library(ComplexHeatmap)
 library(openxlsx)
 library(tidyverse)
 library(randomcoloR)
+library(edgeR)
 
 ### adjustedMutualInformation is a function that uses the aricode function "AMI" to create a table of the mutual information indeces between the lists of clusterings. 
 
@@ -580,7 +581,7 @@ sample_param = function(omics.list, num.clusters = NULL , num.neighbors = NA, pl
 }
 
 #### diff_expr is a function for finding the deferentially expressed omics levels by cluster.
-diff_expr_limma <- function(omics.data,clustering, clinic = NULL) {
+diff_expr_limma <- function(omics.data,clustering, clinic = NULL, voom = FALSE) {
 
     all.siglist = list()
     
@@ -594,23 +595,52 @@ diff_expr_limma <- function(omics.data,clustering, clinic = NULL) {
     } else {
         meta = as.data.frame(clustering)
         design = model.matrix(~0+as.factor(clustering) , data = meta)
-        }
-
-     colnames(design)[1:length(unique(clustering))] = paste("c", 1:length(unique(clustering)), sep = "")
-
- for(i in 1:length(unique(clustering))){
-   
-
-        not_i <- unique(clustering)[unique(clustering) != i]
-        other = sprintf("(c%s + c%s + c%s)/%s", not_i[1], not_i[2], not_i[3], length(not_i))
-        c0 = sprintf("contrast =  makeContrasts(contrast= c%s - %s , levels = design)",i,other)
-        eval(parse(text = c0))	
-        fit = eBayes(contrasts.fit(lmFit(omics.data,design),contrast))
-        all.siglist[[i]] = topTable(fit, adjust = 'f', number = nrow(omics.data)+1,
-                                    confint = T)
-        all.siglist[[i]]$feature = rownames(all.siglist[[i]])
-        names(all.siglist[[i]])[1:8] = paste0(i,".",names(all.siglist[[i]])[1:8])
     }
+
+    colnames(design)[1:length(unique(clustering))] = paste("c", 1:length(unique(clustering)), sep = "")
+    
+    if(voom) {
+
+        dge <- DGEList(counts=omics.data)
+        keep <- filterByExpr(dge, design, min.total.count=2000)
+        dge <- dge[keep,,keep.lib.sizes=FALSE]
+        dge <- calcNormFactors(dge)
+        
+        for(i in 1:length(unique(clustering))){
+            
+
+            v <- voom(dge, design)
+            fit <- lmFit(v, design)
+            
+            not_i <- unique(clustering)[unique(clustering) != i]
+            other = sprintf("(c%s + c%s + c%s)/%s", not_i[1], not_i[2], not_i[3], length(not_i))
+            c0 = sprintf("contrast =  makeContrasts(contrast= c%s - %s , levels = design)",i,other)
+            eval(parse(text = c0))
+            
+            fit = eBayes(contrasts.fit(fit,contrast))
+            all.siglist[[i]] = topTable(fit, adjust = 'f', number = nrow(omics.data)+1,
+                                        confint = T)
+            all.siglist[[i]]$feature = rownames(all.siglist[[i]])
+            names(all.siglist[[i]])[1:8] = paste0(i,".",names(all.siglist[[i]])[1:8])
+        }
+    } else {
+     
+
+        for(i in 1:length(unique(clustering))){
+            
+
+            not_i <- unique(clustering)[unique(clustering) != i]
+            other = sprintf("(c%s + c%s + c%s)/%s", not_i[1], not_i[2], not_i[3], length(not_i))
+            c0 = sprintf("contrast =  makeContrasts(contrast= c%s - %s , levels = design)",i,other)
+            eval(parse(text = c0))	
+            fit = eBayes(contrasts.fit(lmFit(omics.data,design),contrast))
+            all.siglist[[i]] = topTable(fit, adjust = 'f', number = nrow(omics.data)+1,
+                                        confint = T)
+            all.siglist[[i]]$feature = rownames(all.siglist[[i]])
+            names(all.siglist[[i]])[1:8] = paste0(i,".",names(all.siglist[[i]])[1:8])
+        }
+    }
+        
     res = Reduce(function(x,y) merge(x,y, by = "feature"), all.siglist)
     return(res)
 }

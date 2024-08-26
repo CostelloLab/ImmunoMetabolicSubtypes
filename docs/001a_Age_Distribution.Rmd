@@ -1,4 +1,4 @@
-``` R
+```{r}
 load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/processed/T21_mixed_cyt_met.RData")
 load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/processed/D21_mixed_cyt_met.RData")
 ```
@@ -6,19 +6,44 @@ load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSub
 
 ### what is the age distribution?
 
-``` R
+```{r}
 library(tidyverse)
 
 dat <- rbind(T21.mixed$clinic, D21.mixed$clinic)
 p1 <- ggplot(dat, aes(x = Age_at_visit, fill = Karyotype, color = Karyotype)) +
     geom_density(alpha = .5) +
-    theme_classic()
+    theme_classic()+
+  scale_fill_manual(values = c( 'darkred','darkblue')) +
+    scale_color_manual(values = c( 'darkred','darkblue'))
+
 ggsave(p1, file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/cohort_exploration/age_density.pdf", width = 10, height = 3)
 ```
+## Sex Distribution
+```{r}
+
+head(dat)
+
+sex <- dat %>% 
+  count(Sex,Karyotype) %>%
+  group_by(Karyotype) %>%
+  mutate(freq = n/sum(n))
+
+p1 <- ggplot(sex, aes(x = Karyotype, y = freq, fill = Sex, color = Sex)) +
+    geom_bar(stat = "identity", alpha = .5, width = .5) +
+    theme_classic() +
+  coord_flip() 
+  
+p1
+
+ggsave(p1, file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/cohort_exploration/sex_bar.pdf", width = 10, height = 3)
+
+
+```
+
 
 ## Age groups
 
-``` R
+```{r}
 dat <- dat %>%
     mutate(age_groups = ifelse(Age_at_visit < 50 & Age_at_visit >= 40 , "40's",
                         ifelse(Age_at_visit < 40 & Age_at_visit >= 30, "30's",
@@ -40,15 +65,12 @@ age_ordinal <- age_ordinal %>%
 
 write.csv(age_ordinal, file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/tables/age_ordinal.csv")
 
-chisq.test(x = dat$age_groups ,y= dat$Karyotype)
-
-
 ```
 
 
 ## Disease Co-occurrence
 
-``` R
+```{r}
 
 library(ggcorrplot)
 

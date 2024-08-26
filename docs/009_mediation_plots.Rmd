@@ -146,7 +146,7 @@ dev.off()
 
 ## Heatmaps filtered by genes in geneset and ordered by gene set enrichment
 
-``` r
+```{r}
 T21_filtered_full <- T21_filtered %>%
     filter(cor_cyt_met_p < .05)
 
@@ -180,7 +180,7 @@ toplot1 <- geneSetUnion(key_pathways = DS_pathways,
 
 
 ## Exploring top ranked cytokine-metabolite relationships and genes in a particular pathway
-``` r
+```{r}
 ## IFN_gamma
 IFN_cyt_mets <- OrderedGSEA(
                formatted_gsea = gsea_results_formatted[[1]],
@@ -246,7 +246,7 @@ metEnrich(sig_mets, met_path)
 ```
 
 ### differential mediation for particular cyt-met relationships
-``` r
+```{r}
 relationship <- IFN_cyt_mets$cyt_met[1]
 long_z_tibble <- long_z[[1]]
 pathway_genes <- pathways_all$HALLMARK_INTERFERON_GAMMA_RESPONSE
@@ -352,7 +352,7 @@ write.csv(as.data.frame(heme_op), file = "~/OneDrive - The University of Colorad
 ```
 
 
-``` r
+```{r}
 source("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/R/partial_correlation_functions.R")
 multiHeatmapOrderedGSEA(toplot1 = toplot1, 
                         toplot2 = toplot_clusters[[1]],
@@ -392,7 +392,7 @@ multiHeatmapOrderedGSEA(toplot1 = toplot1,
 
 
 ### Heatmaps by cluster
-```r
+```{r}
 source("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/R/partial_correlation_functions.R")
 names(long_z) <-as.character(c("T21","D21",1,2,3,4))
 
@@ -448,7 +448,7 @@ cluster_heatmaps <- clusterHeatmapWrapper(cluster_ranks, name = "Oxidative Phosp
 
 ### Heatmaps by cluster filtered by cyt_mets with significant differences in correlation 
 
-``` r
+```{r}
 source("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/R/partial_correlation_functions.R")
 _correlations <- lapply(all_correlations, function(x) {
     x %>% mutate(cyt_met = paste0(A, "-", B))
@@ -497,7 +497,7 @@ cluster_heatmaps <- clusterHeatmapWrapper(cluster_ranks, name = "Interferon Gamm
 
 ### Global cluster enrichment by pathways
 Enrichment over pathway between clusters
-```r
+```{r}
 cluster_enrichment <-  clusterPathwayRatios(gsea_results)
 
 cluster_enrichment_toplot <- lapply(cluster_enrichment, function(x) x %>% dplyr::select(pathway, sig_cyt_met))
@@ -581,7 +581,7 @@ dev.off()
 
 ## Cluster specific metabolite class counts
 
-``` r
+```{r}
 
 key_pathways <- c("HALLMARK_NOTCH_SIGNALING", "HALLMARK_P53_PATHWAY", "HALLMARK_TGF_BETA_SIGNALING", "HALLMARK_PROTEIN_SECRETION", "HALLMARK_GLYCOLYSIS", "HALLMARK_PEROXISOME", "HALLMARK_HEDGEHOG_SIGNALING", "HALLMARK_KRAS_SIGNALING_UP", "HALLMARK_HEDGEHOG_SIGNALING_UP", "HALLMARK_REACTIVE_OXYGEN_SPECIES","HALLMARK_ANGIOGENESIS")
 
@@ -654,7 +654,7 @@ pdf(paste0("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabo
 
 ### Difference of enrichment of cytokine-metabolites in cluster vs T21
 This plot shows the difference in enrichment scores for a pathway between the cluster and individuals with T21
-```r
+```{r}
 
 
 names(gsea_results) <- c("T21", "D21", 1,2,3,4)
@@ -688,7 +688,7 @@ clusterDiffPlot(pathway = "HALLMARK_TGF_BETA_SIGNALING",
 
 ### Enrichment of metabolic classes mediated
 
-```r
+```{r}
 names(gsea_results) <- c("T21", "D21", 1,2,3,4)
 
 cluster_gsea <- clusterCytMetNES(key_pathway = "HALLMARK_INTERFERON_GAMMA_RESPONSE",
@@ -730,7 +730,7 @@ metEnrich(sig_mets, met_path)
 
 ### Gene centric differences in Z score by cluster
 
-```r
+```{r}
 
 scores <- clusterGeneZscores(key_gene= "STAT1",
                              long_z_list = long_z,
@@ -764,7 +764,7 @@ dev.off()
 
 ### Heatmap of top mediators across cyt-met relationships
 
-```r
+```{r}
 names(gsea_results) <- c("T21", "D21", 1,2,3,4)
 cluster_gsea <- clusterCytMetNES(key_pathway = key_pathways[3],
                  cluster = 2,
