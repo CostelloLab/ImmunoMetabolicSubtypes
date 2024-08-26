@@ -1,0 +1,265 @@
+# Comparing RNA clustering in T21 with integrated clustering overall
+
+# heatmap
+```{r}
+load(file ="~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/clusterings/rna_clust.RData")
+load(file ="~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/clusterings/all_clust.RData")
+load(file ="~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/clusterings/cyt_clust.Rdata")
+load(file ="~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/clusterings/met_clust.RData")
+load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/processed/processed_transcriptome.RData")
+##load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/processed/processed_transcriptome_standardized.RData")
+load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/processed/T21_standardized_cyt_met.RData")
+source("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/R/cluster_evaluation.R")
+source("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/R/data_prep_functions.R")
+```
+
+```{r}
+
+T21.transcripts <- expression_list$expression %>%
+    filter(rownames(.) %in% rownames(T21.mixed$cytokines))
+
+rna_differential_expression <- diff_expr_wilcoxon(t(T21.transcripts),rna_clust$clustering)
+
+rna_cluster_associations <- association_test(clinic = T21.mixed$clinic,
+                                         clustering = rna_clust$clustering,
+                                         phenotypes = names(T21.mixed$clinic)[10:21])
+
+p1 <- clusterHeatmap(omics.data = t(T21.transcripts),
+               diff_expr = rna_differential_expression,
+               clustering = rna_clust$clustering,
+               cluster_assoc = rna_cluster_associations,
+               threshold = .01,
+               split_num = 1,
+               title = "T21 Transcripts",
+               fontsize = 0,
+               phenotypes = names(T21.mixed$clinic)[10:21],
+               clinical_threshold = .2,
+               column_names = F,
+               dendrogram = F
+               )
+
+pdf("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/cluster_heatmaps/RNA_diff_clinic_D4clusters_25neighbors_heatmap.pdf", width = 12, height = 8)
+
+draw(p1$h, heatmap_legend_side = "bottom")
+
+dev.off()
+
+```
+
+```{r}
+library(ggalluvial)
+
+cyt_met_all_clusterings <- cbind(cytokine = cyt_clust$clustering,
+                                 integrated = all_clust$clustering,
+                                 metabolite = met_clust$clustering,
+                                 rna = rna_clust$clustering)
+cyt_met_all_clusterings <- cyt_met_all_clusterings %>%
+    as.data.frame() %>%
+    count(cytokine, integrated,metabolite, rna)
+
+cyt_met_all_clusterings[1:4] <- apply(cyt_met_all_clusterings[1:4],2,as.factor)
+
+cols <- c("blue4", "orange4", "springgreen4", "brown3", "grey")
+names(cols) <- c(1,2,3,4,"D21")
+
+p3 <- ggplot(as.data.frame(cyt_met_all_clusterings),
+       aes(y = n, axis1 = integrated, axis2 = rna)) +
+  geom_alluvium(aes(fill = integrated), width = 1/12) +
+  geom_stratum(width = 1/12, fill = "black", color = "grey") +
+  geom_label(stat = "stratum", aes(label = after_stat(stratum))) +
+    scale_x_discrete(limits = c("integrated","rna" ), expand = c(.05, .05)) +
+    scale_fill_manual(values = cols) +
+#  scale_fill_brewer(type = "qual", palette = "Set1") +
+    ggtitle("") +
+    theme_classic() +
+    ylab("count")+
+    theme(axis.text = element_text(size = 12),
+          legend.position = "bottom")
+
+ggsave(p3,file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/riverplots/rna_integrated_25neighbors_riverplot.pdf", height = 3, width = 5)
+
+
+```
+
+## permutations
+```{r}
+library(aricode) ## for AMI
+
+set.seed(1234) ## for reproducibility
+
+
+### calculating jaccard based on counting pairs between two clusterings
+all_clustering <- all_clust$clustering
+
+rna_clustering <- rna_clust$clustering
+
+clust_num <- as.numeric(table(rna_clustering)) ## for checking the breakdown
+total <- sum(clust_num) ## total size of the cohort
+
+
+clusteringPairsJaccard <- function(integrated_clustering, other_clustering) {
+    ss <- 0
+    sd <- 0
+    ds <- 0
+    for(i in 1:4) {
+        all_pairs <- expand.grid(names(integrated_clustering[integrated_clustering==i]),names(integrated_clustering[integrated_clustering==i]))
+        all_pairs <- all_pairs[all_pairs$Var1 != all_pairs$Var2,]
+        all_pairs$pair <- paste(all_pairs$Var1,all_pairs$Var2)
+        ds_tmp <- nrow(all_pairs)    
+        for(j in 1:4) {
+            other_pairs <- expand.grid(names(other_clustering[other_clustering==j]),names(other_clustering[other_clustering==j]))
+            other_pairs <- other_pairs[other_pairs$Var1 != other_pairs$Var2,]
+            other_pairs$pair <- paste(other_pairs$Var1,other_pairs$Var2)
+            ss_tmp <- length(intersect(all_pairs$pair, other_pairs$pair))
+            sd_tmp <- nrow(other_pairs) - ss_tmp
+            ss <- ss + ss_tmp
+            sd <- sd + sd_tmp
+            ds_tmp <- ds_tmp - ss_tmp
+        }
+        ds <- ds+ds_tmp
+    }
+    jaccard <- ss/(ss+sd+ds)
+    return(jaccard)
+}
+
+
+rna_jaccard <- clusteringPairsJaccard(integrated_clustering = all_clustering,
+                                      other_clustering = rna_clustering)
+
+cluster_names <- names(rna_clustering)
+
+permutation_jaccards <- sapply(1:1000, function(x) {
+    permutation <- sample(rna_clust$clustering, size = total, replace = F)
+    names(permutation) <- cluster_names
+    clusteringPairsJaccard(integrated_clustering = all_clustering,
+                                              other_clustering = permutation)
+} )
+
+
+empirical_p <- sum(rna_jaccard< permutation_jaccards)/1001
+
+
+toplot <- as.data.frame(permutation_jaccards)
+
+p4 <- ggplot(toplot, aes(x = permutation_jaccards)) +
+    geom_density() +
+    geom_vline(xintercept = rna_jaccard, color = "darkred") +
+    theme_classic()
+
+ggsave(p4, file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/clustering_permutations/permutation_density.pdf", width = 6, height = 3)
+
+
+```
+
+
+## RNA DE for IMSs
+
+```{r}
+
+library(fgsea)
+
+pathways <- gmtPathways("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/pathway/h.all.v2023.1.Hs.symbols.gmt")
+
+counts <- read.delim("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/data/HTP_data/HTP_WholeBlood_RNAseq_Counts_Synapse.txt")
+
+htp_expr <- counts %>%
+    filter(Gene_name %in% names(T21.transcripts)) %>%
+    filter(LabID %in% rownames(T21.transcripts)) %>%
+    dplyr::select(LabID, Gene_name,Value) %>%
+    distinct(LabID, Gene_name, .keep_all = T) %>%
+    pivot_wider(names_from = Gene_name, id_cols = LabID, values_from = Value) %>%
+    column_to_rownames("LabID")
+
+
+
+
+differential_expression <- diff_expr_limma(t(htp_expr),all_clust$clustering, T21.mixed$clinic, voom = TRUE)
+
+write.csv(differential_expression, file = "~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/tables/RNA_IMS_DE.csv")
+
+
+
+signature_output <- differential_expression[, c("feature", "1.logFC", "2.logFC",  "3.logFC", "4.logFC")]
+
+signatures <- lapply(1:4, function(i) {
+                  rnk <- as.numeric(signature_output[,i+1])
+                  names(rnk) <- signature_output$feature  
+                  fgsea(pathways = pathways,
+                  stats    = rnk,
+                  minSize  = 15,
+                  maxSize  = 500)
+})
+
+
+signatures_NES <- lapply(1:4, function (x) {    
+    signatures[[x]] <- signatures[[x]] %>%
+        dplyr::select(pathway, NES) %>%
+        setNames(c("pathway", paste0("NES",x)))
+})
+
+
+signatures_df <- signatures_NES %>% 
+  reduce(full_join, by = "pathway") %>% 
+  mutate(pathway = gsub("HALLMARK_","", pathway)) %>%
+  mutate(pathway = gsub("_"," ", pathway)) %>%
+  column_to_rownames("pathway")
+
+  
+
+load("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/partial_correlation_results/partial_cor_gsea_results_1_15_24.RData")
+
+source("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/R/partial_correlation_functions.R")
+
+cluster_enrichment <-  clusterPathwayRatios(gsea_results)
+
+cluster_enrichment_toplot <- lapply(cluster_enrichment, function(x) x %>% dplyr::select(pathway, sig_cyt_met))
+cluster_enrichment_toplot <- reduce(cluster_enrichment_toplot, left_join, by = "pathway")
+
+names(cluster_enrichment_toplot)[2:7] <- c("T21", "D21", 1,2,3,4)
+cluster_enrichment_toplot <- cluster_enrichment_toplot %>%
+    mutate(pathway = gsub("HALLMARK_","", pathway)) %>%
+    mutate(pathway = gsub("_"," ", pathway)) %>%
+    column_to_rownames("pathway")
+
+cluster_enrichment_toplot <- cluster_enrichment_toplot[, -c(1:2)]
+names(cluster_enrichment_toplot) <- c("IMS1", "IMS2", "IMS3", "IMS4")
+
+identical(rownames(signatures_df), rownames(cluster_enrichment_toplot))
+
+combined_enrichment <- cbind(signatures_df,cluster_enrichment_toplot)
+combined_enrichment <- combined_enrichment %>%
+  rownames_to_column("pathway")
+
+library(ggrepel)
+
+for(i in 1:4) {
+  combined_enrichment$label <- ifelse(combined_enrichment[,i+5] > 100 |
+                                        combined_enrichment[,i+1] > (mean(combined_enrichment[,i+1]) + 1* sd(combined_enrichment[,i+1])) |
+                                        combined_enrichment[,i+1] < (mean(combined_enrichment[,i+1]) - 1* sd(combined_enrichment[,i+1])) ,
+                                      combined_enrichment$pathway, 
+                                      "")
+   combined_enrichment$color <- ifelse(abs(combined_enrichment[,i+1]) >3, "|NES|>3", 
+                                       ifelse(abs(combined_enrichment[,i+1]) >2, "|NES|>2",
+                                        ifelse(abs(combined_enrichment[,i+1]) >1, "|NES|>1",
+                                      "")))
+  
+  plot1 <- ggplot(combined_enrichment, aes(x = combined_enrichment[,i+1], y = combined_enrichment[,i+5], label = label, color = color)) +
+    geom_point() +
+    geom_text_repel(size = 4) +
+    theme_classic() +
+    ggtitle(paste0("IMS",i)) +
+    scale_color_manual(values = c("|NES|>1"= "darkgreen","|NES|>2"= "darkorange","|NES|>3"= "darkred","black")) +
+    theme(
+      axis.title =   element_text(size = 14), 
+      axis.text =   element_text(size = 14)
+    ) +
+    xlab(paste0("Pathway NES for IMS",i," vs. Other IMSs")) +
+    ylab(paste0("Cyt-Met Counts for Enrichment of Mediation Scores in Pathway"))
+  
+  ggsave(plot1, file = paste0("~/OneDrive - The University of Colorado Denver/Projects/ImmunoMetabolicSubtypes/results/IMS_RNA_vs_Mediation_GSEA/IMS", i, ".pdf"))
+}
+
+
+```
+
+

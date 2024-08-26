@@ -1,0 +1,393 @@
+---
+title: "Partial Correlation Analysis"
+author: "Lucas Gillenwater"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Data Processing
+
+```{r}
+library(tidyverse)
+setwd("/sbgenomics/workspace")
+load("./cyt_met_RNA_processed_2023-05-26.RData")
+load("./processed_transcriptome_2023-06-14.RData")
+
+exp <- expression_list$expression
+
+exp <- exp %>%
+  filter(LabID %in% omics_data$LabID)
+
+## scale the log transformed FPKMs
+exp[, 2:ncol(exp)] <- apply(exp[, 2:ncol(exp)], 2, scale)
+
+omics_data <- omics_data %>%
+  dplyr::select(c("LabID", names(omics_data)[!(names(omics_data)  %in% genes)]))
+
+
+omics_data <- exp %>%
+  inner_join(omics_data, by = "LabID")
+
+save(omics_data, file = "cyt_met_RNA_processed_2023-06-14.RData")
+genes <- names(omics_data)[2:ncol(exp)]
+save(genes, file = "genes.RData")
+
+```
+
+
+
+```{r}
+## calculate the partial correlation overall for significant cytokine metabolite pairs and all genes
+
+### install and load packages
+library(ppcor)
+library(openxlsx)
+library(tidyverse)
+library(Hmisc)
+
+
+load("./cyt_met_RNA_processed_2023-06-14.RData")
+omics_data <- as.data.frame(omics_data)
+omics_data$karyotype <- ifelse(omics_data$clustering == "D21", "D21", "T21")
+
+##### finding correlations for T21, D21, and within each cluster
+
+
+
+
+
+correlations <- read.xlsx("./cluster_correlations_D21.xlsx")
+
+## setting the D21 p values to NA if not significant
+## changing the names of the correlations 'All' field to 'T21'
+
+names(correlations)[3:4] <- c("T21_p", "T21_r")
+
+## removing the 'Cluster' from the names of correlations as well
+names(correlations)[grepl("Cluster", names(correlations))] <- gsub("Cluster", "", names(correlations)[grepl("Cluster", names(correlations))])
+correlations$D21_p <- ifelse(correlations$D21_p < .05, correlations$D21_p, NA)
+
+tmp<- correlations 
+clusters <- c("T21", "D21", 1,2,3,4)
+load("genes.RData")
+cytokines <- names(omics_data)[14304:14357]
+metabolites <- names(omics_data)[14358:14531]
+
+
+
+
+for(cluster in clusters) {
+  print(cluster)
+  tmp_correlations <- tmp %>%
+    dplyr::select("source", "target",paste0(cluster, "_p"), paste0(cluster, "_r"))
+  
+  ## filter to onlys significant correlations within the cluster
+  tmp_correlations <- tmp_correlations[!is.na(tmp_correlations[, 3]), ]
+  
+  ## filter out all T21 subjects or specific cluster
+  if(cluster == "T21") {
+    tmp_omics <- omics_data %>%
+      filter(karyotype == cluster) %>%
+      as.data.frame()
+  } else {
+    tmp_omics <- omics_data %>%
+      filter(clustering == cluster) %>%
+      as.data.frame()
+  }
+  
+  tmp_omics <- as.matrix(sapply(tmp_omics[, 2:(ncol(tmp_omics)-2)],as.numeric))
+  
+  
+  cyt_met_correlations <- rcorr(tmp_omics[,cytokines], tmp_omics[,metabolites])
+  cyt_gene_correlations <- rcorr(tmp_omics[,cytokines], tmp_omics[,genes])
+  met_gene_correlations <- rcorr(tmp_omics[,metabolites], tmp_omics[,genes])
+  
+  
+  for(y in 1:nrow(tmp_correlations)) {
+      
+    print(y/nrow(tmp_correlations))
+      cyt <- tmp_correlations[y, "source"]
+      met <- tmp_correlations[y, "target"]
+      
+      cor_cyt_met_p <- cyt_met_correlations$P[cyt,met]
+      
+      if(cor_cyt_met_p < .05) {
+        cor_cyt_met_r <- cyt_met_correlations$r[cyt,met]
+          
+        tmp_partial_cor_results <- lapply(genes, function(z) {
+          cor_cyt_gene_r <- cyt_gene_correlations$r[cyt,z]
+          cor_cyt_gene_p <- cyt_gene_correlations$P[cyt,z]
+          cor_met_gene_r <- met_gene_correlations$r[met,z]
+          cor_met_gene_p <- met_gene_correlations$P[met,z]
+          partial_correlations <- pcor(tmp_omics[,c(cyt,met,z)])
+          partial_cor_cyt_met_p <- partial_correlations$p.value[1,2]
+          partial_cor_cyt_met_r <- partial_correlations$estimate[1,2]
+          diff_p <- partial_cor_cyt_met_p - cor_cyt_met_p
+          diff_r <- partial_cor_cyt_met_r - cor_cyt_met_r
+          return(c(cor_cyt_gene_r, cor_cyt_gene_p, cor_met_gene_r, cor_met_gene_p, partial_cor_cyt_met_r, partial_cor_cyt_met_p,
+                   diff_r, diff_p))
+        })
+        
+        tmp_partial_cor_results <- as.data.frame(do.call(rbind, tmp_partial_cor_results))
+        names(tmp_partial_cor_results) <- c("cor_cyt_gene_r", "cor_cyt_gene_p", "cor_met_gene_r", 
+                                            "cor_met_gene_p", "partial_cor_cyt_met_r", "partial_cor_cyt_met_p", 
+                                            "diff_r", "diff_p")
+        l_genes <- length(genes)
+        tmp_partial_cor_results$cytokine <- rep(cyt, l_genes)
+        tmp_partial_cor_results$metabolite <- rep(met, l_genes)
+        tmp_partial_cor_results$gene <- genes
+        tmp_partial_cor_results$cluster <- rep(cluster, l_genes)
+        tmp_partial_cor_results$cor_cyt_met_r <- rep(cor_cyt_met_r, l_genes)
+        tmp_partial_cor_results$cor_cyt_met_p <- rep(cor_cyt_met_p, l_genes)
+        tmp_partial_cor_results <- tmp_partial_cor_results[, c("cytokine", "metabolite", "gene", "cluster", "cor_cyt_met_r", "cor_cyt_met_p",
+                                                              "cor_cyt_gene_r", "cor_cyt_gene_p", "cor_met_gene_r", 
+                                                               "cor_met_gene_p", "partial_cor_cyt_met_r", "partial_cor_cyt_met_p", 
+                                                               "diff_r", "diff_p")]
+      } 
+      save(tmp_partial_cor_results, file = sprintf("./results/%s_%s_%s.RData", cluster, make.names(cyt), make.names(met)), row.names = F)
+        
+    }
+  
+}
+
+
+                                                               
+```
+
+
+
+```{r}
+source("./subPhenoDS/R/context_specificity_partial_correlation.R")
+#### Find correlations for data filtered to those with transcriptomic data
+load("./input_data/cyt_met_RNA_processed_2023-06-14.RData")
+omics_data <- as.data.frame(omics_data)
+load("./all_clust.RData")
+clustering <- as.data.frame(all_clust$clustering)
+names(clustering) <- "new_clustering"
+clustering$LabID <- rownames(clustering)
+
+omics_data <- omics_data %>%
+  left_join(clustering, by = "LabID" )
+omics_data$clustering <- omics_data$new_clustering
+omics_data$karyotype <- ifelse(is.na(omics_data$clustering), "D21", "T21")
+omics_data$clustering <- as.character(omics_data$clustering)
+clusters <- c("T21", "D21", 1,2,3,4)
+cytokines <- names(omics_data)[14304:14357]
+metabolites <- names(omics_data)[14358:(ncol(omics_data) -2)]
+
+
+
+orig_correlations <- read.csv("./T21_cyt_met_correlations.csv")
+orig_correlations$cyt_met <- paste0(orig_correlations$A, "-", orig_correlations$B)
+orig_correlations <- orig_correlations %>%
+  filter(fdr < .1)
+
+cytokines <- unique(orig_correlations$A)
+metabolites <- unique(orig_correlations$B)
+
+#### Partial Correlation Calc
+load("./input_data/genes.RData")
+
+
+for(cluster in clusters[4:6]) {
+  
+  if(cluster %in% c("T21","D21")) {
+    tmp_omics <- omics_data %>%
+      filter(karyotype == cluster) %>%
+      as.data.frame()
+  } else {
+    tmp_omics <- omics_data %>%
+      filter(clustering == cluster) %>%
+      as.data.frame()
+  }
+  
+  tmp_omics <- as.matrix(sapply(tmp_omics[, 2:(ncol(tmp_omics)-2)],as.numeric))
+  
+  if(file.exists( paste0("./results_1_15_24/correlations/cluster", cluster, "cytokine-metabolite_correlations.RData"))) { ## in the future add a check for the size of the correlation file
+    print(paste0("Found file for cytokine-metabolite correlations"))
+    load( paste0("./results_1_15_24/correlations/cluster", cluster, "cytokine-metabolite_correlations.RData"))
+  } else {
+    print(paste0("Recalculating the cytokine-metabolite relationships for ", cluster))
+    cyt_met_correlations <- rcorr(tmp_omics[,cytokines], tmp_omics[,metabolites], type = "spearman")  
+    save(cyt_met_correlations, file = paste0("./results_1_15_24/correlations/cluster", cluster, "cytokine-metabolite_correlations.RData"))
+  }
+  
+  if(file.exists( paste0("./results_1_15_24/correlations/cluster", cluster, "cytokine-gene_correlations.RData"))) {
+    print(paste0("Found file for cytokine-gene correlations"))
+    load( paste0("./results_1_15_24/correlations/cluster", cluster, "cytokine-gene_correlations.RData"))
+  } else {
+    print(paste0("Calculating the cytokine-gene relationships for ", cluster))
+    cyt_gene_correlations <- rcorr(tmp_omics[,cytokines], tmp_omics[,genes], type = "spearman")
+    save(cyt_gene_correlations, file =paste0("./results_1_15_24/correlations/cluster", cluster, "cytokine-gene_correlations.RData") )
+  }
+  
+  if(file.exists( paste0("./results_1_15_24/correlations/cluster", cluster, "metabolite-gene_correlations.RData"))) {
+    print(paste0("Found file for metabolite-gene correlations"))
+    load( paste0("./results_1_15_24/correlations/cluster", cluster, "metabolite-gene_correlations.RData"))
+  } else {
+    print(paste0("Calculating the metabolite-gene relationships for ", cluster))
+    met_gene_correlations <- rcorr(tmp_omics[,metabolites], tmp_omics[,genes], type = "spearman")
+    save(met_gene_correlations, file =paste0("./results_1_15_24/correlations/cluster", cluster, "metabolite-gene_correlations.RData" ))
+  }
+       
+  print(paste0("Finding the partial correlations for ", cluster))
+  print("This part takes a few minutes")  
+
+  
+  
+  for(i in  1:nrow(orig_correlations)){
+    cyt = orig_correlations[i, "A"] %>% as.character()
+    met = orig_correlations[i, "B"] %>% as.character()
+    
+    if(file.exists( sprintf("./results_1_15_24/%s_%s_%s.RData", cluster, make.names(cyt), make.names(met)))){ 
+      print(paste0(round((i/nrow(orig_correlations) * 100),2), " percent complete."))
+    } else {
+      
+      cor_cyt_met_p <- cyt_met_correlations$P[cyt,met]
+      cor_cyt_met_r <- cyt_met_correlations$r[cyt,met]
+      
+      tmp_partial_cor_results <-mclapply(genes, function(z) {
+        cor_cyt_gene_r <- cyt_gene_correlations$r[cyt,z]
+        cor_cyt_gene_p <- cyt_gene_correlations$P[cyt,z]
+        cor_met_gene_r <- met_gene_correlations$r[met,z]
+        cor_met_gene_p <- met_gene_correlations$P[met,z]
+        partial_correlations <- pcor(tmp_omics[,c(cyt,met,z)], method = "spearman")
+        partial_cor_cyt_met_p <- partial_correlations$p.value[1,2]
+        partial_cor_cyt_met_r <- partial_correlations$estimate[1,2]
+        partial_cor_cyt_gene_p <- partial_correlations$p.value[1,3]
+        partial_cor_cyt_gene_r <- partial_correlations$estimate[1,3]
+        partial_cor_met_gene_p <- partial_correlations$p.value[2,3]
+        partial_cor_met_gene_r <- partial_correlations$estimate[2,3]
+        diff_r <- cor_cyt_met_r -  partial_cor_cyt_met_r
+        percent_diff <- diff_r / cor_cyt_met_r
+        
+        return(c(cor_cyt_gene_r, cor_cyt_gene_p, cor_met_gene_r, cor_met_gene_p, partial_cor_cyt_met_r, partial_cor_cyt_met_p, partial_cor_cyt_gene_p,  partial_cor_cyt_gene_r,  partial_cor_met_gene_p,  partial_cor_met_gene_r,  diff_r, percent_diff))
+      }, mc.cores = 20)
+      
+      tmp_partial_cor_results <- as.data.frame(do.call(rbind, tmp_partial_cor_results))
+      names(tmp_partial_cor_results) <- c("cor_cyt_gene_r", "cor_cyt_gene_p", "cor_met_gene_r", 
+                                          "cor_met_gene_p", "partial_cor_cyt_met_r", "partial_cor_cyt_met_p", "partial_cor_cyt_gene_p", "partial_cor_cyt_gene_r", "partial_cor_met_gene_p", " partial_cor_met_gene_r","diff_r", "percent_diff")
+      l_genes <- length(genes)
+      tmp_partial_cor_results$cytokine <- rep(cyt, l_genes)
+      tmp_partial_cor_results$metabolite <- rep(met, l_genes)
+      tmp_partial_cor_results$gene <- genes
+      tmp_partial_cor_results$cluster <- rep(cluster, l_genes)
+      tmp_partial_cor_results$cor_cyt_met_r <- rep(cor_cyt_met_r, l_genes)
+      tmp_partial_cor_results$cor_cyt_met_p <- rep(cor_cyt_met_p, l_genes)
+      tmp_partial_cor_results <- tmp_partial_cor_results[, c("cytokine", "metabolite", "gene", "cluster", "cor_cyt_met_r", "cor_cyt_met_p",
+                                                             "cor_cyt_gene_r", "cor_cyt_gene_p", "cor_met_gene_r", 
+                                                             "cor_met_gene_p", "partial_cor_cyt_met_r", "partial_cor_cyt_met_p", "partial_cor_cyt_gene_p", "partial_cor_cyt_gene_r", "partial_cor_met_gene_p", " partial_cor_met_gene_r",  "diff_r", "percent_diff")]
+      tmp_partial_cor_results <- tmp_partial_cor_results %>%
+        mutate(cyt_met = paste0(cytokine, "-", metabolite))
+    
+    save(tmp_partial_cor_results, file = sprintf("./results_1_15_24/%s_%s_%s.RData", cluster, make.names(cyt), make.names(met)), row.names = F)
+    print(paste("Saved results for ", cluster, "----", cyt, "---", met))
+    print(paste0(round((i/nrow(orig_correlations) * 100),2), " percent complete."))
+    }
+  }
+  print(paste(cluster,"Done."))
+}
+
+
+
+results_files <- list.files("./results_1_15_24", pattern = "*.RData")
+results_files <- sapply(results_files, function(x) sprintf("./results_1_15_24/%s",x))
+results_list <- list()
+
+
+### load the results into a list of tables
+for(i in 1:length(results_files)) {
+  load(results_files[i])
+  results_list[[i]] <- tmp_partial_cor_results
+}
+
+full_results <- do.call(rbind, results_list)
+
+### filter by original cyt_met relationships and reformat cyt_met to only have 1 dash for downstream code.
+full_results <- full_results %>%
+  mutate(cyt_met = paste0(cytokine, "-", metabolite)) 
+
+length(unique(full_results$cyt_met))
+
+save(full_results, file ="full_partial_correlation_results_1_15_24.RData")
+
+##################
+load("full_partial_correlation_results_1_15_24.RData")
+
+
+T21_filtered <- full_results %>%
+  filter(cyt_met %in% orig_correlations$cyt_met )
+length(unique(T21_filtered$cyt_met))
+
+save(T21_filtered, file ="full_partial_correlation_results_1_22_24.RData")
+
+### This calc takes a bit
+
+### cleaning up the environment
+load("full_partial_correlation_results_1_22_24.RData")
+gc()
+
+
+full_z_results <- fullZWrapper(T21_filtered, clusters = c(1,2,3,4,"T21", "D21"))
+names(full_z_results) <-  c(1,2,3,4,"T21", "D21")
+save(full_z_results, file = "full_z_percent_1_15_24.RData")
+
+rm(orig_correlations,full_results, omics_data, input_list, input_matrix, tmp, tmp_results, z_score_matrix)
+
+
+load("full_z_percent_1_15_24.RData")
+gc()
+
+long_z <- wideToLong(full_z_results)
+save(long_z, file = "long_z_1_15_24.RData")
+
+#### find relationships that span over several clusters
+### Combine results into a long (Very long) matrix
+
+rm(orig_correlations,full_results, full_z_results, omics_data, input_list, input_matrix, tmp, tmp_results, z_score_matrix)
+gc()
+
+names(long_z) <- clusters
+
+gsea_results <- lapply(clusters, function(x) {
+  print(x)
+  return(gseaWrapper(long_results_matrix = long_z[[x]]))
+})
+                       
+save(gsea_results, file = "partial_cor_gsea_results_1_15_24.RData")
+load( file = "partial_cor_gsea_results_1_15_24.RData")
+### adding the cytokine-metabolite relationships to the GSEA results
+gsea_results_formatted <- lapply(gsea_results, function(x) {
+  lapply(x, function(y) {
+    y %>% dplyr::select(pathway, NES,padj)
+  })
+})
+
+gsea_results_formatted <- lapply(gsea_results_formatted, function(x) x[-155])
+gsea_results_formatted <- lapply(gsea_results_formatted, bind_cols)
+gsea_results_formatted <- lapply(gsea_results_formatted, function(x) {
+  x %>% column_to_rownames('pathway...1') %>% dplyr::select(-contains("pathway"))
+})
+
+cyt_met_relationships <- lapply(long_z, function(x) unique(x$`cyt_met`))
+cyt_met_relationships <- lapply(cyt_met_relationships, function(x) x[-155])
+gsea_names <- lapply(1:length(cyt_met_relationships[[1]]), function(x) {
+  c(paste(cyt_met_relationships[[1]][x], "NES"), paste(cyt_met_relationships[[1]][x], "padj"))
+})
+gsea_names <- unlist(gsea_names)
+
+
+### renaming by cyt-met relationships
+for(x in 1){
+   colnames(gsea_results_formatted[[x]]) <- gsea_names
+}
+
+
+save(gsea_results_formatted, file= "partial_corrlation_gsea_results_formatted_1_15_24.RData")
+
+
+```
